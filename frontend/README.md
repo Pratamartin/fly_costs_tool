@@ -1,7 +1,3 @@
-# fly_costs_tool
-
-Base inicial do frontend com Next.js 14 (Pages Router), TypeScript, Tailwind CSS e Docker.
-
 ## Rodar localmente
 
 ```bash
@@ -20,3 +16,7 @@ docker compose up --build
 ```
 
 Acesse: http://localhost:3000
+
+
+
+
