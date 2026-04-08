@@ -30,6 +30,7 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 ```
 /                        → Página inicial (placeholder)
+/login                   → Login (Admin, Coordenador e Aluno)
 /register-coordinator    → Cadastro do Coordenador
 /register-student        → Cadastro do Aluno
 ```
