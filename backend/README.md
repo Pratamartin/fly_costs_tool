@@ -47,19 +47,13 @@
 
 Antes de iniciar, crie seu arquivo `.env.test.local` com base no `.env.test`.
 
-```bash
-# Executa a suíte completa (CI)
-npm test
+| Comando | Descrição |
+| :--- | :--- |
+| `npm test` | Executa a suíte completa (CI) |
+| `npm run test:watch` | Executa em modo watch (Desenvolvimento local) |
+| `npx vitest caminho/do/arquivo.test.ts` | Executa um arquivo de teste específico |
+| `npm run test:coverage` | Gera o relatório de cobertura de código |
 
-# Executa em modo watch (Desenvolvimento local)
-npm run test:watch
-
-# Executa um arquivo de teste específico
-npx vitest caminho/do/arquivo.test.ts
-
-# Gera o relatório de cobertura de código
-npm run test:coverage
-```
 
 ## 📖 Observações
 Listagem de comandos disponíveis em `scripts` no `package.json`.
