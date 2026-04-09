@@ -43,6 +43,18 @@
       DATABASE_URL="postgresql://user:password@localhost:5432/flycostsdb"
       ```
 
+## 🧪 Testes
+
+Antes de iniciar, crie seu arquivo `.env.test.local` com base no `.env.test`.
+
+| Comando | Descrição |
+| :--- | :--- |
+| `npm test` | Executa a suíte completa (CI) |
+| `npm run test:watch` | Executa em modo watch (Desenvolvimento local) |
+| `npx vitest caminho/do/arquivo.test.ts` | Executa um arquivo de teste específico |
+| `npm run test:coverage` | Gera o relatório de cobertura de código |
+
+
 ## 📖 Observações
 Listagem de comandos disponíveis em `scripts` no `package.json`.
 
