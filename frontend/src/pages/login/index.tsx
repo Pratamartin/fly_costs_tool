@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 
 const roles = [
   { value: "", label: "Selecione seu perfil de acesso" },
@@ -8,6 +9,7 @@ const roles = [
 ];
 
 export default function Login() {
+  const router = useRouter();
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [form, setForm] = useState({
     email: "",
@@ -26,8 +28,10 @@ export default function Login() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: integrar com o backend
-    console.log(form);
+    // TODO: integrar com o backend — o redirecionamento final virá do perfil retornado pela API
+    if (form.perfil === "aluno") {
+      router.push("/dashboard/student");
+    }
   }
 
   return (

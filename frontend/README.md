@@ -33,6 +33,7 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 /login                   → Login (Admin, Coordenador e Aluno)
 /register-coordinator    → Cadastro do Coordenador
 /register-student        → Cadastro do Aluno
+/dashboard/student       → Dashboard do Aluno
 ```
 
 ### Cadastro do Coordenador (`/register-coordinator`)
@@ -86,10 +87,15 @@ frontend/
 └── src/
     └── pages/
         ├── index.tsx                        # Página inicial
+        ├── login/
+        │   └── index.tsx                    # Login
         ├── register-coordinator/
         │   └── index.tsx                    # Cadastro do Coordenador
-        └── register-student/
-            └── index.tsx                    # Cadastro do Aluno
+        ├── register-student/
+        │   └── index.tsx                    # Cadastro do Aluno
+        └── dashboard/
+            └── student/
+                └── index.tsx                # Dashboard do Aluno
 ```
 
 ---
