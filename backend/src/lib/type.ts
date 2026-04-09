@@ -5,7 +5,7 @@ import type { PinoLogger } from 'hono-pino'
 // Variáveis úteis na camada controller.
 export type AppContext = {
   Variables: {
-    logger: PinoLogger // Acesso através de 'c.logger'.
+    logger: PinoLogger // Acesso através de 'c.get('logger')'.
   }
 }
 
