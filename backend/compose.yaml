@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fly-costs-backend
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+    networks:
+      - fly-costs-network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres
+    container_name: fly-costs-db
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: flycostsdb
+    volumes:
+      - fly-costs-db-data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      - fly-costs-network
+
+volumes:
+  fly-costs-db-data:
+
+networks:
+  fly-costs-network:
+    driver: bridge
