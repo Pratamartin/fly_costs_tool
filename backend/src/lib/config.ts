@@ -25,6 +25,12 @@ export function createTestApp<S extends Schema>(router: AppOpenAPI<S>) {
 }
 
 export function configureDocs(app: AppOpenAPI) {
+  app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+  })
+
   app.doc('/doc', {
     openapi: '3.0.0',
     info: {
