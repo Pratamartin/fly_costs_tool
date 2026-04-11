@@ -10,6 +10,8 @@ const EnvSchema = z.object({
   NODE_ENV: z.string().default('development'),
   PORT: z.coerce.number().default(3001),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  JWT_SECRET: z.string(),
+  JWT_EXPIRES_IN: z.coerce.number(),
   SALT_ROUNDS: z.coerce.number().default(10),
   ALLOWED_ORIGINS: z.string()
     .transform(str => str.split(','))
