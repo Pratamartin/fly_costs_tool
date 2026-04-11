@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 
 export default function CadastroCoordenador() {
+  const router = useRouter();
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [form, setForm] = useState({
@@ -18,7 +20,7 @@ export default function CadastroCoordenador() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     // TODO: integrar com o backend
-    console.log(form);
+    router.push("/login");
   }
 
   return (
