@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ModalNovaDespesa from "@/components/ModalNovaDespesa";
+import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
 
 type Status = "Pendente" | "Aprovado" | "Rejeitado";
 type Filtro = "Todos" | Status;
@@ -15,7 +15,8 @@ interface Despesa {
   icone: "componentes" | "livros" | "viagem" | "nuvem";
 }
 
-const despesas: Despesa[] = [
+// Dados iniciais de exemplo — substituir pelo fetch da API quando o backend estiver pronto
+const despesasIniciais: Despesa[] = [
   {
     id: "1",
     data: "28 out. 2025",
@@ -125,11 +126,36 @@ function BadgeStatus({ status }: { status: Status }) {
   );
 }
 
+function formatarData(date: Date): string {
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function gerarReqId(): string {
+  const num = Math.floor(8000 + Math.random() * 1999);
+  return `#REQ-${num}`;
+}
+
 export default function DashboardAluno() {
+  const [despesas, setDespesas] = useState<Despesa[]>(despesasIniciais);
   const [filtro, setFiltro] = useState<Filtro>("Todos");
   const [projeto, setProjeto] = useState("Todos os Projetos");
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
+
+  // TODO: ao integrar o backend, substituir por POST /solicitacoes e depois re-fetch ou append com o item retornado
+  function handleNovaDespesa(data: NovaDespesaData) {
+    const nova: Despesa = {
+      id: String(Date.now()),
+      data: formatarData(new Date()),
+      descricao: data.descricao,
+      reqId: gerarReqId(),
+      projeto: data.projeto,
+      valor: data.valor,
+      status: "Pendente",
+      icone: data.categoria,
+    };
+    setDespesas((prev) => [nova, ...prev]);
+  }
 
   const totalSubmetido = despesas.reduce((s, d) => s + d.valor, 0);
   const totalPendente = despesas.filter((d) => d.status === "Pendente").reduce((s, d) => s + d.valor, 0);
@@ -146,7 +172,7 @@ export default function DashboardAluno() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      {modalAberto && <ModalNovaDespesa onClose={() => setModalAberto(false)} />}
+      {modalAberto && <ModalNovaDespesa onClose={() => setModalAberto(false)} onSubmit={handleNovaDespesa} />}
 
       {/* Sidebar */}
       <aside className="flex w-56 shrink-0 flex-col justify-between bg-white border-r border-gray-200 py-6 px-4">
