@@ -31,6 +31,8 @@ export default function Login() {
     // TODO: integrar com o backend — o redirecionamento final virá do perfil retornado pela API
     if (form.perfil === "aluno") {
       router.push("/dashboard/student");
+    } else if (form.perfil === "coordenador") {
+      router.push("/dashboard/coordinator");
     }
   }
 
