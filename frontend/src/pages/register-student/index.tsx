@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 
 export default function CadastroAluno() {
+  const router = useRouter();
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [form, setForm] = useState({
@@ -28,7 +30,8 @@ export default function CadastroAluno() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log(form);
+    // TODO: integrar com o backend
+    router.push("/login");
   }
 
   return (
