@@ -1,33 +1,49 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
+
+export type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
+
+export interface NovaDespesaData {
+  projeto: string;
+  descricao: string;
+  valor: number;
+  categoria: CategoriaIcone;
+  sugestaoCompra: string;
+}
 
 interface Props {
   onClose: () => void;
+  onSubmit: (data: NovaDespesaData) => void;
 }
 
-export default function ModalNovaDespesa({ onClose }: Props) {
-  const [form, setForm] = useState({ projeto: "", nome: "", valor: "", arquivo: null as File | null });
-  const [arrastando, setArrastando] = useState(false);
-  const inputFileRef = useRef<HTMLInputElement>(null);
+const categorias: { value: CategoriaIcone; label: string }[] = [
+  { value: "componentes", label: "Componentes / Hardware" },
+  { value: "livros", label: "Livros / Material Didático" },
+  { value: "viagem", label: "Viagem / Transporte" },
+  { value: "nuvem", label: "Software / Cloud / Outros" },
+];
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
+  const [form, setForm] = useState({
+    projeto: "",
+    nome: "",
+    valor: "",
+    categoria: "" as CategoriaIcone | "",
+    sugestaoCompra: "",
+  });
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
-  }
-
-  function handleArquivo(file: File) {
-    setForm({ ...form, arquivo: file });
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setArrastando(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleArquivo(file);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: integrar com o backend
-    console.log(form);
+    onSubmit({
+      projeto: form.projeto,
+      descricao: form.nome,
+      valor: parseFloat(form.valor),
+      categoria: form.categoria as CategoriaIcone,
+      sugestaoCompra: form.sugestaoCompra,
+    });
     onClose();
   }
 
@@ -79,6 +95,32 @@ export default function ModalNovaDespesa({ onClose }: Props) {
             </div>
           </div>
 
+          {/* Categoria */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Categoria
+            </label>
+            <div className="relative">
+              <select
+                name="categoria"
+                value={form.categoria}
+                onChange={handleChange}
+                required
+                className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+              >
+                <option value="" disabled>Escolha uma categoria...</option>
+                {categorias.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
           {/* Nome da despesa */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -98,7 +140,7 @@ export default function ModalNovaDespesa({ onClose }: Props) {
           {/* Valor */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Valor
+              Valor Estimado
             </label>
             <div className="relative">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-medium text-gray-400">
@@ -118,48 +160,19 @@ export default function ModalNovaDespesa({ onClose }: Props) {
             </div>
           </div>
 
-          {/* Upload de comprovante */}
+          {/* Sugestão de onde comprar */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Comprovante
+              Sugestão de Onde Comprar
+              <span className="ml-1 text-xs font-normal text-gray-400">(opcional)</span>
             </label>
-            <div
-              onClick={() => inputFileRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
-              onDragLeave={() => setArrastando(false)}
-              onDrop={handleDrop}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 transition ${
-                arrastando
-                  ? "border-[#4F46E5] bg-[#4F46E5]/5"
-                  : "border-gray-200 bg-gray-50 hover:border-[#4F46E5] hover:bg-[#4F46E5]/5"
-              }`}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4F46E5]/10">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-[#4F46E5]">
-                  <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v8.69l2.72-2.72a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 111.06-1.06l2.72 2.72V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
-                  <path fillRule="evenodd" d="M3 15.75A2.75 2.75 0 015.75 13h1.5a.75.75 0 010 1.5h-1.5c-.69 0-1.25.56-1.25 1.25v.5c0 .69.56 1.25 1.25 1.25h8.5c.69 0 1.25-.56 1.25-1.25v-.5c0-.69-.56-1.25-1.25-1.25h-1.5a.75.75 0 010-1.5h1.5A2.75 2.75 0 0117 15.75v.5A2.75 2.75 0 0114.25 19h-8.5A2.75 2.75 0 013 16.25v-.5z" clipRule="evenodd" />
-                </svg>
-              </div>
-              {form.arquivo ? (
-                <p className="text-sm font-medium text-[#4F46E5]">{form.arquivo.name}</p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-gray-700">
-                    Clique para enviar ou arraste o arquivo
-                  </p>
-                  <p className="text-xs text-gray-400">SVG, PNG, JPG ou PDF (máx. 5MB)</p>
-                </>
-              )}
-            </div>
-            <input
-              ref={inputFileRef}
-              type="file"
-              accept=".svg,.png,.jpg,.jpeg,.pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleArquivo(file);
-              }}
+            <textarea
+              name="sugestaoCompra"
+              value={form.sugestaoCompra}
+              onChange={handleChange}
+              placeholder="ex.: Amazon, Mercado Livre, loja física Kalunga..."
+              rows={2}
+              className="w-full resize-none rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
             />
           </div>
 
