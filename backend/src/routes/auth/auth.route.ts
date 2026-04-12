@@ -2,9 +2,12 @@ import { createRoute } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
-import { RegisterSchema, RegisterSuccessSchema } from '@/schemas/auth.schema'
+import { LoginSchema, LoginSuccessSchema, RegisterSchema, RegisterSuccessSchema } from '@/schemas/auth.schema'
 
 const tags = ['Auth']
+
+export type RegisterRoute = typeof register
+export type LoginRoute = typeof login
 
 export const register = createRoute({
   path: '/register',
@@ -31,4 +34,21 @@ export const register = createRoute({
   },
 })
 
-export type RegisterRoute = typeof register
+export const login = createRoute({
+  path: '/login',
+  method: 'post',
+  summary: 'Authenticate user',
+  description: 'Logar usuário no sistema.',
+  tags,
+  request: { body: jsonContentRequired(LoginSchema, 'User credentials') },
+  responses: {
+    [codes.OK]: jsonContent(
+      LoginSuccessSchema,
+      'Autenticação bem-sucedida. O access token é retornado no corpo da resposta.',
+    ),
+    [codes.UNAUTHORIZED]: jsonContent(
+      createMessageObjectSchema('Login ou senha inválidos'),
+      'Erro: Credenciais incorretas ou usuário não encontrado.',
+    ),
+  },
+})

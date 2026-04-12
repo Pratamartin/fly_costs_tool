@@ -7,6 +7,10 @@ import * as phrases from 'stoker/http-status-phrases'
 
 export const index: AppRouteHandler<IndexRoute> = (c) => {
   const logger = c.get('logger')
+  const jwt = c.get('jwtPayload')
+
+  logger.info(jwt.role)
+
   const response: z.infer<typeof HealthResponseSchema> = {
     status: phrases.OK,
     timestamp: new Date(),

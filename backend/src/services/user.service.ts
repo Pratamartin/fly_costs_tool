@@ -21,8 +21,21 @@ export async function createUser(data: CreateUserDTO, saltRounds: number) {
 }
 
 export async function getUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: { email },
-    omit,
+  return prisma.user.findUnique({ where: { email } })
+}
+
+export async function getUserById(id: string) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   })
+
+  return user
 }
