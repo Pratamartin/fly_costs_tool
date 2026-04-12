@@ -26,3 +26,15 @@ export const RegisterSuccessSchema = RegisterSchema.omit({
   id: z.uuid(),
   ...TimestampSchema,
 })
+
+export const LoginSchema = RegisterSchema.pick({
+  email: true,
+  password: true,
+})
+
+export const LoginSuccessSchema = z.object({
+  accessToken: z.string().openapi({
+    description: 'JWT (JSON Web Token) para ser utilizado no header de autorização.',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  }),
+})
