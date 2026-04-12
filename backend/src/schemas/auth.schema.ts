@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi'
 import { UserRole } from '@/generated/prisma/enums'
-import { TimestampSchema } from '@/schemas/shared.schema'
+import { UserSchema } from './user.schema'
 
 export const RegisterSchema = z.object({
   name: z.string().openapi({ example: 'João Silva' }),
@@ -19,13 +19,7 @@ export const RegisterSchema = z.object({
   inviteCode: z.string().openapi({ example: 'CONVITE2026' }),
 })
 
-export const RegisterSuccessSchema = RegisterSchema.omit({
-  password: true,
-  inviteCode: true,
-}).extend({
-  id: z.uuid(),
-  ...TimestampSchema,
-})
+export const RegisterSuccessSchema = UserSchema
 
 export const LoginSchema = RegisterSchema.pick({
   email: true,
