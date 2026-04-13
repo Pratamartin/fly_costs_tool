@@ -55,3 +55,45 @@ export async function getAllExpenseRequests(
     amount: item.amount.toString(),
   }))
 }
+
+export async function getExpenseById(
+  id: string,
+  userId: string,
+  role: UserRole,
+) {
+  const where: Prisma.ExpenseRequestWhereInput = { id }
+
+  const include: Prisma.ExpenseRequestInclude = {
+    project: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+  }
+
+  if (role === UserRole.ALUNO) {
+    where.studentId = userId
+  }
+  else {
+    include.student = {
+      select: {
+        id: true,
+        name: true,
+      },
+    }
+  }
+
+  const result = await prisma.expenseRequest.findFirst({
+    where,
+    include,
+  })
+
+  if (!result)
+    return null
+
+  return {
+    ...result,
+    amount: result.amount.toString(),
+  }
+}
