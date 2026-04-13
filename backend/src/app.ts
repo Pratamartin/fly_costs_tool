@@ -1,12 +1,17 @@
 import { configureDocs, createApp } from './lib/config'
 import { createRouter, registerRoutes } from './lib/util'
-import { auth, health, me } from './routes'
+import { auth, expenses, health, me } from './routes'
 
 const app = createApp()
 
 const v1 = createRouter()
 
-registerRoutes(v1, [health, auth, me])
+registerRoutes(v1, [
+  health,
+  auth,
+  me,
+  expenses,
+])
 
 app.route('/v1', v1)
 
