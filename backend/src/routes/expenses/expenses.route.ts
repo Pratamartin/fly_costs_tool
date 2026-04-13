@@ -4,13 +4,28 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateExpenseSchema, CreateExpenseSuccessSchema } from '@/schemas/expense.schema'
+import { CreateExpenseSchema, CreateExpenseSuccessSchema, ListExpenseSuccessSchema } from '@/schemas/expense.schema'
 
 const tags = ['Expenses']
 
 export type CreateRoute = typeof create
+export type IndexRoute = typeof index
 
 const ALLOWED_ROLES: UserRole[] = ['ALUNO']
+
+export const index = createRoute({
+  path: '/',
+  method: 'get',
+  middleware: [requireAuth],
+  security: [{ bearerAuth: [] }],
+  summary: 'List expenses',
+  description: 'Retorna todas as despesas se for ADMIN/COORDENADOR ou apenas as próprias se for ALUNO.',
+  tags,
+  responses: {
+    [codes.OK]: jsonContent(ListExpenseSuccessSchema, 'Lista de solicitações de despesas.'),
+    [codes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou ausente'),
+  },
+})
 
 export const create = createRoute({
   path: '/',

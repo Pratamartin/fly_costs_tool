@@ -21,3 +21,27 @@ export const CreateExpenseSuccessSchema = z.object({
   status: z.enum(ExpenseRequestStatus).default('PENDENTE')
     .openapi({ example: ExpenseRequestStatus.PENDENTE }),
 }).extend(TimestampSchema)
+
+const StudentSchema = z.object({
+  id: z.uuid()
+    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+  name: z.string().openapi({ example: 'João Silva' }),
+})
+
+const ProjectSchema = z.object({
+  id: z.uuid()
+    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+  name: z.string().openapi({ example: 'Laboratório de Robótica' }),
+})
+
+export const ExpenseListItemSchema = CreateExpenseSuccessSchema.extend({
+  title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
+  amount: z.string().openapi({
+    example: '450.00',
+    description: 'Valor formatado como string para evitar perda de precisão em ponto flutuante.',
+  }),
+  student: StudentSchema.optional(),
+  project: ProjectSchema.nullable().optional(),
+})
+
+export const ListExpenseSuccessSchema = z.array(ExpenseListItemSchema)
