@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi'
 import { ExpenseRequestStatus, ExpenseTopic } from '@/generated/prisma/enums'
-import { TimestampSchema } from './shared.schema'
+import { IdSchema, TimestampSchema } from './shared.schema'
 
 export const CreateExpenseSchema = z.object({
   title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
@@ -16,8 +16,32 @@ export const CreateExpenseSchema = z.object({
 })
 
 export const CreateExpenseSuccessSchema = z.object({
-  id: z.uuid()
+  id: IdSchema
     .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
   status: z.enum(ExpenseRequestStatus).default('PENDENTE')
     .openapi({ example: ExpenseRequestStatus.PENDENTE }),
 }).extend(TimestampSchema)
+
+const StudentSchema = z.object({
+  id: IdSchema
+    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+  name: z.string().openapi({ example: 'João Silva' }),
+})
+
+const ProjectSchema = z.object({
+  id: IdSchema
+    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+  name: z.string().openapi({ example: 'Laboratório de Robótica' }),
+})
+
+export const ExpenseListItemSchema = CreateExpenseSuccessSchema.extend({
+  title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
+  amount: z.string().openapi({
+    example: '450.00',
+    description: 'Valor formatado como string para evitar perda de precisão em ponto flutuante.',
+  }),
+  student: StudentSchema.optional(),
+  project: ProjectSchema.nullable().optional(),
+})
+
+export const ListExpenseSuccessSchema = z.array(ExpenseListItemSchema)
