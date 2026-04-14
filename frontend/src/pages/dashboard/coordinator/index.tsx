@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import ModalRejeitar from "@/components/ModalRejeitar";
+import ModalDetalhe from "@/components/ModalDetalhe";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, updateExpenseStatus, type Expense } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, getExpenseById, type Expense, type ExpenseStatus } from "@/services/expenses";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -107,12 +108,20 @@ function AvatarAluno({ inicial }: { inicial: string }) {
   );
 }
 
+type TabType = "PENDENTE" | "APROVADO" | "REJEITADO";
+
 export default function DashboardCoordenador() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [pendentes, setPendentes] = useState<Solicitacao[]>([]);
+  const [despesas, setDespesas] = useState<Record<TabType, Solicitacao[]>>({
+    PENDENTE: [],
+    APROVADO: [],
+    REJEITADO: [],
+  });
+  const [abaAtual, setAbaAtual] = useState<TabType>("PENDENTE");
   const [busca, setBusca] = useState("");
   const [rejeitando, setRejeitando] = useState<Solicitacao | null>(null);
+  const [detalheAberto, setDetalheAberto] = useState<Expense | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -139,17 +148,26 @@ export default function DashboardCoordenador() {
         }
         setUserProfile(meResult.data);
 
-        // Carregar despesas pendentes
-        const expensesResult = await listExpenses(token, "PENDENTE");
-        if (expensesResult.ok) {
-          const solicitacoes = expensesResult.data.map(expenseToSolicitacao);
-          setPendentes(solicitacoes);
-        } else if (expensesResult.error === "UNAUTHORIZED") {
-          localStorage.removeItem("accessToken");
-          router.push("/login");
-        } else {
-          setErro("Erro ao carregar despesas");
+        // Carregar despesas por status
+        const novasDespesas: Record<TabType, Solicitacao[]> = {
+          PENDENTE: [],
+          APROVADO: [],
+          REJEITADO: [],
+        };
+
+        for (const status of ["PENDENTE", "APROVADO", "REJEITADO"] as TabType[]) {
+          const expensesResult = await listExpenses(token, status);
+          if (expensesResult.ok) {
+            const solicitacoes = expensesResult.data.map(expenseToSolicitacao);
+            novasDespesas[status] = solicitacoes;
+          } else if (expensesResult.error === "UNAUTHORIZED") {
+            localStorage.removeItem("accessToken");
+            router.push("/login");
+            return;
+          }
         }
+
+        setDespesas(novasDespesas);
       } catch (_err) {
         setErro("Erro de conexão com o servidor");
       } finally {
@@ -160,9 +178,31 @@ export default function DashboardCoordenador() {
     carregarDados();
   }, [router]);
 
-  const totalValor = pendentes.reduce((s, d) => s + d.valor, 0);
+  async function handleLogout() {
+    localStorage.removeItem("accessToken");
+    router.push("/login");
+  }
 
-  const filtradas = pendentes.filter(
+  async function abrirDetalhe(id: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const result = await getExpenseById(token, id);
+      if (result.ok) {
+        setDetalheAberto(result.data);
+      } else {
+        setErro("Erro ao carregar detalhe da despesa");
+      }
+    } catch (_err) {
+      setErro("Erro de conexão");
+    }
+  }
+
+  const pendentesAtual = despesas[abaAtual];
+  const totalValor = pendentesAtual.reduce((s, d) => s + d.valor, 0);
+
+  const filtradas = pendentesAtual.filter(
     (s) =>
       s.descricao.toLowerCase().includes(busca.toLowerCase()) ||
       s.reqId.toLowerCase().includes(busca.toLowerCase()) ||
@@ -176,7 +216,11 @@ export default function DashboardCoordenador() {
     try {
       const result = await updateExpenseStatus(token, id, "APROVADO");
       if (result.ok) {
-        setPendentes((prev) => prev.filter((s) => s.id !== id));
+        setDespesas((prev) => ({
+          ...prev,
+          PENDENTE: prev.PENDENTE.filter((s) => s.id !== id),
+          APROVADO: [...prev.APROVADO, expenseToSolicitacao(result.data)],
+        }));
       } else if (result.error === "CONFLICT") {
         setErro("Esta despesa já foi decidida");
       } else {
@@ -194,7 +238,11 @@ export default function DashboardCoordenador() {
     try {
       const result = await updateExpenseStatus(token, id, "REJEITADO");
       if (result.ok) {
-        setPendentes((prev) => prev.filter((s) => s.id !== id));
+        setDespesas((prev) => ({
+          ...prev,
+          PENDENTE: prev.PENDENTE.filter((s) => s.id !== id),
+          REJEITADO: [...prev.REJEITADO, expenseToSolicitacao(result.data)],
+        }));
         setRejeitando(null);
       } else if (result.error === "CONFLICT") {
         setErro("Esta despesa já foi decidida");
@@ -232,6 +280,13 @@ export default function DashboardCoordenador() {
         />
       )}
 
+      {detalheAberto && (
+        <ModalDetalhe
+          despesa={detalheAberto}
+          onClose={() => setDetalheAberto(null)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside className="flex w-56 shrink-0 flex-col justify-between bg-white border-r border-gray-200 py-6 px-4">
         <div>
@@ -252,37 +307,90 @@ export default function DashboardCoordenador() {
             Portal do Coordenador
           </p>
           <nav className="space-y-1">
-            <button className="flex w-full items-center justify-between rounded-lg bg-[#1a5c38]/10 px-3 py-2 text-sm font-semibold text-[#1a5c38]">
+            <button
+              onClick={() => setAbaAtual("PENDENTE")}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold ${
+                abaAtual === "PENDENTE"
+                  ? "bg-[#1a5c38]/10 text-[#1a5c38]"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+            >
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                 </svg>
                 Pendentes
               </div>
-              {pendentes.length > 0 && (
+              {despesas.PENDENTE.length > 0 && (
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#1a5c38] px-1.5 text-[10px] font-bold text-white">
-                  {pendentes.length}
+                  {despesas.PENDENTE.length}
                 </span>
               )}
             </button>
-            <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-              </svg>
-              Processados
+            <button
+              onClick={() => setAbaAtual("APROVADO")}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium ${
+                abaAtual === "APROVADO"
+                  ? "bg-green-50 text-green-700"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+                Aprovadas
+              </div>
+              {despesas.APROVADO.length > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-green-600 px-1.5 text-[10px] font-bold text-white">
+                  {despesas.APROVADO.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setAbaAtual("REJEITADO")}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium ${
+                abaAtual === "REJEITADO"
+                  ? "bg-red-50 text-red-700"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+                Rejeitadas
+              </div>
+              {despesas.REJEITADO.length > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">
+                  {despesas.REJEITADO.length}
+                </span>
+              )}
             </button>
           </nav>
         </div>
 
-        {/* Usuário */}
-        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5c38] text-sm font-bold text-white">
-            {userProfile?.name.charAt(0).toUpperCase() || "?"}
+        {/* Usuário + Logout */}
+        <div className="space-y-3 border-t border-gray-200 pt-4">
+          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5c38] text-sm font-bold text-white">
+              {userProfile?.name.charAt(0).toUpperCase() || "?"}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-gray-800">{userProfile?.name || "Carregando..."}</p>
+              <p className="truncate text-xs text-gray-400">Dept. Coordenador</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-800">{userProfile?.name || "Carregando..."}</p>
-            <p className="truncate text-xs text-gray-400">Dept. Coordenador</p>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M19.293 9.293a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 11H6.75a1 1 0 110-2h9.836l-1.707-1.707a1 1 0 011.414-1.414l3 3z" clipRule="evenodd" />
+            </svg>
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -292,8 +400,16 @@ export default function DashboardCoordenador() {
         {/* Topbar */}
         <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Pendentes de Aprovação</h1>
-            <p className="text-sm text-gray-500">Revise e processe as solicitações de despesa dos alunos</p>
+            <h1 className="text-xl font-bold text-gray-900">
+              {abaAtual === "PENDENTE" && "Pendentes de Aprovação"}
+              {abaAtual === "APROVADO" && "Solicitações Aprovadas"}
+              {abaAtual === "REJEITADO" && "Solicitações Rejeitadas"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {abaAtual === "PENDENTE" && "Revise e processe as solicitações de despesa dos alunos"}
+              {abaAtual === "APROVADO" && "Histórico de solicitações aprovadas"}
+              {abaAtual === "REJEITADO" && "Histórico de solicitações rejeitadas"}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {/* Mensagem de erro */}
@@ -322,7 +438,7 @@ export default function DashboardCoordenador() {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.730-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" />
               </svg>
-              {pendentes.length > 0 && (
+              {despesas.PENDENTE.length > 0 && (
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
               )}
             </button>
@@ -335,27 +451,35 @@ export default function DashboardCoordenador() {
           <div className="mb-6 grid grid-cols-3 gap-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
               <div>
-                <p className="text-sm text-gray-500">Total Pendente</p>
+                <p className="text-sm text-gray-500">Total {abaAtual === "PENDENTE" ? "Pendente" : abaAtual === "APROVADO" ? "Aprovado" : "Rejeitado"}</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
-                  {pendentes.length} <span className="text-base font-medium text-gray-400">solicitações</span>
+                  {filtradas.length} <span className="text-base font-medium text-gray-400">solicitações</span>
                 </p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-50">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-yellow-500">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                abaAtual === "PENDENTE" ? "bg-yellow-50" :
+                abaAtual === "APROVADO" ? "bg-green-50" :
+                "bg-red-50"
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-5 w-5 ${
+                  abaAtual === "PENDENTE" ? "text-yellow-500" :
+                  abaAtual === "APROVADO" ? "text-green-500" :
+                  "text-red-500"
+                }`}>
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
               <div>
-                <p className="text-sm text-gray-500">Valor Total em Análise</p>
+                <p className="text-sm text-gray-500">Valor Total</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-500">
-                  <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.5l-.246.11a1 1 0 10.832 1.81l.214-.097v2.87c-.537-.09-1.06-.284-1.52-.55a2.5 2.5 0 01-.822-.803 2 2 0 01-.367-1.19c0-.558.208-1.067.573-1.47.368-.407.876-.676 1.453-.789V5.75a.75.75 0 011.5 0v.324c.577.113 1.085.382 1.453.789.365.403.573.912.573 1.47 0 .558-.208 1.067-.573 1.47-.368.407-.876.676-1.453.789v2.498c.537.09 1.06.284 1.52.55.475.275.862.644 1.105 1.09.238.437.364.942.364 1.502 0 .558-.126 1.065-.364 1.502-.243.446-.63.815-1.105 1.09-.46.266-.983.46-1.52.55V17.25a.75.75 0 01-1.5 0v-.324a4.63 4.63 0 01-1.453-.789 3.476 3.476 0 01-1.105-1.09A3.005 3.005 0 015 13.628c0-.558.126-1.065.364-1.502.243-.446.63-.815 1.105-1.09.46-.266.983-.46 1.52-.55V7.986a2.614 2.614 0 00-.736-.363 2.116 2.116 0 01-.184-.164L8.33 8.62z" />
+                  <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.615z" />
                 </svg>
               </div>
             </div>
@@ -363,8 +487,8 @@ export default function DashboardCoordenador() {
               <div>
                 <p className="text-sm text-gray-500">Maior Solicitação</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
-                  {pendentes.length > 0
-                    ? `R$ ${Math.max(...pendentes.map((s) => s.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                  {filtradas.length > 0
+                    ? `R$ ${Math.max(...filtradas.map((s) => s.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                     : "—"}
                 </p>
               </div>
@@ -380,8 +504,8 @@ export default function DashboardCoordenador() {
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-6 py-4">
               <h2 className="text-sm font-semibold text-gray-700">
-                {filtradas.length === pendentes.length
-                  ? `${pendentes.length} solicitações aguardando revisão`
+                {filtradas.length === pendentesAtual.length
+                  ? `${pendentesAtual.length} solicitações`
                   : `${filtradas.length} resultado${filtradas.length !== 1 ? "s" : ""} encontrado${filtradas.length !== 1 ? "s" : ""}`}
               </h2>
             </div>
@@ -393,7 +517,6 @@ export default function DashboardCoordenador() {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Projeto</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Aluno</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Valor</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Sugestão de Compra</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Ações</th>
                 </tr>
@@ -409,10 +532,14 @@ export default function DashboardCoordenador() {
                           </svg>
                         </div>
                         <p className="text-sm font-medium text-gray-600">
-                          {busca ? "Nenhuma solicitação encontrada." : "Nenhuma solicitação pendente."}
+                          {busca ? "Nenhuma solicitação encontrada." : "Nenhuma solicitação neste status."}
                         </p>
                         {!busca && (
-                          <p className="text-xs text-gray-400">Todas as solicitações foram processadas.</p>
+                          <p className="text-xs text-gray-400">
+                            {abaAtual === "PENDENTE" && "Todas as solicitações foram processadas."}
+                            {abaAtual === "APROVADO" && "Nenhuma solicitação aprovada ainda."}
+                            {abaAtual === "REJEITADO" && "Nenhuma solicitação rejeitada ainda."}
+                          </p>
                         )}
                       </div>
                     </td>
@@ -421,13 +548,16 @@ export default function DashboardCoordenador() {
                   filtradas.map((s) => (
                     <tr key={s.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => abrirDetalhe(s.id)}
+                          className="flex items-center gap-3 hover:opacity-75"
+                        >
                           <IconeSolicitacao tipo={s.icone} />
-                          <div>
+                          <div className="text-left">
                             <p className="text-sm font-semibold text-gray-900">{s.descricao}</p>
                             <p className="text-xs text-gray-400">{s.reqId}</p>
                           </div>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center rounded-full bg-[#1a5c38]/10 px-2.5 py-1 text-xs font-medium text-[#1a5c38] ring-1 ring-[#1a5c38]/20">
@@ -443,31 +573,42 @@ export default function DashboardCoordenador() {
                       <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
                         R$ {s.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-[160px] truncate">
-                        {s.sugestaoCompra || <span className="text-gray-300">—</span>}
-                      </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {s.dataSubmissao}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          {abaAtual === "PENDENTE" && (
+                            <>
+                              <button
+                                onClick={() => handleAprovar(s.id)}
+                                className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-600 transition"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                                </svg>
+                                Aprovar
+                              </button>
+                              <button
+                                onClick={() => setRejeitando(s)}
+                                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                </svg>
+                                Rejeitar
+                              </button>
+                            </>
+                          )}
                           <button
-                            onClick={() => handleAprovar(s.id)}
-                            className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-600 transition"
+                            onClick={() => abrirDetalhe(s.id)}
+                            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                              <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                              <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41z" clipRule="evenodd" />
                             </svg>
-                            Aprovar
-                          </button>
-                          <button
-                            onClick={() => setRejeitando(s)}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                            </svg>
-                            Rejeitar
+                            Detalhe
                           </button>
                         </div>
                       </td>
@@ -479,7 +620,7 @@ export default function DashboardCoordenador() {
 
             <div className="border-t border-gray-100 px-6 py-4">
               <p className="text-sm text-gray-400">
-                Exibindo {filtradas.length} de {pendentes.length} solicitações pendentes
+                Exibindo {filtradas.length} de {pendentesAtual.length} solicitações
               </p>
             </div>
           </div>

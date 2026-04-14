@@ -28,6 +28,7 @@ export type Expense = {
 
 export type ListExpensesError = "UNAUTHORIZED" | "UNKNOWN"
 export type UpdateExpenseStatusError = "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 
 export type ListExpensesResult =
   | { ok: true; data: Expense[] }
@@ -36,6 +37,10 @@ export type ListExpensesResult =
 export type UpdateExpenseStatusResult =
   | { ok: true; data: Expense }
   | { ok: false; error: UpdateExpenseStatusError }
+
+export type GetExpenseResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: GetExpenseError }
 
 export async function listExpenses(
   token: string,
@@ -85,5 +90,26 @@ export async function updateExpenseStatus(
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function getExpenseById(
+  token: string,
+  expenseId: string
+): Promise<GetExpenseResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  })
+
+  if (res.status === 200) {
+    const data = await res.json()
+    return { ok: true, data }
+  }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   return { ok: false, error: "UNKNOWN" }
 }
