@@ -34,6 +34,15 @@ const ProjectSchema = z.object({
   name: z.string().openapi({ example: 'Laboratório de Robótica' }),
 })
 
+export const ExpenseListQuerySchema = z.object({
+  status: z.enum(ExpenseRequestStatus)
+    .optional()
+    .openapi({
+      description: 'Filtra as solicitações pelo status atual.',
+      example: ExpenseRequestStatus.APROVADO,
+    }),
+})
+
 export const ExpenseListItemSchema = CreateExpenseSuccessSchema.extend({
   title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
   amount: z.string().openapi({

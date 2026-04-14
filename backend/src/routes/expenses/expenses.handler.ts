@@ -6,8 +6,9 @@ import { createExpenseRequest, getAllExpenseRequests, getExpenseById } from '@/s
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
+  const query = c.req.valid('query')
 
-  const data = await getAllExpenseRequests(sub, role)
+  const data = await getAllExpenseRequests(sub, role, query)
 
   const parsed = ListExpenseSuccessSchema.parse(data)
 

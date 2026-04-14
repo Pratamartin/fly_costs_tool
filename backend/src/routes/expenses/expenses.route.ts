@@ -4,7 +4,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateExpenseSchema, CreateExpenseSuccessSchema, ListExpenseSuccessSchema } from '@/schemas/expense.schema'
+import { CreateExpenseSchema, CreateExpenseSuccessSchema, ExpenseListQuerySchema, ListExpenseSuccessSchema } from '@/schemas/expense.schema'
 import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
@@ -22,6 +22,7 @@ export const index = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'List expenses',
   description: 'Retorna todas as despesas se for ADMIN/COORDENADOR ou apenas as próprias se for ALUNO.',
+  request: { query: ExpenseListQuerySchema },
   tags,
   responses: {
     [codes.OK]: jsonContent(ListExpenseSuccessSchema, 'Lista de solicitações de despesas.'),
