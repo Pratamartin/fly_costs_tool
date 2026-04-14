@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { register } from "@/services/auth";
 
 export default function CadastroCoordenador() {
   const router = useRouter();
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -17,10 +20,65 @@ export default function CadastroCoordenador() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: integrar com o backend
-    router.push("/login");
+    setErro(null);
+
+    if (form.senha !== form.confirmarSenha) {
+      setErro("As senhas não coincidem.");
+      return;
+    }
+
+    if (form.senha.length < 8) {
+      setErro("A senha deve ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (!/[A-Z]/.test(form.senha)) {
+      setErro("A senha deve conter pelo menos uma letra maiúscula.");
+      return;
+    }
+    if (!/[a-z]/.test(form.senha)) {
+      setErro("A senha deve conter pelo menos uma letra minúscula.");
+      return;
+    }
+    if (!/\d/.test(form.senha)) {
+      setErro("A senha deve conter pelo menos um número.");
+      return;
+    }
+    if (!/[^A-Z0-9]/i.test(form.senha)) {
+      setErro("A senha deve conter pelo menos um caractere especial.");
+      return;
+    }
+
+    setCarregando(true);
+    try {
+      const result = await register({
+        name: form.nome,
+        email: form.email,
+        password: form.senha,
+        role: "COORDENADOR",
+        inviteCode: form.codigoConvite,
+      });
+
+      if (result.ok) {
+        router.push("/login");
+        return;
+      }
+
+      if (result.error === "EMAIL_CONFLICT") {
+        setErro("Este e-mail já está cadastrado.");
+      } else if (result.error === "INVALID_INVITE_CODE") {
+        setErro("Código de convite inválido.");
+      } else if (result.error === "VALIDATION_ERROR") {
+        setErro("Dados inválidos. Verifique os campos e tente novamente.");
+      } else {
+        setErro("Erro ao realizar cadastro. Tente novamente.");
+      }
+    } catch {
+      setErro("Não foi possível conectar ao servidor. Verifique sua conexão.");
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
@@ -208,11 +266,18 @@ export default function CadastroCoordenador() {
               </div>
             </div>
 
+            {erro && (
+              <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">
+                {erro}
+              </p>
+            )}
+
             <button
               type="submit"
-              className="mt-2 w-full rounded-lg bg-[#1a5c38] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#154d2f] focus:outline-none focus:ring-2 focus:ring-[#1a5c38] focus:ring-offset-2"
+              disabled={carregando}
+              className="mt-2 w-full rounded-lg bg-[#1a5c38] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#154d2f] focus:outline-none focus:ring-2 focus:ring-[#1a5c38] focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Concluir Cadastro
+              {carregando ? "Cadastrando..." : "Concluir Cadastro"}
             </button>
           </form>
 
