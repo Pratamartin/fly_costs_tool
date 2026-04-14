@@ -54,3 +54,10 @@ export const ExpenseListItemSchema = CreateExpenseSuccessSchema.extend({
 })
 
 export const ListExpenseSuccessSchema = z.array(ExpenseListItemSchema)
+
+export const UpdateExpenseStatusSchema = z.object({
+  status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO]).openapi({
+    description: 'O novo status a ser atribuído à solicitação.',
+    example: ExpenseRequestStatus.REJEITADO,
+  }),
+})

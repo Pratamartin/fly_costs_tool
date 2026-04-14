@@ -6,5 +6,6 @@ const router = createRouter().basePath('/expenses')
   .openapi(routes.index, handlers.index)
   .openapi(routes.create, handlers.create)
   .openapi(routes.read, handlers.read)
+  .openapi(routes.updateStatus, handlers.updateStatus)
 
 export default router
