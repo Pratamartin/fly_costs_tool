@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import ModalRejeitar from "@/components/ModalRejeitar";
+import { getMe, type UserProfile } from "@/services/user";
+import { listExpenses, updateExpenseStatus, type Expense } from "@/services/expenses";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -16,69 +19,41 @@ interface Solicitacao {
   sugestaoCompra: string;
 }
 
-// Dados iniciais de exemplo — substituir pelo fetch da API quando o backend estiver pronto
-const solicitacoesIniciais: Solicitacao[] = [
-  {
-    id: "1",
-    reqId: "REQ-2024-001",
-    descricao: "Componentes para Arduino",
-    projeto: "Laboratório de Robótica",
-    aluno: "Sarah Smith",
-    avatarInicial: "S",
-    valor: 120.0,
-    dataSubmissao: "28 out. 2025",
-    icone: "componentes",
-    sugestaoCompra: "Mercado Livre, FilipeFlop",
-  },
-  {
-    id: "2",
-    reqId: "REQ-2024-002",
-    descricao: "Livros de Machine Learning",
-    projeto: "Bolsa de Pesquisa em IA",
-    aluno: "David Kim",
-    avatarInicial: "D",
-    valor: 345.5,
-    dataSubmissao: "27 out. 2025",
-    icone: "livros",
-    sugestaoCompra: "Amazon, Livraria Cultura",
-  },
-  {
-    id: "3",
-    reqId: "REQ-2024-003",
-    descricao: "Passagens para Conferência",
-    projeto: "Bolsa de Pesquisa em IA",
-    aluno: "James Wilson",
-    avatarInicial: "J",
-    valor: 850.0,
-    dataSubmissao: "25 out. 2025",
-    icone: "viagem",
-    sugestaoCompra: "Latam, Decolar",
-  },
-  {
-    id: "4",
-    reqId: "REQ-2024-004",
-    descricao: "Créditos de Cloud Hosting",
-    projeto: "Laboratório de Robótica",
-    aluno: "Ana Torres",
-    avatarInicial: "A",
-    valor: 330.0,
-    dataSubmissao: "24 out. 2025",
-    icone: "nuvem",
-    sugestaoCompra: "AWS, Google Cloud",
-  },
-  {
-    id: "5",
-    reqId: "REQ-2024-005",
-    descricao: "Sensor LIDAR para robô",
-    projeto: "Laboratório de Robótica",
-    aluno: "Carlos Melo",
-    avatarInicial: "C",
-    valor: 1200.0,
-    dataSubmissao: "22 out. 2025",
-    icone: "componentes",
-    sugestaoCompra: "RoboCore, Amazon",
-  },
-];
+function topicToIcone(topic: string): CategoriaIcone {
+  switch (topic) {
+    case "PASSAGEM":
+      return "viagem";
+    case "HOSPEDAGEM":
+      return "livros";
+    default:
+      return "componentes";
+  }
+}
+
+function formatarData(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function expenseToSolicitacao(expense: Expense): Solicitacao {
+  const inicial = expense.student?.name.charAt(0).toUpperCase() || "?";
+  return {
+    id: expense.id,
+    reqId: `REQ-${expense.id.slice(0, 8).toUpperCase()}`,
+    descricao: expense.title,
+    projeto: expense.project?.name || "Sem projeto",
+    aluno: expense.student?.name || "Aluno",
+    avatarInicial: inicial,
+    valor: parseFloat(expense.amount),
+    dataSubmissao: formatarData(expense.createdAt),
+    icone: topicToIcone(expense.topic),
+    sugestaoCompra: "—",
+  };
+}
 
 function IconeSolicitacao({ tipo }: { tipo: CategoriaIcone }) {
   const base = "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg";
@@ -133,9 +108,57 @@ function AvatarAluno({ inicial }: { inicial: string }) {
 }
 
 export default function DashboardCoordenador() {
-  const [pendentes, setPendentes] = useState<Solicitacao[]>(solicitacoesIniciais);
+  const router = useRouter();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [pendentes, setPendentes] = useState<Solicitacao[]>([]);
   const [busca, setBusca] = useState("");
   const [rejeitando, setRejeitando] = useState<Solicitacao | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    const carregarDados = async () => {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        // Carregar perfil do usuário
+        const meResult = await getMe(token);
+        if (!meResult.ok) {
+          if (meResult.error === "UNAUTHORIZED") {
+            localStorage.removeItem("accessToken");
+            router.push("/login");
+          } else {
+            setErro("Erro ao carregar perfil");
+          }
+          return;
+        }
+        setUserProfile(meResult.data);
+
+        // Carregar despesas pendentes
+        const expensesResult = await listExpenses(token, "PENDENTE");
+        if (expensesResult.ok) {
+          const solicitacoes = expensesResult.data.map(expenseToSolicitacao);
+          setPendentes(solicitacoes);
+        } else if (expensesResult.error === "UNAUTHORIZED") {
+          localStorage.removeItem("accessToken");
+          router.push("/login");
+        } else {
+          setErro("Erro ao carregar despesas");
+        }
+      } catch (_err) {
+        setErro("Erro de conexão com o servidor");
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    carregarDados();
+  }, [router]);
 
   const totalValor = pendentes.reduce((s, d) => s + d.valor, 0);
 
@@ -146,15 +169,57 @@ export default function DashboardCoordenador() {
       s.aluno.toLowerCase().includes(busca.toLowerCase())
   );
 
-  // TODO: ao integrar o backend, substituir por PATCH /solicitacoes/:id com { status: "Aprovado" }
-  function handleAprovar(id: string) {
-    setPendentes((prev) => prev.filter((s) => s.id !== id));
+  async function handleAprovar(id: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const result = await updateExpenseStatus(token, id, "APROVADO");
+      if (result.ok) {
+        setPendentes((prev) => prev.filter((s) => s.id !== id));
+      } else if (result.error === "CONFLICT") {
+        setErro("Esta despesa já foi decidida");
+      } else {
+        setErro("Erro ao aprovar despesa");
+      }
+    } catch (_err) {
+      setErro("Erro de conexão");
+    }
   }
 
-  // TODO: ao integrar o backend, substituir por PATCH /solicitacoes/:id com { status: "Rejeitado", motivo }
-  function handleRejeitar(id: string, _motivo: string) {
-    setPendentes((prev) => prev.filter((s) => s.id !== id));
-    setRejeitando(null);
+  async function handleRejeitar(id: string, _motivo: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const result = await updateExpenseStatus(token, id, "REJEITADO");
+      if (result.ok) {
+        setPendentes((prev) => prev.filter((s) => s.id !== id));
+        setRejeitando(null);
+      } else if (result.error === "CONFLICT") {
+        setErro("Esta despesa já foi decidida");
+      } else {
+        setErro("Erro ao rejeitar despesa");
+      }
+    } catch (_err) {
+      setErro("Erro de conexão");
+    }
+  }
+
+  if (carregando) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 flex justify-center">
+            <svg className="animate-spin h-8 w-8 text-[#2563EB]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <p className="text-gray-600">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -212,10 +277,10 @@ export default function DashboardCoordenador() {
         {/* Usuário */}
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5c38] text-sm font-bold text-white">
-            M
+            {userProfile?.name.charAt(0).toUpperCase() || "?"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-800">Dr. Michael Chen</p>
+            <p className="truncate text-sm font-semibold text-gray-800">{userProfile?.name || "Carregando..."}</p>
             <p className="truncate text-xs text-gray-400">Dept. Coordenador</p>
           </div>
         </div>
@@ -231,6 +296,12 @@ export default function DashboardCoordenador() {
             <p className="text-sm text-gray-500">Revise e processe as solicitações de despesa dos alunos</p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Mensagem de erro */}
+            {erro && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <p className="text-sm text-red-700">{erro}</p>
+              </div>
+            )}
             {/* Busca */}
             <div className="relative">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
