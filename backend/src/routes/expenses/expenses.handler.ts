@@ -1,13 +1,15 @@
-import type { CreateRoute, IndexRoute, ReadRoute } from './expenses.route'
+import type { CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
+import * as phrases from 'stoker/http-status-phrases'
 import { CreateExpenseSuccessSchema, ListExpenseSuccessSchema } from '@/schemas/expense.schema'
-import { createExpenseRequest, getAllExpenseRequests, getExpenseById } from '@/services/expense.service'
+import { createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
+  const query = c.req.valid('query')
 
-  const data = await getAllExpenseRequests(sub, role)
+  const data = await getAllExpenseRequests(sub, role, query)
 
   const parsed = ListExpenseSuccessSchema.parse(data)
 
@@ -35,5 +37,23 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
   }
 
   const parsed = CreateExpenseSuccessSchema.parse(data)
+  return c.json(parsed, codes.OK)
+}
+
+export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const { status } = c.req.valid('json')
+
+  const result = await updateExpenseStatus(id, status)
+
+  if (result?.error === phrases.NOT_FOUND) {
+    return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+  }
+
+  if (result?.error === phrases.CONFLICT) {
+    return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
+  }
+
+  const parsed = CreateExpenseSuccessSchema.parse(result.data)
   return c.json(parsed, codes.OK)
 }

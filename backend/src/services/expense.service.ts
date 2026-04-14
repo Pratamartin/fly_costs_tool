@@ -1,6 +1,8 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
-import type { CreateExpenseSchema } from '@/schemas/expense.schema'
+import type { CreateExpenseSchema, ExpenseListQuerySchema } from '@/schemas/expense.schema'
+import * as phrases from 'stoker/http-status-phrases'
+import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
 import { CreateExpenseSuccessSchema } from '@/schemas/expense.schema'
@@ -20,8 +22,9 @@ export async function createExpenseRequest(userId: string, data: CreateExpenseDT
 export async function getAllExpenseRequests(
   userId: string,
   role: UserRole,
+  filters: z.infer<typeof ExpenseListQuerySchema>,
 ) {
-  const where: Prisma.ExpenseRequestWhereInput = {}
+  const where: Prisma.ExpenseRequestWhereInput = filters
 
   const include: Prisma.ExpenseRequestInclude = {
     project: {
@@ -95,5 +98,29 @@ export async function getExpenseById(
   return {
     ...result,
     amount: result.amount.toString(),
+  }
+}
+
+export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus) {
+  const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
+
+  if (!existingRequest) {
+    return { error: phrases.NOT_FOUND }
+  }
+
+  if (existingRequest.status !== ExpenseRequestStatus.PENDENTE) {
+    return { error: phrases.CONFLICT }
+  }
+
+  const updatedRequest = await prisma.expenseRequest.update({
+    where: { id },
+    data: { status: newStatus },
+  })
+
+  return {
+    data: {
+      ...updatedRequest,
+      amount: updatedRequest.amount.toString(),
+    },
   }
 }
