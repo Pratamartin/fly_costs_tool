@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
+    "postbuild": "prisma generate",
     "start": "node dist/src/index.js",
     "test": "cross-env NODE_ENV=test vitest run", 
     "test:watch": "cross-env NODE_ENV=test vitest",
