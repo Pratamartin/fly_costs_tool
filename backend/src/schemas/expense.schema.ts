@@ -20,6 +20,7 @@ export const CreateExpenseSuccessSchema = z.object({
     .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
   status: z.enum(ExpenseRequestStatus).default('PENDENTE')
     .openapi({ example: ExpenseRequestStatus.PENDENTE }),
+  topic: z.enum(ExpenseTopic).openapi({ examples: Object.values(ExpenseTopic) }),
 }).extend(TimestampSchema)
 
 const StudentSchema = z.object({
