@@ -10,4 +10,10 @@ export const UserRole = {
   ADMIN: 'ADMIN',
 }
 
+export const ExpenseTopic = {
+  INSCRICAO: 'INSCRICAO',
+  PASSAGEM: 'PASSAGEM',
+  HOSPEDAGEM: 'HOSPEDAGEM',
+}
+
 export class PrismaClient {}

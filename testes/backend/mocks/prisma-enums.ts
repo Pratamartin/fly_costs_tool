@@ -9,3 +9,9 @@ export enum UserRole {
   COORDENADOR = 'COORDENADOR',
   ADMIN = 'ADMIN',
 }
+
+export enum ExpenseTopic {
+  INSCRICAO = 'INSCRICAO',
+  PASSAGEM = 'PASSAGEM',
+  HOSPEDAGEM = 'HOSPEDAGEM',
+}
