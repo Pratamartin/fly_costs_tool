@@ -2,6 +2,12 @@
 
 Testes unitários para os serviços do backend.
 
+## Instalar dependências
+
+```bash
+npm install --legacy-peer-deps
+```
+
 ## Rodar testes
 
 ```bash
