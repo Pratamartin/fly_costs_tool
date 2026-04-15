@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "preserve",
+    "rootDir": "./src",
     "outDir": "./dist",
     "paths": {
       "@/*": ["./src/*"]
@@ -22,5 +23,5 @@
   "tsc-alias": {
     "resolveFullPaths": true
   },
-  "exclude": ["node_modules"]
+  "include": ["src"],
 }
