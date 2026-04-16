@@ -2,7 +2,7 @@ import type { CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './ex
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
-import { CreateExpenseSuccessSchema, ListExpenseSuccessSchema } from '@/schemas/expense.schema'
+import { ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
 import { createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
@@ -11,7 +11,7 @@ export const index: AppRouteHandler<IndexRoute> = async (c) => {
 
   const data = await getAllExpenseRequests(sub, role, query)
 
-  const parsed = ListExpenseSuccessSchema.parse(data)
+  const parsed = ListExpenseResponseSchema.parse(data)
 
   return c.json(parsed, codes.OK)
 }
@@ -23,7 +23,9 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 
   const result = await createExpenseRequest(sub, data)
 
-  return c.json(result, codes.CREATED)
+  const parsed = ExpenseResponseSchema.parse(result)
+
+  return c.json(parsed, codes.CREATED)
 }
 
 export const read: AppRouteHandler<ReadRoute> = async (c) => {
@@ -36,7 +38,7 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
     return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
   }
 
-  const parsed = CreateExpenseSuccessSchema.parse(data)
+  const parsed = ExpenseResponseSchema.parse(data)
   return c.json(parsed, codes.OK)
 }
 
@@ -54,6 +56,6 @@ export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
     return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
   }
 
-  const parsed = CreateExpenseSuccessSchema.parse(result.data)
+  const parsed = ExpenseResponseSchema.parse(result.data)
   return c.json(parsed, codes.OK)
 }

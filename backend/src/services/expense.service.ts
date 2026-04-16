@@ -5,7 +5,6 @@ import * as phrases from 'stoker/http-status-phrases'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
-import { CreateExpenseSuccessSchema } from '@/schemas/expense.schema'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
 
@@ -17,7 +16,10 @@ export async function createExpenseRequest(userId: string, data: CreateExpenseDT
     },
   })
 
-  return CreateExpenseSuccessSchema.parse(result)
+  return {
+    ...result,
+    amount: result.amount.toString(),
+  }
 }
 export async function getAllExpenseRequests(
   userId: string,

@@ -1,10 +1,30 @@
 import { z } from '@hono/zod-openapi'
 import { ExpenseRequestStatus, ExpenseTopic } from '@/generated/prisma/enums'
+import ProjectSchema from './project.schema'
 import { IdSchema, TimestampSchema } from './shared.schema'
+import { UserProfileSchema } from './user.schema'
 
-export const CreateExpenseSchema = z.object({
+const ExpenseRelationsSchema = {
+  student: UserProfileSchema.pick({
+    id: true,
+    name: true,
+  }).optional(),
+  project: ProjectSchema.pick({ name: true }).extend({ id: IdSchema })
+    .nullable()
+    .optional(),
+}
+
+const AmountStringSchema = z.string().openapi({
+  description: 'Valor total formatado como string para garantir precisão (BRL).',
+  example: '450.00',
+})
+
+const BaseSchema = z.object({
   title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
-  description: z.string().openapi({ example: 'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.' }),
+  description: z.string().openapi({
+    example:
+      'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
+  }),
   topic: z.enum(ExpenseTopic).openapi({ examples: Object.values(ExpenseTopic) }),
   amount: z.number()
     .positive()
@@ -13,48 +33,35 @@ export const CreateExpenseSchema = z.object({
       description: 'Valor total em Reais (BRL).',
       example: 450.00,
     }),
-})
-
-export const CreateExpenseSuccessSchema = z.object({
-  id: IdSchema
-    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
-  status: z.enum(ExpenseRequestStatus).default('PENDENTE')
-    .openapi({ example: ExpenseRequestStatus.PENDENTE }),
-  topic: z.enum(ExpenseTopic).openapi({ examples: Object.values(ExpenseTopic) }),
-}).extend(TimestampSchema)
-
-const StudentSchema = z.object({
-  id: IdSchema
-    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
-  name: z.string().openapi({ example: 'João Silva' }),
-})
-
-const ProjectSchema = z.object({
-  id: IdSchema
-    .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
-  name: z.string().openapi({ example: 'Laboratório de Robótica' }),
-})
-
-export const ExpenseListQuerySchema = z.object({
   status: z.enum(ExpenseRequestStatus)
-    .optional()
     .openapi({
-      description: 'Filtra as solicitações pelo status atual.',
+      description: 'Status atual da solicitação',
       example: ExpenseRequestStatus.APROVADO,
     }),
 })
 
-export const ExpenseListItemSchema = CreateExpenseSuccessSchema.extend({
-  title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
-  amount: z.string().openapi({
-    example: '450.00',
-    description: 'Valor formatado como string para evitar perda de precisão em ponto flutuante.',
-  }),
-  student: StudentSchema.optional(),
-  project: ProjectSchema.nullable().optional(),
+export const CreateExpenseSchema = BaseSchema.omit({ status: true })
+
+export const ExpenseResponseSchema = BaseSchema.extend({
+  id: IdSchema,
+  amount: AmountStringSchema,
+}).extend({
+  ...ExpenseRelationsSchema,
+  ...TimestampSchema,
 })
 
-export const ListExpenseSuccessSchema = z.array(ExpenseListItemSchema)
+export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
+
+export const ExpenseListItemSchema = BaseSchema.pick({
+  title: true,
+  status: true,
+}).extend({
+  id: IdSchema,
+  amount: AmountStringSchema,
+  ...ExpenseRelationsSchema,
+})
+
+export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
 export const UpdateExpenseStatusSchema = z.object({
   status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO]).openapi({
