@@ -42,24 +42,25 @@ const BaseSchema = z.object({
 
 export const CreateExpenseSchema = BaseSchema.omit({ status: true })
 
-export const ExpenseResponseSchema = BaseSchema.extend({
-  id: IdSchema,
-  amount: AmountStringSchema,
-}).extend({
-  ...ExpenseRelationsSchema,
-  ...TimestampSchema,
-})
+export const ExpenseResponseSchema = z.object({ id: IdSchema })
+  .extend({
+    ...BaseSchema.shape,
+    amount: AmountStringSchema,
+    ...ExpenseRelationsSchema,
+    ...TimestampSchema,
+  })
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
 
-export const ExpenseListItemSchema = BaseSchema.pick({
-  title: true,
-  status: true,
-}).extend({
-  id: IdSchema,
-  amount: AmountStringSchema,
-  ...ExpenseRelationsSchema,
-})
+export const ExpenseListItemSchema = z.object({ id: IdSchema })
+  .extend(BaseSchema.pick({
+    title: true,
+    status: true,
+  }).shape)
+  .extend({
+    amount: AmountStringSchema,
+    ...ExpenseRelationsSchema,
+  })
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
