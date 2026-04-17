@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "prebuild": "prisma generate",
     "build": "tsc && tsc-alias",
     "start": "node dist/src/index.js",
     "test": "cross-env NODE_ENV=test vitest run", 

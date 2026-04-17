@@ -4,7 +4,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateExpenseSchema, CreateExpenseSuccessSchema, ExpenseListQuerySchema, ListExpenseSuccessSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
+import { CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
 import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
@@ -26,7 +26,7 @@ export const index = createRoute({
   request: { query: ExpenseListQuerySchema },
   tags,
   responses: {
-    [codes.OK]: jsonContent(ListExpenseSuccessSchema, 'Lista de solicitações de despesas.'),
+    [codes.OK]: jsonContent(ListExpenseResponseSchema, 'Lista de solicitações de despesas.'),
     [codes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou ausente'),
   },
 })
@@ -45,7 +45,7 @@ export const create = createRoute({
   request: { body: jsonContentRequired(CreateExpenseSchema, 'Dados da solicitação') },
   responses: {
     [codes.CREATED]: jsonContent(
-      CreateExpenseSuccessSchema,
+      ExpenseResponseSchema,
       'Solicitação criada com sucesso.',
     ),
     [codes.UNAUTHORIZED]: jsonContent(
@@ -69,7 +69,7 @@ export const read = createRoute({
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
-    [codes.OK]: jsonContent(CreateExpenseSuccessSchema, 'Detalhes da solicitação de despesa.'),
+    [codes.OK]: jsonContent(ExpenseResponseSchema, 'Detalhes da solicitação de despesa.'),
     [codes.NOT_FOUND]: jsonContent(
       createMessageObjectSchema('Despesa não encontrada'),
       'A despesa não existe ou o usuário não tem permissão para visualizá-la.',
@@ -99,7 +99,7 @@ export const updateStatus = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(
-      CreateExpenseSuccessSchema,
+      ExpenseResponseSchema,
       'Status atualizado com sucesso.',
     ),
     [codes.NOT_FOUND]: jsonContent(

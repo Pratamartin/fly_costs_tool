@@ -42,7 +42,7 @@ export function configureDocs(app: AppOpenAPI) {
   app.get('/reference', Scalar({
     url: `/doc`,
     pageTitle: 'Fly Costs API Reference',
-    layout: 'classic',
+    layout: 'modern',
     theme: 'kepler',
     defaultHttpClient: {
       targetKey: 'js',
