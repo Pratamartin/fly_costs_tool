@@ -14,6 +14,12 @@
 
 ## ⚙️ Setup
 
+0. **Extensões VSCODE recomendadas:**
+    * [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+    * [Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma)
+    * [Vitest](https://marketplace.visualstudio.com/items?itemName=vitest.explorer)
+    * [Pretty TypeScript Errors](https://marketplace.visualstudio.com/items?itemName=yoavbls.pretty-ts-errors)
+
 1. **Instale o Node Version Manager (NVM):** [nvm-sh](https://github.com/nvm-sh/nvm)
 
 2. **No diretório do projeto, utilize:**
@@ -21,16 +27,12 @@
     nvm install
     nvm use
     npm install
-    npx prisma generate
     ```
 
-3. **Extensões VSCODE recomendadas:**
-    * [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-    * [Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma)
-    * [Vitest](https://marketplace.visualstudio.com/items?itemName=vitest.explorer)
-    * [Pretty TypeScript Errors](https://marketplace.visualstudio.com/items?itemName=yoavbls.pretty-ts-errors)
-
-4. **Variáveis de ambiente:**
+3. **Variáveis de ambiente:**
+    ```bash
+    cp .env.example .env
+    ```
 
    **DATABASE_URL**:
     - **1ª Opção (Nuvem):** Obtenha um banco postgres para desenvolvimento em [console.prisma.io](https://console.prisma.io)
@@ -42,6 +44,36 @@
       ```env
       DATABASE_URL="postgresql://user:password@localhost:5432/flycostsdb"
       ```
+
+   **JWT_SECRET**:
+    - Chave mestra utilizada para assinar e validar os tokens de autenticação (JWT).
+    - **Geração:** Gere uma chave segura executando o comando no terminal:
+      ```bash
+      node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+      ```
+    - Atribua o valor gerado ao seu `.env`:
+      ```env
+      JWT_SECRET="seu_token_gerado_aqui"
+      ```
+
+   **JWT_EXPIRE_AT**:
+    - Define o tempo de vida útil do token, em segundos, a partir do momento da emissão.
+    - **Formato:** Valor numérico inteiro representando o total de segundos.
+    - **Exemplos comuns:**
+        - `3600` (1 hora)
+        - `86400` (1 dia)
+        - `604800` (1 semana)
+    - Atribua o valor desejado (exemplo de 1 dia):
+      ```env
+      JWT_EXPIRE_AT=86400
+      ```
+
+4. **Iniciando a aplicação:**
+    ```bash
+    npx prisma generate
+    npm run db:migrate
+    npm run dev
+    ```
 
 ## 🧪 Testes
 
@@ -55,10 +87,7 @@ Antes de iniciar, crie seu arquivo `.env.test.local` com base no `.env.test`.
 | `npm run test:coverage` | Gera o relatório de cobertura de código |
 
 
-## 📖 Observações
-Listagem de comandos disponíveis em `scripts` no `package.json`.
-
-### Banco de Dados
+### 🛢️ Banco de Dados
 
 | Comando | Descrição |
 | :--- | :--- |
