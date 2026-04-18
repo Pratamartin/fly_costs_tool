@@ -1,14 +1,10 @@
-import env from './env'
 import prisma from './lib/orm'
 import { seedExpenses, seedProjects, seedUsers } from './seeds'
 
 async function main() {
   await seedProjects()
-
-  if (!(env.NODE_ENV === 'production')) {
-    await seedUsers()
-    await seedExpenses()
-  }
+  await seedUsers()
+  await seedExpenses()
 }
 
 main()
