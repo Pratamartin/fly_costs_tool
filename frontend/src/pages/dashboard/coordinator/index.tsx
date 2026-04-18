@@ -42,6 +42,7 @@ function formatarData(dateString: string): string {
 
 function expenseToSolicitacao(expense: Expense): Solicitacao {
   const inicial = expense.student?.name.charAt(0).toUpperCase() || "?";
+  const valor = parseFloat(expense.amount);
   return {
     id: expense.id,
     reqId: `REQ-${expense.id.slice(0, 8).toUpperCase()}`,
@@ -49,7 +50,7 @@ function expenseToSolicitacao(expense: Expense): Solicitacao {
     projeto: expense.project?.name || "Sem projeto",
     aluno: expense.student?.name || "Aluno",
     avatarInicial: inicial,
-    valor: parseFloat(expense.amount),
+    valor: isNaN(valor) ? 0 : valor,
     dataSubmissao: formatarData(expense.createdAt),
     icone: topicToIcone(expense.topic),
     sugestaoCompra: "—",
@@ -204,9 +205,9 @@ export default function DashboardCoordenador() {
 
   const filtradas = pendentesAtual.filter(
     (s) =>
-      s.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-      s.reqId.toLowerCase().includes(busca.toLowerCase()) ||
-      s.aluno.toLowerCase().includes(busca.toLowerCase())
+      (s.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) ||
+      (s.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase()) ||
+      (s.aluno?.toLowerCase() ?? "").includes(busca.toLowerCase())
   );
 
   async function handleAprovar(id: string) {
