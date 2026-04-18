@@ -13,6 +13,8 @@ export interface NovaDespesaData {
 interface Props {
   onClose: () => void;
   onSubmit: (data: NovaDespesaData) => void;
+  carregando?: boolean;
+  erro?: string | null;
 }
 
 const categorias: { value: CategoriaIcone; label: string }[] = [
@@ -22,7 +24,7 @@ const categorias: { value: CategoriaIcone; label: string }[] = [
   { value: "nuvem", label: "Software / Cloud / Outros" },
 ];
 
-export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
+export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false, erro = null }: Props) {
   const [form, setForm] = useState({
     projeto: "",
     nome: "",
@@ -37,6 +39,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (carregando) return;
     onSubmit({
       projeto: form.projeto,
       descricao: form.nome,
@@ -44,7 +47,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
       categoria: form.categoria as CategoriaIcone,
       sugestaoCompra: form.sugestaoCompra,
     });
-    onClose();
   }
 
   return (
@@ -60,7 +62,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            disabled={carregando}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -70,6 +73,13 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          {/* Erro */}
+          {erro && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm text-red-700">{erro}</p>
+            </div>
+          )}
+
           {/* Projeto */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -80,8 +90,9 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
                 name="projeto"
                 value={form.projeto}
                 onChange={handleChange}
+                disabled={carregando}
                 required
-                className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+                className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
               >
                 <option value="" disabled>Escolha um projeto...</option>
                 <option>Laboratório de Robótica</option>
@@ -105,8 +116,9 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
                 name="categoria"
                 value={form.categoria}
                 onChange={handleChange}
+                disabled={carregando}
                 required
-                className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+                className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
               >
                 <option value="" disabled>Escolha uma categoria...</option>
                 {categorias.map((c) => (
@@ -131,9 +143,10 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
               name="nome"
               value={form.nome}
               onChange={handleChange}
+              disabled={carregando}
               placeholder="ex.: Microcontroladores Arduino"
               required
-              className="w-full rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+              className="w-full rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
             />
           </div>
 
@@ -151,11 +164,12 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
                 name="valor"
                 value={form.valor}
                 onChange={handleChange}
+                disabled={carregando}
                 placeholder="0,00"
                 min="0"
                 step="0.01"
                 required
-                className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+                className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
               />
             </div>
           </div>
@@ -170,9 +184,10 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
               name="sugestaoCompra"
               value={form.sugestaoCompra}
               onChange={handleChange}
+              disabled={carregando}
               placeholder="ex.: Amazon, Mercado Livre, loja física Kalunga..."
               rows={2}
-              className="w-full resize-none rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
+              className="w-full resize-none rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
             />
           </div>
 
@@ -181,15 +196,27 @@ export default function ModalNovaDespesa({ onClose, onSubmit }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              disabled={carregando}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
+              disabled={carregando}
+              className="flex items-center justify-center rounded-lg bg-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2 disabled:opacity-50 gap-2"
             >
-              Enviar Solicitação
+              {carregando ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Enviando...
+                </>
+              ) : (
+                "Enviar Solicitação"
+              )}
             </button>
           </div>
         </form>

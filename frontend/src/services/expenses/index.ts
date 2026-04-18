@@ -42,6 +42,19 @@ export type GetExpenseResult =
   | { ok: true; data: Expense }
   | { ok: false; error: GetExpenseError }
 
+export type CreateExpenseError = "UNAUTHORIZED" | "VALIDATION_ERROR" | "UNKNOWN"
+
+export type CreateExpensePayload = {
+  title: string
+  description: string
+  topic: ExpenseTopic
+  amount: number
+}
+
+export type CreateExpenseResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: CreateExpenseError }
+
 export async function listExpenses(
   token: string,
   statusFilter?: ExpenseStatus
@@ -111,5 +124,27 @@ export async function getExpenseById(
   }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function createExpense(
+  token: string,
+  payload: CreateExpensePayload
+): Promise<CreateExpenseResult> {
+  const res = await fetch(`${API_URL}/v1/expenses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (res.status === 201) {
+    const data = await res.json()
+    return { ok: true, data }
+  }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
   return { ok: false, error: "UNKNOWN" }
 }
