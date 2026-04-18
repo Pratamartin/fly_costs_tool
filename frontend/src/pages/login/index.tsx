@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { login, type LoginPayload } from "@/services/auth";
+import { login } from "@/services/auth";
 
 export default function Login() {
   const router = useRouter();
@@ -33,14 +33,8 @@ export default function Login() {
     setErro(null);
     setCarregando(true);
 
-    // Se aluno, redirecionar sem fazer login
-    if (form.perfil === "aluno") {
-      router.push("/dashboard/student");
-      return;
-    }
-
-    // Se coordenador, fazer login com API
-    if (form.perfil === "coordenador") {
+    // Se coordenador ou aluno, fazer login com API
+    if (form.perfil === "coordenador" || form.perfil === "aluno") {
       try {
         const result = await login({
           email: form.email,
@@ -50,8 +44,9 @@ export default function Login() {
         if (result.ok) {
           // Salvar token no localStorage
           localStorage.setItem("accessToken", result.accessToken);
-          // Redirecionar para dashboard do coordenador
-          router.push("/dashboard/coordinator");
+          // Redirecionar para dashboard apropriado
+          const dashboard = form.perfil === "aluno" ? "/dashboard/student" : "/dashboard/coordinator";
+          router.push(dashboard);
         } else {
           if (result.error === "INVALID_CREDENTIALS") {
             setErro("Email ou senha inválidos");
@@ -191,7 +186,7 @@ export default function Login() {
               </div>
 
               {/* E-mail */}
-              {form.perfil === "coordenador" && (
+              {(form.perfil === "coordenador" || form.perfil === "aluno") && (
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     E-mail
@@ -218,7 +213,7 @@ export default function Login() {
               )}
 
               {/* Senha */}
-              {form.perfil === "coordenador" && (
+              {(form.perfil === "coordenador" || form.perfil === "aluno") && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <label className="text-sm font-medium text-gray-700">Senha</label>
@@ -289,7 +284,14 @@ export default function Login() {
               </button>
             </form>
 
-            <p className="mt-8 text-center text-sm text-gray-500">
+            <p className="mt-6 text-center text-sm text-gray-500">
+              É coordenador e ainda não tem acesso?{" "}
+              <a href="/register-coordinator" className="font-medium text-[#2563EB] hover:underline">
+                Cadastre-se aqui
+              </a>
+            </p>
+
+            <p className="mt-3 text-center text-sm text-gray-500">
               Está com dificuldades?{" "}
               <a href="#" className="font-medium text-[#2563EB] hover:underline">
                 Fale com o Suporte
