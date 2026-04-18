@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
+import { getMe, type UserProfile } from "@/services/user";
+import { listExpenses, createExpense, type Expense, type ExpenseTopic } from "@/services/expenses";
 
 type Status = "Pendente" | "Aprovado" | "Rejeitado";
 type Filtro = "Todos" | Status;
@@ -15,51 +18,48 @@ interface Despesa {
   icone: "componentes" | "livros" | "viagem" | "nuvem";
 }
 
-// Dados iniciais de exemplo — substituir pelo fetch da API quando o backend estiver pronto
-const despesasIniciais: Despesa[] = [
-  {
-    id: "1",
-    data: "28 out. 2025",
-    descricao: "Componentes para Arduino",
-    reqId: "#REQ-8923",
-    projeto: "Laboratório de Robótica",
-    valor: 120.0,
-    status: "Pendente",
-    icone: "componentes",
-  },
-  {
-    id: "2",
-    data: "25 out. 2025",
-    descricao: "Livros de Machine Learning",
-    reqId: "#REQ-8910",
-    projeto: "Bolsa de Pesquisa em IA",
-    valor: 345.5,
-    status: "Aprovado",
-    icone: "livros",
-  },
-  {
-    id: "3",
-    data: "20 out. 2025",
-    descricao: "Passagens para Conferência",
-    reqId: "#REQ-8892",
-    projeto: "Bolsa de Pesquisa em IA",
-    valor: 850.0,
-    status: "Rejeitado",
-    icone: "viagem",
-  },
-  {
-    id: "4",
-    data: "18 out. 2025",
-    descricao: "Créditos de Cloud Hosting",
-    reqId: "#REQ-8875",
-    projeto: "Laboratório de Robótica",
-    valor: 330.0,
-    status: "Pendente",
-    icone: "nuvem",
-  },
-];
+function topicToIcone(topic: string): "componentes" | "livros" | "viagem" | "nuvem" {
+  switch (topic) {
+    case "PASSAGEM":
+      return "viagem";
+    case "HOSPEDAGEM":
+      return "livros";
+    case "INSCRICAO":
+    default:
+      return "componentes";
+  }
+}
 
-const projetos = ["Todos os Projetos", "Laboratório de Robótica", "Bolsa de Pesquisa em IA"];
+function statusBackendToFrontend(status: string): Status {
+  switch (status) {
+    case "PENDENTE":
+      return "Pendente";
+    case "APROVADO":
+      return "Aprovado";
+    case "REJEITADO":
+      return "Rejeitado";
+    default:
+      return "Pendente";
+  }
+}
+
+function expenseToDespesa(expense: Expense): Despesa {
+  const valor = parseFloat(expense.amount);
+  return {
+    id: expense.id,
+    data: new Date(expense.createdAt).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    descricao: expense.title,
+    reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
+    projeto: expense.project?.name || "Sem projeto",
+    valor: isNaN(valor) ? 0 : valor,
+    status: statusBackendToFrontend(expense.status),
+    icone: topicToIcone(expense.topic),
+  };
+}
 
 function IconeDespesa({ tipo }: { tipo: Despesa["icone"] }) {
   const base = "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg";
@@ -126,35 +126,120 @@ function BadgeStatus({ status }: { status: Status }) {
   );
 }
 
-function formatarData(date: Date): string {
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function gerarReqId(): string {
-  const num = Math.floor(8000 + Math.random() * 1999);
-  return `#REQ-${num}`;
-}
-
 export default function DashboardAluno() {
-  const [despesas, setDespesas] = useState<Despesa[]>(despesasIniciais);
+  const router = useRouter();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [filtro, setFiltro] = useState<Filtro>("Todos");
-  const [projeto, setProjeto] = useState("Todos os Projetos");
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [criandoDespesa, setCriandoDespesa] = useState(false);
 
-  // TODO: ao integrar o backend, substituir por POST /solicitacoes e depois re-fetch ou append com o item retornado
-  function handleNovaDespesa(data: NovaDespesaData) {
-    const nova: Despesa = {
-      id: String(Date.now()),
-      data: formatarData(new Date()),
-      descricao: data.descricao,
-      reqId: gerarReqId(),
-      projeto: data.projeto,
-      valor: data.valor,
-      status: "Pendente",
-      icone: data.categoria,
+  async function carregarDespesas(token: string) {
+    const expensesResult = await listExpenses(token);
+    if (expensesResult.ok) {
+      setDespesas(expensesResult.data.map(expenseToDespesa));
+    } else if (expensesResult.error === "UNAUTHORIZED") {
+      localStorage.removeItem("accessToken");
+      router.push("/login");
+    } else {
+      setErro("Erro ao carregar despesas");
+    }
+  }
+
+  useEffect(() => {
+    const carregarDados = async () => {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const meResult = await getMe(token);
+        if (!meResult.ok) {
+          if (meResult.error === "UNAUTHORIZED") {
+            localStorage.removeItem("accessToken");
+            router.push("/login");
+          } else {
+            setErro("Erro ao carregar perfil");
+          }
+          return;
+        }
+        setUserProfile(meResult.data);
+        await carregarDespesas(token);
+      } catch (_err) {
+        setErro("Erro de conexão com o servidor");
+      } finally {
+        setCarregando(false);
+      }
     };
-    setDespesas((prev) => [nova, ...prev]);
+
+    carregarDados();
+  }, [router]);
+
+  async function handleAtualizar() {
+    const token = localStorage.getItem("accessToken");
+    if (!token || atualizando) return;
+    setAtualizando(true);
+    setErro(null);
+    try {
+      await carregarDespesas(token);
+    } catch (_err) {
+      setErro("Erro de conexão");
+    } finally {
+      setAtualizando(false);
+    }
+  }
+
+  async function handleLogout() {
+    localStorage.removeItem("accessToken");
+    router.push("/login");
+  }
+
+  async function handleNovaDespesa(data: NovaDespesaData) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    setCriandoDespesa(true);
+    setErro(null);
+
+    try {
+      const topicMap: Record<string, ExpenseTopic> = {
+        componentes: "INSCRICAO",
+        livros: "HOSPEDAGEM",
+        viagem: "PASSAGEM",
+        nuvem: "INSCRICAO",
+      };
+
+      const result = await createExpense(token, {
+        title: data.descricao,
+        description: data.descricao,
+        topic: topicMap[data.categoria] || "INSCRICAO",
+        amount: data.valor,
+      });
+
+      if (result.ok) {
+        const novaDespesa = expenseToDespesa(result.data);
+        setDespesas((prev) => [novaDespesa, ...prev]);
+        setModalAberto(false);
+      } else if (result.error === "UNAUTHORIZED") {
+        localStorage.removeItem("accessToken");
+        router.push("/login");
+      } else if (result.error === "VALIDATION_ERROR") {
+        setErro("Dados inválidos. Verifique os campos.");
+      } else {
+        setErro("Erro ao criar despesa");
+      }
+    } catch (_err) {
+      setErro("Erro de conexão");
+    } finally {
+      setCriandoDespesa(false);
+    }
   }
 
   const totalSubmetido = despesas.reduce((s, d) => s + d.valor, 0);
@@ -163,16 +248,38 @@ export default function DashboardAluno() {
 
   const despesasFiltradas = despesas.filter((d) => {
     const matchFiltro = filtro === "Todos" || d.status === filtro;
-    const matchProjeto = projeto === "Todos os Projetos" || d.projeto === projeto;
-    const matchBusca = d.descricao.toLowerCase().includes(busca.toLowerCase()) || d.reqId.toLowerCase().includes(busca.toLowerCase());
-    return matchFiltro && matchProjeto && matchBusca;
+    const matchBusca = (d.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) || (d.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase());
+    return matchFiltro && matchBusca;
   });
 
   const filtros: Filtro[] = ["Todos", "Pendente", "Aprovado", "Rejeitado"];
 
+  if (carregando) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 flex justify-center">
+            <svg className="animate-spin h-8 w-8 text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <p className="text-gray-600">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      {modalAberto && <ModalNovaDespesa onClose={() => setModalAberto(false)} onSubmit={handleNovaDespesa} />}
+      {modalAberto && (
+        <ModalNovaDespesa
+          onClose={() => setModalAberto(false)}
+          onSubmit={handleNovaDespesa}
+          carregando={criandoDespesa}
+          erro={erro}
+        />
+      )}
 
       {/* Sidebar */}
       <aside className="flex w-56 shrink-0 flex-col justify-between bg-white border-r border-gray-200 py-6 px-4">
@@ -196,22 +303,34 @@ export default function DashboardAluno() {
           <nav className="space-y-1">
             <button className="flex w-full items-center gap-2 rounded-lg bg-[#4F46E5]/10 px-3 py-2 text-sm font-semibold text-[#4F46E5]">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
               </svg>
               Minhas Solicitações
             </button>
           </nav>
         </div>
 
-        {/* Usuário */}
-        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-sm font-bold text-white">
-            S
+        {/* Usuário + Logout */}
+        <div className="space-y-3 border-t border-gray-200 pt-4">
+          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-sm font-bold text-white">
+              {userProfile?.name.charAt(0).toUpperCase() || "?"}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-gray-800">{userProfile?.name || "Carregando..."}</p>
+              <p className="truncate text-xs text-gray-400">Aluno</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-800">Sarah Smith</p>
-            <p className="truncate text-xs text-gray-400">Ciência da Computação</p>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M19.293 9.293a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 11H6.75a1 1 0 110-2h9.836l-1.707-1.707a1 1 0 011.414-1.414l3 3z" clipRule="evenodd" />
+            </svg>
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -225,15 +344,25 @@ export default function DashboardAluno() {
             <p className="text-sm text-gray-500">Acompanhe e gerencie suas despesas de projetos acadêmicos</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-                <path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.730-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" />
+            {erro && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <p className="text-sm text-red-700">{erro}</p>
+              </div>
+            )}
+            <button
+              onClick={handleAtualizar}
+              disabled={atualizando}
+              title="Atualizar lista"
+              className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-5 w-5 ${atualizando ? "animate-spin" : ""}`}>
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.389zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
               </svg>
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
             </button>
             <button
               onClick={() => setModalAberto(true)}
-              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA]"
+              disabled={criandoDespesa}
+              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] disabled:opacity-50"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
@@ -288,44 +417,24 @@ export default function DashboardAluno() {
             </div>
           </div>
 
-          {/* Filtros e tabela */}
+          {/* Tabela */}
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
 
             {/* Barra de busca e filtros */}
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <div className="flex items-center gap-3">
-                {/* Busca */}
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Buscar solicitações..."
-                    className="rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] w-52"
-                  />
-                </div>
-                {/* Filtro de projeto */}
-                <div className="relative">
-                  <select
-                    value={projeto}
-                    onChange={(e) => setProjeto(e.target.value)}
-                    className="appearance-none rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]"
-                  >
-                    {projetos.map((p) => (
-                      <option key={p}>{p}</option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                    </svg>
-                  </span>
-                </div>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar solicitações..."
+                  className="rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] w-52"
+                />
               </div>
 
               {/* Tabs de status */}
@@ -355,13 +464,12 @@ export default function DashboardAluno() {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Projeto</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Valor</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
-                  <th className="px-6 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {despesasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-sm text-gray-400">
+                    <td colSpan={5} className="py-12 text-center text-sm text-gray-400">
                       Nenhuma solicitação encontrada.
                     </td>
                   </tr>
@@ -385,48 +493,16 @@ export default function DashboardAluno() {
                       <td className="px-6 py-4">
                         <BadgeStatus status={d.status} />
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-                            <path d="M3 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM8.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM15.5 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
-                          </svg>
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
 
-            {/* Paginação */}
-            <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+            <div className="border-t border-gray-100 px-6 py-4">
               <p className="text-sm text-gray-500">
                 Exibindo {despesasFiltradas.length} de {despesas.length} resultados
               </p>
-              <div className="flex items-center gap-1">
-                <button className="rounded-lg border border-gray-200 px-2 py-1.5 text-gray-400 hover:bg-gray-50">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                    <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {[1, 2, 3].map((p) => (
-                  <button
-                    key={p}
-                    className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
-                      p === 1
-                        ? "border-[#4F46E5] bg-[#4F46E5] text-white"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button className="rounded-lg border border-gray-200 px-2 py-1.5 text-gray-400 hover:bg-gray-50">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                    <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
 
