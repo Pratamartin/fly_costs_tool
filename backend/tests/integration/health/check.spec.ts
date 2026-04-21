@@ -1,12 +1,7 @@
 import { testClient } from 'hono/testing'
 import { describe, expect, it } from 'vitest'
-import env from '@/env'
 import { createTestApp } from '@/lib/config'
 import { health } from '@/routes'
-
-if (env.NODE_ENV !== 'test') {
-  throw new Error('NODE_ENV must be \'test\'')
-}
 
 const client = testClient(createTestApp(health))
 
