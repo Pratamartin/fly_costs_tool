@@ -1,4 +1,6 @@
 import { z } from '@hono/zod-openapi'
+import { jsonContent } from 'stoker/openapi/helpers'
+import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 
 export const IdSchema = z.uuid()
   .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -9,3 +11,6 @@ export const TimestampSchema = z.object({
   updatedAt: z.coerce.date()
     .openapi({ example: '2026-02-02T12:45:00Z' }),
 }).shape
+
+export const UnauthorizedResponse = jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou expirado.')
+export const ForbiddenResponse = jsonContent(createMessageObjectSchema('Acesso restrito'), 'Erro: Perfil não autorizado.')

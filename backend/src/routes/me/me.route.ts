@@ -3,6 +3,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth } from '@/middlewares'
+import { UnauthorizedResponse } from '@/schemas/shared.schema'
 import { UserProfileSchema } from '@/schemas/user.schema'
 
 const tags = ['Me']
@@ -22,10 +23,7 @@ export const index = createRoute({
       UserProfileSchema,
       'Perfil do usuário retornado com sucesso.',
     ),
-    [codes.UNAUTHORIZED]: jsonContent(
-      createMessageObjectSchema('Não autorizado'),
-      'Erro: Token de acesso ausente, expirado ou inválido.',
-    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.NOT_FOUND]: jsonContent(
       createMessageObjectSchema('Usuário não encontrado'),
       'Erro: O usuário correspondente ao token não existe mais no banco de dados.',

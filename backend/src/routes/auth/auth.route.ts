@@ -3,6 +3,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { LoginSchema, LoginSuccessSchema, RegisterSchema, RegisterSuccessSchema } from '@/schemas/auth.schema'
+import { UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Auth']
 
@@ -46,9 +47,6 @@ export const login = createRoute({
       LoginSuccessSchema,
       'Autenticação bem-sucedida. O access token é retornado no corpo da resposta.',
     ),
-    [codes.UNAUTHORIZED]: jsonContent(
-      createMessageObjectSchema('Login ou senha inválidos'),
-      'Erro: Credenciais incorretas ou usuário não encontrado.',
-    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
   },
 })

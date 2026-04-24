@@ -5,7 +5,7 @@ import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth, requireRole } from '@/middlewares'
 import { CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
-import { IdSchema } from '@/schemas/shared.schema'
+import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
 
@@ -27,7 +27,7 @@ export const index = createRoute({
   tags,
   responses: {
     [codes.OK]: jsonContent(ListExpenseResponseSchema, 'Lista de solicitações de despesas.'),
-    [codes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou ausente'),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
   },
 })
 
@@ -48,14 +48,8 @@ export const create = createRoute({
       ExpenseResponseSchema,
       'Solicitação criada com sucesso.',
     ),
-    [codes.UNAUTHORIZED]: jsonContent(
-      createMessageObjectSchema('Não autenticado'),
-      'Token ausente ou inválido.',
-    ),
-    [codes.FORBIDDEN]: jsonContent(
-      createMessageObjectSchema(`Acesso restrito a ${ALLOWED_ROLES.join('/')}`),
-      'O usuário não possui a role necessária.',
-    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    [codes.FORBIDDEN]: ForbiddenResponse,
   },
 })
 
@@ -74,10 +68,7 @@ export const read = createRoute({
       createMessageObjectSchema('Despesa não encontrada'),
       'A despesa não existe ou o usuário não tem permissão para visualizá-la.',
     ),
-    [codes.UNAUTHORIZED]: jsonContent(
-      createMessageObjectSchema('Não autenticado'),
-      'Token ausente ou inválido.',
-    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
   },
 })
 
@@ -110,13 +101,7 @@ export const updateStatus = createRoute({
       createMessageObjectSchema('Solicitação já foi decidida'),
       'A despesa não está mais pendente e não pode ter seu status alterado.',
     ),
-    [codes.UNAUTHORIZED]: jsonContent(
-      createMessageObjectSchema('Não autenticado'),
-      'Token ausente ou inválido.',
-    ),
-    [codes.FORBIDDEN]: jsonContent(
-      createMessageObjectSchema(`Acesso restrito a ${EVALUATOR_ROLES.join('/')}`),
-      'O usuário não possui a role necessária.',
-    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    [codes.FORBIDDEN]: ForbiddenResponse,
   },
 })
