@@ -14,6 +14,7 @@ model User {
   passwordHash    String
   role            UserRole         @default(ALUNO)
   expenseRequests ExpenseRequest[]
+  isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
@@ -30,10 +31,15 @@ enum ExpenseRequestStatus {
   REJEITADO
 }
 
-enum ExpenseTopic {
-  INSCRICAO
-  PASSAGEM
-  HOSPEDAGEM
+model ExpenseCategory {
+  id             String    @id @default(uuid())
+  name           String
+  normalizedName String    @unique
+  
+  projects       Project[] 
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model ExpenseRequest {
@@ -45,9 +51,7 @@ model ExpenseRequest {
 
   title       String
   description String?
-  amount      Decimal
 
-  topic     ExpenseTopic
   projectId String?
   project   Project?     @relation(fields: [projectId], references: [id])
 
@@ -58,10 +62,11 @@ model ExpenseRequest {
 model Project {
   id              String           @id @default(uuid())
   name            String
-  code            String?          @unique
+  code            String          @unique
   budget          Decimal
-  expenseTopics   ExpenseTopic[]
+  expenseCategories   ExpenseCategory[]
   expenseRequests ExpenseRequest[]
+  isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
