@@ -1,13 +1,14 @@
 import { z } from '@hono/zod-openapi'
-import { ExpenseTopic } from '@/generated/prisma/enums'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
+import { dummyProjects } from '@/seeds/project.seed'
 
 const BaseSchema = z.object({
-  name: z.string().openapi({ example: 'Laboratório de Robótica' }),
+  name: z.string().openapi({ examples: dummyProjects.map(p => p.name) }),
 
-  code: z.string().optional()
+  code: z.string()
     .openapi({
-      example: 'LAB-ROB-001',
-      description: 'Código único do projeto (opcional).',
+      examples: dummyProjects.map(p => p.code),
+      description: 'Código único do projeto.',
     }),
 
   budget: z.number().openapi({
@@ -15,7 +16,7 @@ const BaseSchema = z.object({
     description: 'Orçamento total do projeto em reais.',
   }),
 
-  expenseTopics: z.array(z.enum(ExpenseTopic)).openapi({ example: Object.values(ExpenseTopic) }),
+  subcategories: z.array(z.string()).openapi({ example: dummyExpenseCategories.map(c => c.normalizedName) }),
 })
 
 export default BaseSchema

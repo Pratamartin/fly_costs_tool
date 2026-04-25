@@ -8,19 +8,38 @@ import prisma from '@/lib/orm'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
 
-export async function createExpenseRequest(userId: string, data: CreateExpenseDTO) {
+export const expenseInclude = {
+  student: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  project: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+  },
+} satisfies Prisma.ExpenseRequestInclude
+
+export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
+  include: typeof expenseInclude
+}>
+
+export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations> {
   const result = await prisma.expenseRequest.create({
     data: {
       ...data,
       studentId: userId,
     },
+    include: expenseInclude,
   })
 
-  return {
-    ...result,
-    amount: result.amount.toString(),
-  }
+  return result
 }
+
 export async function getAllExpenseRequests(
   userId: string,
   role: UserRole,
@@ -28,82 +47,38 @@ export async function getAllExpenseRequests(
 ) {
   const where: Prisma.ExpenseRequestWhereInput = filters
 
-  const include: Prisma.ExpenseRequestInclude = {
-    project: {
-      select: {
-        id: true,
-        name: true,
-      },
-    },
-  }
-
   if (role === UserRole.ALUNO) {
     where.studentId = userId
-  }
-  else {
-    include.student = {
-      select: {
-        id: true,
-        name: true,
-      },
-    }
   }
 
   const result = await prisma.expenseRequest.findMany({
     where,
-    include,
     orderBy: { createdAt: 'desc' },
   })
 
-  return result.map(item => ({
-    ...item,
-    amount: item.amount.toString(),
-  }))
+  return result
 }
 
 export async function getExpenseById(
   id: string,
   userId: string,
   role: UserRole,
-) {
+): Promise<ExpenseWithRelations | null> {
   const where: Prisma.ExpenseRequestWhereInput = { id }
-
-  const include: Prisma.ExpenseRequestInclude = {
-    project: {
-      select: {
-        id: true,
-        name: true,
-      },
-    },
-  }
 
   if (role === UserRole.ALUNO) {
     where.studentId = userId
   }
-  else {
-    include.student = {
-      select: {
-        id: true,
-        name: true,
-      },
-    }
-  }
 
   const result = await prisma.expenseRequest.findFirst({
     where,
-    include,
+    include: expenseInclude,
   })
 
-  if (!result)
-    return null
-
-  return {
-    ...result,
-    amount: result.amount.toString(),
-  }
+  return result
 }
 
-export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus) {
+export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus): Promise<ExpenseWithRelations | { error: string }> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
@@ -117,12 +92,8 @@ export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestS
   const updatedRequest = await prisma.expenseRequest.update({
     where: { id },
     data: { status: newStatus },
+    include: expenseInclude,
   })
 
-  return {
-    data: {
-      ...updatedRequest,
-      amount: updatedRequest.amount.toString(),
-    },
-  }
+  return updatedRequest
 }

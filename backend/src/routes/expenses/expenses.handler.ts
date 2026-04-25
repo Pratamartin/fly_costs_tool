@@ -48,14 +48,16 @@ export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
 
   const result = await updateExpenseStatus(id, status)
 
-  if (result?.error === phrases.NOT_FOUND) {
-    return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+
+      case phrases.CONFLICT:
+        return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
+    }
   }
 
-  if (result?.error === phrases.CONFLICT) {
-    return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
-  }
-
-  const parsed = ExpenseResponseSchema.parse(result.data)
+  const parsed = ExpenseResponseSchema.parse(result)
   return c.json(parsed, codes.OK)
 }

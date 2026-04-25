@@ -1,4 +1,4 @@
-const ID_ALUNO = 'c9d8e7f6-a5b4-3c2d-1e0f-g9h8i7j6k5l4'
+const ID_ALUNO = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const ID_PROJ_ROBOTICA = 'a1b2c3d4-e5f6-4a5b-8c9d-0123456789ab'
 const ID_PROJ_IA = 'b2c3d4e5-f6a7-5b6c-9d0e-1234567890bc'
 const DEFAULT_USER_PASSWORD = 'Test@1234'
