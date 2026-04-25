@@ -1,7 +1,8 @@
 import { z } from '@hono/zod-openapi'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import ProjectSchema from './project.schema'
-import { IdSchema, TimestampSchema } from './shared.schema'
+import { returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
+import { IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
 import { UserProfileSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
@@ -31,8 +32,14 @@ const BaseSchema = z.object({
       example: ExpenseRequestStatus.APROVADO,
     }),
 })
+  .extend(LocationSchema.shape)
+  .extend(TripPeriodSchema.shape)
 
 export const CreateExpenseSchema = BaseSchema.omit({ status: true })
+  .check(validStateCheck)
+  .check(validCountryCheck)
+  .check(stateBelongsToCountryCheck)
+  .check(returnDateAfterDepartureDateCheck)
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
