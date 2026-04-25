@@ -32,14 +32,14 @@ enum ExpenseRequestStatus {
 }
 
 model ExpenseCategory {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   name           String
-  normalizedName String    @unique
-  
-  projects       Project[] 
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  normalizedName String @unique
+
+  projects Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ExpenseRequest {
@@ -53,20 +53,20 @@ model ExpenseRequest {
   description String?
 
   projectId String?
-  project   Project?     @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Project {
-  id              String           @id @default(uuid())
-  name            String
-  code            String          @unique
-  budget          Decimal
-  expenseCategories   ExpenseCategory[]
-  expenseRequests ExpenseRequest[]
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique
+  budget            Decimal
+  expenseCategories ExpenseCategory[]
+  expenseRequests   ExpenseRequest[]
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
