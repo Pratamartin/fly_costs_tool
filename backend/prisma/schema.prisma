@@ -52,6 +52,13 @@ model ExpenseRequest {
   title       String
   description String?
 
+  city    String
+  state   String @db.VarChar(6) // ISO 3166-2 (e.g., "US-NY", "BR-AM")
+  country String @db.Char(2) // ISO 3166-1 (e.g., "US", "BR")
+
+  departureDate DateTime
+  returnDate    DateTime
+
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
