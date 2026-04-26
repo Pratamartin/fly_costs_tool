@@ -62,6 +62,8 @@ model ExpenseRequest {
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
+  rejectionReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
