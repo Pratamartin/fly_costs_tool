@@ -2,6 +2,7 @@
 import type { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import prisma from '@/lib/orm'
+import { getRelativeDate } from '@/lib/util'
 import { ID_ALUNO, ID_PROJ_IA } from '../constants/seed.constant'
 
 export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
@@ -12,6 +13,12 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     status: ExpenseRequestStatus.APROVADO,
     student: { connect: { id: ID_ALUNO } },
     project: { connect: { id: ID_PROJ_IA } },
+    city: 'Dois Vizinhos',
+    state: 'BR-PR',
+    country: 'BR',
+    // Viagem daqui a 30 dias, voltando em 31 dias
+    departureDate: getRelativeDate(30, 9), // Daqui 30 dias às 09:00
+    returnDate: getRelativeDate(31, 18), // Daqui 31 dias às 18:00
   },
   {
     id: 'ef9ac2fc-a3a2-488b-b06b-480e57315c4f',
@@ -20,6 +27,12 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     status: ExpenseRequestStatus.REJEITADO,
     student: { connect: { id: ID_ALUNO } },
     project: undefined,
+    city: 'Manaus',
+    state: 'BR-AM',
+    country: 'BR',
+    // Viagem no passado (para simular requisições antigas)
+    departureDate: getRelativeDate(-15, 9), // 15 dias atrás
+    returnDate: getRelativeDate(-10, 18), // 10 dias atrás
   },
   {
     id: '9e730bb7-6123-4363-8f87-e37f907a3246',
@@ -28,6 +41,12 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     status: ExpenseRequestStatus.PENDENTE,
     student: { connect: { id: ID_ALUNO } },
     project: undefined,
+    city: 'Anta Gorda',
+    state: 'BR-RS',
+    country: 'BR',
+    // Viagem iminente
+    departureDate: getRelativeDate(2, 9), // Daqui 2 dias
+    returnDate: getRelativeDate(5, 18), // Daqui 5 dias
   },
 ]
 
