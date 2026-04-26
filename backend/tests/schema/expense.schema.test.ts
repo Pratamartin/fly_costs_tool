@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi'
 import { assert, describe, expect, it } from 'vitest'
-import { CreateExpenseSchema } from '@/schemas/expense.schema'
+import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { CreateExpenseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
 import { dummyExpenses } from '@/seeds/expense.seed'
 
 describe('createExpenseSchema', () => {
@@ -85,6 +86,21 @@ describe('createExpenseSchema', () => {
     const issue = result.error.issues.find(i => i.path.includes('returnDate'))
     assert(issue)
     expect(issue.path).toContain('returnDate')
+    expect(issue.code).toBe('custom')
+  })
+})
+
+describe('updateExpenseStatusSchema', () => {
+  type UpdateExpenseStatusInput = z.infer<typeof UpdateExpenseStatusSchema>
+
+  it('exige motivo quando status é rejeitado', () => {
+    const missingReasonWhenRejectedPayload: UpdateExpenseStatusInput = { status: ExpenseRequestStatus.REJEITADO }
+    const result = UpdateExpenseStatusSchema.safeParse(missingReasonWhenRejectedPayload)
+    expect(result.success).toBe(false)
+    assert(result.error)
+    const issue = result.error.issues.find(i => i.message.includes('motivo é obrigatório'))
+    assert(issue)
+    expect(issue.path).toContain('reason')
     expect(issue.code).toBe('custom')
   })
 })

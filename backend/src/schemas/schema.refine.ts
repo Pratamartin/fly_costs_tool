@@ -1,6 +1,8 @@
+import type { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { z } from '@hono/zod-openapi'
 import countries from 'i18n-iso-countries'
 import iso31662 from 'iso-3166-2'
+import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 
 export const validStateCheck = z.refine<{ state: string }>(
   value => iso31662.subdivision(value.state) !== null,
@@ -25,5 +27,19 @@ export const returnDateAfterDepartureDateCheck = z.refine<{ returnDate: Date, de
   {
     message: 'A data de retorno não pode ser anterior à data de partida',
     path: ['returnDate'],
+  },
+)
+
+export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reason?: string | null }>(
+  (value) => {
+    if (!STATUSES_WHERE_REASON_REQUIRED.includes(value.status)) {
+      return true
+    }
+
+    return !!value.reason && value.reason.length > 0
+  },
+  {
+    message: 'O motivo é obrigatório para o status selecionado',
+    path: ['reason'],
   },
 )
