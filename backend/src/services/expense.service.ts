@@ -29,7 +29,11 @@ export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
   include: typeof expenseInclude
 }>
 
-export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations> {
+export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations | { error: string }> {
+  if (data.returnDate < data.departureDate) {
+    return { error: EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE }
+  }
+
   const result = await prisma.expenseRequest.create({
     data: {
       ...data,
