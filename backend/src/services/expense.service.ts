@@ -2,7 +2,7 @@ import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
 import type { CreateExpenseSchema, ExpenseListQuerySchema } from '@/schemas/expense.schema'
 import * as phrases from 'stoker/http-status-phrases'
-import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
+import { EXPENSE_ERROR_CODES, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
@@ -83,7 +83,7 @@ export async function getExpenseById(
   return result
 }
 
-export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus): Promise<ExpenseWithRelations | { error: string }> {
+export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus, reason?: string): Promise<ExpenseWithRelations | { error: string }> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
@@ -94,9 +94,25 @@ export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestS
     return { error: phrases.CONFLICT }
   }
 
+  if (STATUSES_WHERE_REASON_REQUIRED.includes(newStatus) && !reason) {
+    return { error: EXPENSE_ERROR_CODES.REASON_REQUIRED }
+  }
+
+  const updateData: Prisma.ExpenseRequestUpdateInput = { status: newStatus }
+
+  switch (newStatus) {
+    case ExpenseRequestStatus.REJEITADO:
+      updateData.rejectionReason = reason
+      break
+
+    case ExpenseRequestStatus.APROVADO:
+      updateData.rejectionReason = null
+      break
+  }
+
   const updatedRequest = await prisma.expenseRequest.update({
     where: { id },
-    data: { status: newStatus },
+    data: updateData,
     include: expenseInclude,
   })
 

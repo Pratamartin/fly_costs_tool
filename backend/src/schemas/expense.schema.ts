@@ -1,7 +1,8 @@
 import { z } from '@hono/zod-openapi'
+import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import ProjectSchema from './project.schema'
-import { returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
+import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
 import { IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
 import { UserProfileSchema } from './user.schema'
 
@@ -29,13 +30,21 @@ const BaseSchema = z.object({
   status: z.enum(ExpenseRequestStatus)
     .openapi({
       description: 'Status atual da solicitação',
-      example: ExpenseRequestStatus.APROVADO,
+      example: ExpenseRequestStatus.REJEITADO,
+    }),
+  rejectionReason: z.string().nullable()
+    .openapi({
+      description: 'Motivo registrado caso a solicitação tenha sido rejeitada.',
+      example: 'O aluno solicitante excedeu o limite semestral de benefícios.',
     }),
 })
   .extend(LocationSchema.shape)
   .extend(TripPeriodSchema.shape)
 
-export const CreateExpenseSchema = BaseSchema.omit({ status: true })
+export const CreateExpenseSchema = BaseSchema.omit({
+  status: true,
+  rejectionReason: true,
+})
   .check(validStateCheck)
   .check(validCountryCheck)
   .check(stateBelongsToCountryCheck)
@@ -61,6 +70,7 @@ export const ExpenseListItemSchema = z.object({
   .extend(BaseSchema.pick({
     title: true,
     status: true,
+    rejectionReason: true,
   }).shape)
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
@@ -70,4 +80,10 @@ export const UpdateExpenseStatusSchema = z.object({
     description: 'O novo status a ser atribuído à solicitação.',
     example: ExpenseRequestStatus.REJEITADO,
   }),
-})
+  reason: z.string().nullable()
+    .optional()
+    .openapi({
+      description: `Motivo da alteração. **Obrigatório** se o status for: ${STATUSES_WHERE_REASON_REQUIRED.join(' ou ')}.`,
+      example: 'Documentação pendente: Realize o ajuste necessário.',
+    }),
+}).check(reasonFieldRequired)
