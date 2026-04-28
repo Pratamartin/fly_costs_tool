@@ -2,6 +2,7 @@ import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
 import type { CreateExpenseSchema, ExpenseListQuerySchema } from '@/schemas/expense.schema'
 import * as phrases from 'stoker/http-status-phrases'
+import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
@@ -28,7 +29,11 @@ export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
   include: typeof expenseInclude
 }>
 
-export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations> {
+export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations | { error: string }> {
+  if (data.returnDate < data.departureDate) {
+    return { error: EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE }
+  }
+
   const result = await prisma.expenseRequest.create({
     data: {
       ...data,
