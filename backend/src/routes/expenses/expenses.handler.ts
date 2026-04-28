@@ -44,9 +44,9 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
 
 export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
   const { id } = c.req.valid('param')
-  const { status } = c.req.valid('json')
+  const { status, reason } = c.req.valid('json')
 
-  const result = await updateExpenseStatus(id, status)
+  const result = await updateExpenseStatus(id, status, reason)
 
   if ('error' in result) {
     switch (result.error) {
