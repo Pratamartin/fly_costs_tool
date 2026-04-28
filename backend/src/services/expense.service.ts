@@ -83,7 +83,7 @@ export async function getExpenseById(
   return result
 }
 
-export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus, reason?: string): Promise<ExpenseWithRelations | { error: string }> {
+export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus, reason?: string | null): Promise<ExpenseWithRelations | { error: string }> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
