@@ -72,7 +72,8 @@ model Project {
   id                String            @id @default(uuid())
   name              String
   code              String            @unique
-  budget            Decimal
+  budget            Decimal          @db.Decimal(10, 2) 
+  usedBudget        Decimal          @default(0) @db.Decimal(10, 2)
   expenseCategories ExpenseCategory[]
   expenseRequests   ExpenseRequest[]
   isActive          Boolean           @default(true)
