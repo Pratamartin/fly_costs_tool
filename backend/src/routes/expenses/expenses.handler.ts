@@ -3,7 +3,7 @@ import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
-import { ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
+import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
 import { assignProjectToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
@@ -24,7 +24,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 
   const result = await createExpenseRequest(sub, data)
 
-  const parsed = ExpenseResponseSchema.parse(result)
+  const parsed = CreateExpenseResponseSchema.parse(result)
 
   return c.json(parsed, codes.CREATED)
 }
@@ -90,6 +90,6 @@ export const assignProject: AppRouteHandler<AssignProjectRoute> = async (c) => {
         )
     }
   }
-  const parsed = ExpenseResponseSchema.parse(result)
+  const parsed = AssignProjectResponseSchema.parse(result)
   return c.json(parsed, codes.OK)
 }

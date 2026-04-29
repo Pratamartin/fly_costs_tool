@@ -2,9 +2,9 @@ import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
-import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
+import { UserRole } from '@/generated/prisma/enums'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
+import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
 import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
@@ -46,7 +46,7 @@ export const create = createRoute({
   request: { body: jsonContentRequired(CreateExpenseSchema, 'Dados da solicitação') },
   responses: {
     [codes.CREATED]: jsonContent(
-      ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) }),
+      CreateExpenseResponseSchema,
       'Solicitação criada com sucesso.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
@@ -128,7 +128,7 @@ export const assignProject = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(
-      ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) }),
+      AssignProjectResponseSchema,
       'Projeto vinculado e status alterado para EM_PROCESSAMENTO.',
     ),
     [codes.NOT_FOUND]: jsonContent(
