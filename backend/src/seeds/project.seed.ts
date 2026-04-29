@@ -21,7 +21,11 @@ export const dummyProjects: Prisma.ProjectCreateInput[] = [
     name: 'Pesquisa em IA Aplicada',
     code: 'IA-WEB-26',
     budget: new Decimal(25000.00),
-
+    usedBudget: new Decimal(15000.00),
+    expenseCategories: {
+      connect: dummyExpenseCategories
+        .map(expenseCategory => ({ id: expenseCategory.id })),
+    },
   },
 ]
 
