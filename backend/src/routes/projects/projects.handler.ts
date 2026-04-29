@@ -21,6 +21,8 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
     switch (result.error) {
       case phrases.CONFLICT:
         return c.json({ message: 'Código de projeto já existe' }, codes.CONFLICT)
+      case PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND:
+        return c.json({ message: 'Uma ou mais subcategorias enviadas não existem' }, codes.BAD_REQUEST)
     }
   }
 
@@ -54,6 +56,8 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
         return c.json({ message: 'Não foi possível trocar o código do projeto' }, codes.CONFLICT)
       case PROJECT_ERROR_CODES.PROJECT_ARCHIVED:
         return c.json({ message: 'Este projeto está arquivado e não pode ser editado' }, codes.CONFLICT)
+      case PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND:
+        return c.json({ message: 'Uma ou mais subcategorias enviadas não existem' }, codes.BAD_REQUEST)
     }
   }
 
