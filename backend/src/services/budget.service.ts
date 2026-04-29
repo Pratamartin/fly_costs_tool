@@ -3,7 +3,11 @@ import * as phrases from 'stoker/http-status-phrases'
 
 import prisma from '@/lib/orm'
 
-export async function getProjectBudgetMetrics(projectId: string) {
+type BudgetMetricsResult
+  = | { error: string }
+    | { total: Decimal, used: Decimal, available: Decimal }
+
+export async function getProjectBudgetMetrics(projectId: string): Promise<BudgetMetricsResult | { error: string }> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {

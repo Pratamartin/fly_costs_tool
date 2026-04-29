@@ -9,5 +9,6 @@ const router = createRouter().basePath('/expenses')
   .openapi(routes.create, handlers.create)
   .openapi(routes.read, handlers.read)
   .openapi(routes.updateStatus, handlers.updateStatus)
+  .openapi(routes.assignProject, handlers.assignProject)
 
 export default router
