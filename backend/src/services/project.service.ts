@@ -4,6 +4,7 @@ import type { CreateProjectSchema, ListProjectQuerySchema, UpdateProjectSchema }
 import * as phrases from 'stoker/http-status-phrases'
 import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES, PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import prisma from '@/lib/orm'
+import { validateSubcategoriesExist } from './expense.category.service'
 
 type CreateProjectDTO = z.infer<typeof CreateProjectSchema>
 type UpdateProjectDTO = z.infer<typeof UpdateProjectSchema>
@@ -30,8 +31,12 @@ export async function createProject(
     return { error: phrases.CONFLICT }
   }
 
-  if (data.subcategories && (data.subcategories.length < 1 || data.subcategories.length > 20)) {
+  if (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES) {
     return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }
+  }
+
+  if (!await validateSubcategoriesExist(data.subcategories)) {
+    return { error: PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND }
   }
 
   const { subcategories, ...restData } = data
@@ -118,6 +123,10 @@ export async function updateProject(
 
   if (data.subcategories && (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES)) {
     return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }
+  }
+
+  if (data.subcategories && !await validateSubcategoriesExist(data.subcategories)) {
+    return { error: PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND }
   }
 
   if (data.code && data.code !== existingProject.code) {

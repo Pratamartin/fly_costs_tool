@@ -49,3 +49,9 @@ export async function getAllExpenseCategories(filters: z.infer<typeof ListExpens
     orderBy: { name: 'asc' },
   })
 }
+
+export async function validateSubcategoriesExist(subcategories: string[]): Promise<boolean> {
+  const existingCount = await prisma.expenseCategory.count({ where: { normalizedName: { in: subcategories } } })
+
+  return existingCount === subcategories.length
+}

@@ -46,6 +46,10 @@ export const create = createRoute({
   request: { body: jsonContentRequired(CreateProjectSchema, 'Dados do projeto') },
   responses: {
     [codes.CREATED]: jsonContent(ProjectResponseSchema, 'Projeto criado com sucesso.'),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Subcategorias inválidas'),
+      'Uma ou mais subcategorias enviadas não existem no banco de dados.',
+    ),
     [codes.CONFLICT]: jsonContent(
       createMessageObjectSchema('Código já utilizado'),
       'Já existe um projeto cadastrado com o código informado.',
@@ -92,6 +96,10 @@ export const update = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(ProjectResponseSchema, 'Projeto atualizado com sucesso.'),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Subcategorias inválidas'),
+      'Uma ou mais subcategorias enviadas não existem no banco de dados.',
+    ),
     [codes.NOT_FOUND]: jsonContent(
       createMessageObjectSchema('Projeto não encontrado'),
       'Projeto inexistente ou não localizado para edição.',
