@@ -33,8 +33,8 @@ export default function Login() {
     setErro(null);
     setCarregando(true);
 
-    // Se coordenador ou aluno, fazer login com API
-    if (form.perfil === "coordenador" || form.perfil === "aluno") {
+    // Se coordenador, aluno ou admin, fazer login com API
+    if (form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") {
       try {
         const result = await login({
           email: form.email,
@@ -45,7 +45,12 @@ export default function Login() {
           // Salvar token no localStorage
           localStorage.setItem("accessToken", result.accessToken);
           // Redirecionar para dashboard apropriado
-          const dashboard = form.perfil === "aluno" ? "/dashboard/student" : "/dashboard/coordinator";
+          const dashboard =
+            form.perfil === "aluno"
+              ? "/dashboard/student"
+              : form.perfil === "admin"
+              ? "/dashboard/admin"
+              : "/dashboard/coordinator";
           router.push(dashboard);
         } else {
           if (result.error === "INVALID_CREDENTIALS") {
@@ -186,7 +191,7 @@ export default function Login() {
               </div>
 
               {/* E-mail */}
-              {(form.perfil === "coordenador" || form.perfil === "aluno") && (
+              {(form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") && (
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     E-mail
@@ -213,7 +218,7 @@ export default function Login() {
               )}
 
               {/* Senha */}
-              {(form.perfil === "coordenador" || form.perfil === "aluno") && (
+              {(form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <label className="text-sm font-medium text-gray-700">Senha</label>
