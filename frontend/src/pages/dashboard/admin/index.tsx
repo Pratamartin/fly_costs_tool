@@ -189,6 +189,7 @@ export default function DashboardAdmin() {
   const [navAtivo, setNavAtivo] = useState<NavItem>("dashboard");
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "development") return;
     const token = localStorage.getItem("accessToken");
     if (!token) {
       router.push("/login");
@@ -225,7 +226,13 @@ export default function DashboardAdmin() {
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setNavAtivo(item.id)}
+                onClick={() => {
+                  if (item.id === "projects") {
+                    router.push("/dashboard/admin/projects");
+                  } else {
+                    setNavAtivo(item.id);
+                  }
+                }}
                 className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                   navAtivo === item.id
                     ? "bg-white/10 text-white font-semibold"

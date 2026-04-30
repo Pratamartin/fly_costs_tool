@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalDetalhe from "@/components/ModalDetalhe";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, updateExpenseStatus, getExpenseById, type Expense, type ExpenseStatus } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, getExpenseById, type Expense } from "@/services/expenses";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -128,6 +128,7 @@ export default function DashboardCoordenador() {
 
   useEffect(() => {
     const carregarDados = async () => {
+      if (process.env.NODE_ENV === "development") return;
       const token = localStorage.getItem("accessToken");
 
       if (!token) {
