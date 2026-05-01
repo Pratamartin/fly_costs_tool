@@ -25,6 +25,19 @@ export const expenseInclude = {
       code: true,
     },
   },
+  costBreakdowns: {
+    select: {
+      id: true,
+      amount: true,
+      expenseCategory: {
+        select: {
+          id: true,
+          name: true,
+          normalizedName: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.ExpenseRequestInclude
 
 export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{

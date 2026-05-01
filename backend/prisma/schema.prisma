@@ -41,6 +41,7 @@ model ExpenseCategory {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  costBreakdowns CostBreakdown[]
 }
 
 model ExpenseRequest {
@@ -65,6 +66,7 @@ model ExpenseRequest {
 
   rejectionReason String?
 
+  costBreakdowns CostBreakdown[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -80,4 +82,15 @@ model Project {
   isActive          Boolean           @default(true)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+}
+
+model CostBreakdown {
+  id                String          @id @default(uuid())
+  amount            Decimal         @db.Decimal(10, 2)
+  expenseRequestId  String
+  expenseRequest    ExpenseRequest  @relation(fields: [expenseRequestId], references: [id], onDelete: Cascade)
+  expenseCategoryId String
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
