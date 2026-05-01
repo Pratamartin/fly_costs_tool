@@ -241,7 +241,7 @@ export default function AdminProjects() {
                   <tr
                     key={project.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => router.push("/dashboard/admin/projects/detalhe")}
+                    onClick={() => router.push("/dashboard/admin/projects/detail")}
                   >
                     <td className="px-6 py-4">
                       <p className="font-semibold text-gray-900">{project.name}</p>
@@ -273,7 +273,7 @@ export default function AdminProjects() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push("/dashboard/admin/projects/detalhe");
+                          router.push("/dashboard/admin/projects/detail");
                         }}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Ver detalhes"
@@ -325,7 +325,7 @@ export default function AdminProjects() {
                 <div
                   key={project.id}
                   className="px-4 py-4 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => router.push("/dashboard/admin/projects/detalhe")}
+                  onClick={() => router.push("/dashboard/admin/projects/detail")}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
