@@ -1,0 +1,1 @@
+export const DEFAULT_TOP_PROJECTS_COUNT = 5
