@@ -122,7 +122,6 @@ export default function AdminProjects() {
   }
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") return;
     const token = localStorage.getItem("accessToken");
     if (!token) router.push("/login");
   }, [router]);
