@@ -21,26 +21,19 @@ interface Despesa {
 
 function topicToIcone(topic: string): "componentes" | "livros" | "viagem" | "nuvem" {
   switch (topic) {
-    case "PASSAGEM":
-      return "viagem";
-    case "HOSPEDAGEM":
-      return "livros";
+    case "PASSAGEM": return "viagem";
+    case "HOSPEDAGEM": return "livros";
     case "INSCRICAO":
-    default:
-      return "componentes";
+    default: return "componentes";
   }
 }
 
 function statusBackendToFrontend(status: string): Status {
   switch (status) {
-    case "PENDENTE":
-      return "Pendente";
-    case "APROVADO":
-      return "Aprovado";
-    case "REJEITADO":
-      return "Rejeitado";
-    default:
-      return "Pendente";
+    case "PENDENTE": return "Pendente";
+    case "APROVADO": return "Aprovado";
+    case "REJEITADO": return "Rejeitado";
+    default: return "Pendente";
   }
 }
 
@@ -48,11 +41,7 @@ function expenseToDespesa(expense: Expense): Despesa {
   const valor = parseFloat(expense.amount);
   return {
     id: expense.id,
-    data: new Date(expense.createdAt).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
+    data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
     projeto: expense.project?.name || "Sem projeto",
@@ -154,12 +143,7 @@ export default function DashboardAluno() {
   useEffect(() => {
     const carregarDados = async () => {
       const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
+      if (!token) { router.push("/login"); return; }
       try {
         const meResult = await getMe(token);
         if (!meResult.ok) {
@@ -179,7 +163,6 @@ export default function DashboardAluno() {
         setCarregando(false);
       }
     };
-
     carregarDados();
   }, [router]);
 
@@ -205,10 +188,8 @@ export default function DashboardAluno() {
   async function handleNovaDespesa(data: NovaDespesaData) {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
-
     setCriandoDespesa(true);
     setErro(null);
-
     try {
       const topicMap: Record<string, ExpenseTopic> = {
         componentes: "INSCRICAO",
@@ -216,17 +197,14 @@ export default function DashboardAluno() {
         viagem: "PASSAGEM",
         nuvem: "INSCRICAO",
       };
-
       const result = await createExpense(token, {
         title: data.descricao,
         description: data.descricaoDetalhada || data.descricao,
         topic: topicMap[data.categoria] || "INSCRICAO",
         amount: data.valor,
       });
-
       if (result.ok) {
-        const novaDespesa = expenseToDespesa(result.data);
-        setDespesas((prev) => [novaDespesa, ...prev]);
+        setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
         setModalAberto(false);
       } else if (result.error === "UNAUTHORIZED") {
         localStorage.removeItem("accessToken");
@@ -249,7 +227,9 @@ export default function DashboardAluno() {
 
   const despesasFiltradas = despesas.filter((d) => {
     const matchFiltro = filtro === "Todos" || d.status === filtro;
-    const matchBusca = (d.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) || (d.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase());
+    const matchBusca =
+      (d.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) ||
+      (d.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase());
     return matchFiltro && matchBusca;
   });
 
@@ -261,8 +241,8 @@ export default function DashboardAluno() {
         <div className="text-center">
           <div className="mb-4 flex justify-center">
             <svg className="animate-spin h-8 w-8 text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
           <p className="text-gray-600">Carregando dashboard...</p>
@@ -287,23 +267,23 @@ export default function DashboardAluno() {
       {/* Conteúdo principal */}
       <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* Topbar */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+        {/* Header */}
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Minhas Solicitações de Despesa</h1>
-            <p className="text-sm text-gray-500">Acompanhe e gerencie suas despesas de projetos acadêmicos</p>
+            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Minhas Solicitações</h1>
+            <p className="text-xs text-gray-500 sm:text-sm">Acompanhe e gerencie suas despesas acadêmicas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {erro && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-sm text-red-700">{erro}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
+                <p className="text-xs text-red-700 sm:text-sm">{erro}</p>
               </div>
             )}
             <button
               onClick={handleAtualizar}
               disabled={atualizando}
               title="Atualizar lista"
-              className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-5 w-5 ${atualizando ? "animate-spin" : ""}`}>
                 <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.389zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
@@ -312,24 +292,25 @@ export default function DashboardAluno() {
             <button
               onClick={() => setModalAberto(true)}
               disabled={criandoDespesa}
-              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] disabled:opacity-50 sm:px-4"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
               </svg>
-              Nova Solicitação
+              <span className="hidden sm:inline">Nova Solicitação</span>
+              <span className="sm:hidden">Nova</span>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Cards de resumo */}
-          <div className="mb-6 grid grid-cols-3 gap-4">
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Total Submetido</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalSubmetido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -339,10 +320,10 @@ export default function DashboardAluno() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Aguardando Aprovação</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -352,10 +333,10 @@ export default function DashboardAluno() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Aprovado (Este Ano)</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -367,11 +348,11 @@ export default function DashboardAluno() {
             </div>
           </div>
 
-          {/* Tabela */}
+          {/* Tabela / Cards */}
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
 
-            {/* Barra de busca e filtros */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            {/* Toolbar: busca + filtros */}
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="relative">
                 <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -383,20 +364,16 @@ export default function DashboardAluno() {
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="Buscar solicitações..."
-                  className="rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] w-52"
+                  className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] sm:w-52"
                 />
               </div>
-
-              {/* Tabs de status */}
-              <div className="flex gap-1 rounded-lg border border-gray-200 p-1">
+              <div className="flex gap-1 rounded-lg border border-gray-200 p-1 overflow-x-auto">
                 {filtros.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFiltro(f)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                      filtro === f
-                        ? "bg-[#4F46E5] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-800"
+                    className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                      filtro === f ? "bg-[#4F46E5] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
                     }`}
                   >
                     {f}
@@ -405,8 +382,8 @@ export default function DashboardAluno() {
               </div>
             </div>
 
-            {/* Tabela */}
-            <table className="w-full">
+            {/* Tabela — desktop */}
+            <table className="hidden w-full md:table">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
@@ -449,7 +426,40 @@ export default function DashboardAluno() {
               </tbody>
             </table>
 
-            <div className="border-t border-gray-100 px-6 py-4">
+            {/* Cards — mobile */}
+            <div className="md:hidden">
+              {despesasFiltradas.length === 0 ? (
+                <p className="py-12 text-center text-sm text-gray-400">Nenhuma solicitação encontrada.</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {despesasFiltradas.map((d) => (
+                    <div key={d.id} className="px-4 py-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <IconeDespesa tipo={d.icone} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{d.descricao}</p>
+                            <p className="text-xs text-gray-400">{d.reqId}</p>
+                          </div>
+                        </div>
+                        <BadgeStatus status={d.status} />
+                      </div>
+                      <div className="flex items-center justify-between pl-11">
+                        <p className="text-xs text-gray-500 truncate mr-2">{d.projeto}</p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-gray-900">
+                            R$ {d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-gray-400">{d.data}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
               <p className="text-sm text-gray-500">
                 Exibindo {despesasFiltradas.length} de {despesas.length} resultados
               </p>
