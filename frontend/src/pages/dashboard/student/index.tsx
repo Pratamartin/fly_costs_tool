@@ -218,7 +218,7 @@ export default function DashboardAluno() {
 
       const result = await createExpense(token, {
         title: data.descricao,
-        description: data.descricao,
+        description: data.descricaoDetalhada || data.descricao,
         topic: topicMap[data.categoria] || "INSCRICAO",
         amount: data.valor,
       });
