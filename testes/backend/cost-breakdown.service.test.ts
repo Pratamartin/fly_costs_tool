@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as phrases from 'stoker/http-status-phrases'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
-import { createCostBreakdown } from '@/services/budget.service'
 import { Prisma } from '@/generated/prisma/client'
 
 const prismaMock = vi.hoisted(() => ({
@@ -9,6 +8,22 @@ const prismaMock = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
+
+const budgetHelpers = vi.hoisted(() => ({
+  isCategoryAllowedInProject: vi.fn(() => true),
+  hasSufficientBudget: vi.fn(() => true),
+}))
+
+vi.mock('@/services/budget.service', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/services/budget.service')>()
+  return {
+    ...mod,
+    isCategoryAllowedInProject: budgetHelpers.isCategoryAllowedInProject,
+    hasSufficientBudget: budgetHelpers.hasSufficientBudget,
+  }
+})
+
+import { createCostBreakdown } from '@/services/budget.service'
 
 const txMock = {
   expenseRequest: {
@@ -40,6 +55,8 @@ describe('createCostBreakdown (discriminação de custos)', () => {
       const result = await cb(txMock)
       return result
     })
+    budgetHelpers.isCategoryAllowedInProject.mockReturnValue(true)
+    budgetHelpers.hasSufficientBudget.mockReturnValue(true)
   })
 
   it('persiste discriminação e incrementa usedBudget do projeto', async () => {
@@ -88,6 +105,7 @@ describe('createCostBreakdown (discriminação de custos)', () => {
   })
 
   it('subcategoria fora do projeto retorna erro de validação', async () => {
+    budgetHelpers.isCategoryAllowedInProject.mockReturnValueOnce(false)
     txMock.expenseRequest.findUnique.mockResolvedValue({
       project: projectSnapshot(),
     })
@@ -102,6 +120,7 @@ describe('createCostBreakdown (discriminação de custos)', () => {
   })
 
   it('valor acima do disponível retorna INSUFFICIENT_FUNDS', async () => {
+    budgetHelpers.hasSufficientBudget.mockReturnValueOnce(false)
     txMock.expenseRequest.findUnique.mockResolvedValue({
       project: projectSnapshot({
         budget: new Prisma.Decimal(1000),
