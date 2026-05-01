@@ -14,7 +14,7 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: vi.fn(async () => 'https://signed.example/object'),
 }))
 
-import { deleteFile, uploadFile, validatePDF } from '../../backend/src/lib/storage'
+import { deleteFile, uploadFile, validatePDF } from '@/lib/storage'
 
 function pdfBuffer(bodySize = 8) {
   const buf = Buffer.alloc(Math.max(bodySize, 8))

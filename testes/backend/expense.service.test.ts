@@ -16,7 +16,7 @@ import {
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 
-vi.mock('@/lib/storage', () => ({
+const storageMock = vi.hoisted(() => ({
   isStorageConfigured: vi.fn(() => true),
   validatePDF: vi.fn(() => ({ valid: true })),
   uploadFile: vi.fn(async () => ({
@@ -27,6 +27,8 @@ vi.mock('@/lib/storage', () => ({
   deleteFile: vi.fn(async () => {}),
   getSignedDownloadUrl: vi.fn(async () => 'https://signed.example/download'),
 }))
+
+vi.mock('@/lib/storage', () => storageMock)
 
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
@@ -258,7 +260,6 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
 
 describe('attachMemorandumToExpense (upload memorando)', () => {
   it('upload memorando: grava attachmentKey e chama storage', async () => {
-    const { uploadFile, validatePDF } = await import('@/lib/storage')
     prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
     prismaMock.expenseRequest.update.mockResolvedValue(
       expenseRow({ attachmentKey: 'memorandos/uuid-doc.pdf' }),
@@ -270,13 +271,12 @@ describe('attachMemorandumToExpense (upload memorando)', () => {
     if ('error' in result)
       return
     expect(result.attachmentKey).toBe('memorandos/uuid-doc.pdf')
-    expect(validatePDF).toHaveBeenCalled()
-    expect(uploadFile).toHaveBeenCalled()
+    expect(storageMock.validatePDF).toHaveBeenCalled()
+    expect(storageMock.uploadFile).toHaveBeenCalled()
   })
 
   it('recusa quando storage não configurado', async () => {
-    const storage = await import('@/lib/storage')
-    vi.mocked(storage.isStorageConfigured).mockReturnValueOnce(false)
+    storageMock.isStorageConfigured.mockReturnValueOnce(false)
 
     const result = await attachMemorandumToExpense(
       EXPENSE_ID,
@@ -291,7 +291,6 @@ describe('attachMemorandumToExpense (upload memorando)', () => {
 
 describe('getMemorandumDownloadUrl', () => {
   it('retorna URL assinada para coordenador', async () => {
-    const { getSignedDownloadUrl } = await import('@/lib/storage')
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       attachmentKey: 'memorandos/k.pdf',
       studentId: STUDENT_ID,
@@ -307,6 +306,6 @@ describe('getMemorandumDownloadUrl', () => {
     if ('error' in result)
       return
     expect(result.url).toContain('example')
-    expect(getSignedDownloadUrl).toHaveBeenCalledWith('memorandos/k.pdf', 3600)
+    expect(storageMock.getSignedDownloadUrl).toHaveBeenCalledWith('memorandos/k.pdf', 3600)
   })
 })
