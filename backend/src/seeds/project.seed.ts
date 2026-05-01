@@ -2,7 +2,7 @@
 import type { Prisma } from '@/generated/prisma/client'
 import { Decimal } from '@prisma/client/runtime/client'
 import prisma from '@/lib/orm'
-import { ID_PROJ_IA, ID_PROJ_ROBOTICA } from '../constants/seed.constant'
+import { ID_PROJ_DATA_SCIENCE, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '../constants/seed.constant'
 import { dummyExpenseCategories } from './expense.category.seed'
 
 export const dummyProjects: Prisma.ProjectCreateInput[] = [
@@ -26,6 +26,13 @@ export const dummyProjects: Prisma.ProjectCreateInput[] = [
       connect: dummyExpenseCategories
         .map(expenseCategory => ({ id: expenseCategory.id })),
     },
+  },
+  {
+    id: ID_PROJ_DATA_SCIENCE,
+    name: 'Projeto de DATASCIENCE',
+    code: 'DATA-26',
+    budget: new Decimal(10000.00),
+    expenseCategories: { connect: dummyExpenseCategories.map(c => ({ id: c.id })) },
   },
 ]
 
