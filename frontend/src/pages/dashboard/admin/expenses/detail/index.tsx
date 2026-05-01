@@ -278,32 +278,32 @@ export default function ExpenseDetalhe() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
-          <div className="flex items-center gap-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard/admin/expenses")}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
               </svg>
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Detalhes da Despesa</h1>
-              <p className="text-sm text-gray-500">
+              <h1 className="text-base font-bold text-gray-900 sm:text-xl">Detalhes da Despesa</h1>
+              <p className="text-xs text-gray-500 sm:text-sm">
                 {expense.id} • {expense.projectName}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm0 2h8v2H6v-2z" clipRule="evenodd" />
               </svg>
               Imprimir
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
@@ -314,7 +314,7 @@ export default function ExpenseDetalhe() {
               <>
                 <button
                   onClick={handleApprove}
-                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition"
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 transition sm:px-4"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
@@ -323,7 +323,7 @@ export default function ExpenseDetalhe() {
                 </button>
                 <button
                   onClick={handleReject}
-                  className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
+                  className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition sm:px-4"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -336,12 +336,12 @@ export default function ExpenseDetalhe() {
         </header>
 
         {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
           <StatusBanner status={expense.status} submittedAt={expense.submittedAt} submittedAgo={expense.submittedAgo} />
 
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             {/* Left — main content */}
-            <div className="col-span-2 space-y-5">
+            <div className="col-span-1 space-y-5 lg:col-span-2">
 
               {/* Expense Overview */}
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -352,7 +352,7 @@ export default function ExpenseDetalhe() {
                   <h2 className="text-sm font-bold text-gray-800">Visão Geral da Despesa</h2>
                 </div>
 
-                <div className="grid grid-cols-2 gap-5 mb-5">
+                <div className="grid grid-cols-1 gap-5 mb-5 sm:grid-cols-2">
                   <div>
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">ID da Despesa</p>
                     <p className="text-sm font-bold text-[#2563EB]">{expense.id}</p>
@@ -383,7 +383,7 @@ export default function ExpenseDetalhe() {
 
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Alocação do Orçamento</p>
-                  <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
                       <p className="text-xs font-medium text-blue-600">Orçamento do Projeto</p>
                       <p className="mt-1 text-xl font-bold text-blue-800">
@@ -447,7 +447,7 @@ export default function ExpenseDetalhe() {
                 {selectedProject && (
                   <>
                     {/* Budget summary */}
-                    <div className="mb-5 grid grid-cols-3 gap-3">
+                    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
                         <p className="text-xs font-medium text-blue-600">Budget do Projeto</p>
                         <p className="mt-1 text-lg font-bold text-blue-800">
@@ -577,7 +577,7 @@ export default function ExpenseDetalhe() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {expense.documents.map((doc) => (
                     <div key={doc.name} className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 hover:border-blue-200 hover:bg-blue-50/30 transition">
                       <DocIcon type={doc.type} />

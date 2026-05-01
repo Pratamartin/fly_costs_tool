@@ -151,7 +151,7 @@ export default function DashboardAdminProjectDetalhe() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="border-b border-gray-200 bg-white">
-          <div className="px-8 pt-4 pb-0">
+          <div className="px-4 pt-3 pb-0 sm:px-8 sm:pt-4">
             <div className="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
               <button onClick={() => router.push("/dashboard/admin/projects")} className="hover:text-gray-800 hover:underline">
                 Projetos
@@ -161,26 +161,27 @@ export default function DashboardAdminProjectDetalhe() {
               </svg>
               <span className="font-medium text-gray-700">Laboratório de Robótica 2026</span>
             </div>
-            <div className="flex items-center justify-between pb-4">
+            <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <button onClick={() => router.push("/dashboard/admin/projects")} className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition">
+                <button onClick={() => router.push("/dashboard/admin/projects")} className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5"><path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" /></svg>
                 </button>
-                <h1 className="text-xl font-bold text-gray-900">Laboratório de Robótica 2026</h1>
+                <h1 className="text-base font-bold text-gray-900 sm:text-xl">Laboratório de Robótica 2026</h1>
                 <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">Ativo</span>
               </div>
-              <div className="flex items-center gap-3">
-                <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 transition">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 transition shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5"><path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.73-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" /></svg>
                   <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
                 </button>
-                <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                   Editar Projeto
                 </button>
-                <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition">
+                <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition sm:px-4">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 018 18a9.953 9.953 0 01-5.385-1.572zM16.25 5.75a.75.75 0 00-1.5 0v2h-2a.75.75 0 000 1.5h2v2a.75.75 0 001.5 0v-2h2a.75.75 0 000-1.5h-2v-2z" /></svg>
-                  Adicionar Membro
+                  <span className="hidden sm:inline">Adicionar Membro</span>
+                  <span className="sm:hidden">Membro</span>
                 </button>
               </div>
             </div>
@@ -200,14 +201,14 @@ export default function DashboardAdminProjectDetalhe() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
           {abaAtiva === "overview" && (
             <>
-              <div className="mb-6 grid grid-cols-3 gap-4">
+              <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                 <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
                   <div>
                     <p className="text-sm text-gray-500">Orçamento Total</p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">$150.000<span className="text-base font-normal text-gray-400">,00</span></p>
+                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$150.000<span className="text-base font-normal text-gray-400">,00</span></p>
                     <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-green-600">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042-.815a.75.75 0 01-.53-.918z" clipRule="evenodd" /></svg>
                       12% vs semestre anterior
@@ -221,7 +222,7 @@ export default function DashboardAdminProjectDetalhe() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-gray-500">Total Gasto</p>
-                      <p className="mt-1 text-2xl font-bold text-gray-900">$45.250<span className="text-base font-normal text-gray-400">,50</span></p>
+                      <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$45.250<span className="text-base font-normal text-gray-400">,50</span></p>
                     </div>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-purple-600"><path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.615z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-1a.75.75 0 000 1.5h1v.75a.75.75 0 001.5 0v-.75h1a.75.75 0 000-1.5h-1v-2.5z" clipRule="evenodd" /></svg>
@@ -237,7 +238,7 @@ export default function DashboardAdminProjectDetalhe() {
                 <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
                   <div>
                     <p className="text-sm text-gray-500">Solicitações Pendentes</p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">8</p>
+                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">8</p>
                     <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
                       $12.400,00 aguardando aprovação
@@ -271,7 +272,8 @@ export default function DashboardAdminProjectDetalhe() {
                   <h2 className="text-sm font-semibold text-gray-800">Atividade Recente</h2>
                   <button className="text-xs font-medium text-[#2563EB] hover:underline">Ver Tudo</button>
                 </div>
-                <table className="w-full">
+                {/* Desktop table */}
+                <table className="hidden w-full md:table">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Item de Despesa</th>
@@ -303,6 +305,34 @@ export default function DashboardAdminProjectDetalhe() {
                 </table>
                 <div className="border-t border-gray-100 px-6 py-4">
                   <p className="text-sm text-gray-400">Exibindo {RECENT_ACTIVITY.length} de 12 despesas</p>
+                </div>
+
+                {/* Cards — mobile */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {RECENT_ACTIVITY.map((entry) => (
+                    <div key={entry.id} className="px-4 py-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <CategoryIcon category={entry.category} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{entry.item}</p>
+                            <p className="text-xs text-gray-400">{entry.category}</p>
+                          </div>
+                        </div>
+                        <StatusBadge status={entry.status} />
+                      </div>
+                      <div className="flex items-center justify-between pl-11">
+                        <div className="flex items-center gap-2">
+                          <Avatar initial={entry.submitterInitial} />
+                          <span className="text-xs text-gray-600">{entry.submittedBy}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900">${entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          <p className="text-xs text-gray-400">{entry.date}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
