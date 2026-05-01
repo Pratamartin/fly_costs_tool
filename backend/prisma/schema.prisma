@@ -29,7 +29,6 @@ enum ExpenseRequestStatus {
   PENDENTE
   APROVADO
   REJEITADO
-  EM_PROCESSAMENTO
 }
 
 model ExpenseCategory {
