@@ -139,7 +139,7 @@ export const assignProject = createRoute({
     ),
     [codes.CONFLICT]: jsonContent(
       createMessageObjectSchema('Operação inválida'),
-      'A solicitação não está com status APROVADO ou o projeto não possui budget suficiente.',
+      'A solicitação não está com status APROVADO, o projeto está arquivado ou o projeto não possui budget suficiente.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
@@ -166,6 +166,10 @@ export const createCostBreakdown = createRoute({
     [codes.BAD_REQUEST]: jsonContent(
       createMessageObjectSchema('Erro de validação'),
       'Erro de regra de negócio (ex: Budget insuficiente, Categoria inválida).',
+    ),
+    [codes.CONFLICT]: jsonContent(
+      createMessageObjectSchema('Operação inválida'),
+      'O projeto está arquivado ou não pode receber discriminação de custo.',
     ),
     [codes.NOT_FOUND]: jsonContent(
       createMessageObjectSchema('Despesa não encontrada'),
