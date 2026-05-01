@@ -1,6 +1,7 @@
 import { z } from '@hono/zod-openapi'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
 import ProjectSchema from './project.schema'
 import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
 import { IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
@@ -17,6 +18,7 @@ export const ExpenseRelationsSchema = {
   }).extend({ id: IdSchema })
     .nullable()
     .optional(),
+  costBreakdowns: z.array(CostBreakdownResponseSchema).optional(),
 }
 
 const BaseSchema = z.object({

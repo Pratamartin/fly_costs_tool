@@ -30,3 +30,5 @@ export const CreateExpenseCategorySchema = z.object({
     normalizedName: normalizeCategoryName(data.name),
   }
 })
+
+export default BaseSchema

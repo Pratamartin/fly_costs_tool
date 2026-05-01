@@ -10,5 +10,6 @@ const router = createRouter().basePath('/expenses')
   .openapi(routes.read, handlers.read)
   .openapi(routes.updateStatus, handlers.updateStatus)
   .openapi(routes.assignProject, handlers.assignProject)
+  .openapi(routes.createCostBreakdown, handlers.createCostBreakdown)
 
 export default router

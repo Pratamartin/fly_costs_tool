@@ -1,9 +1,11 @@
-import type { AssignProjectRoute, CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
+import type { AssignProjectRoute, CreateCostBreakdownRoute, CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
+import { CostBreakdownResponseSchema } from '@/schemas/cost-breakdown.schema'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
+import { createCostBreakdown as createCostBreakdownService } from '@/services/budget.service'
 import { assignProjectToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
@@ -92,4 +94,25 @@ export const assignProject: AppRouteHandler<AssignProjectRoute> = async (c) => {
   }
   const parsed = AssignProjectResponseSchema.parse(result)
   return c.json(parsed, codes.OK)
+}
+
+export const createCostBreakdown: AppRouteHandler<CreateCostBreakdownRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+
+  const result = await createCostBreakdownService(id, data)
+
+  if ('error' in result) {
+    if (result.error === phrases.NOT_FOUND) {
+      return c.json({ message: 'Despesa ou Projeto não encontrados' }, codes.NOT_FOUND)
+    }
+
+    return c.json({ message: result.error }, codes.BAD_REQUEST)
+  }
+
+  const parsed = CostBreakdownResponseSchema.parse({
+    ...result,
+    subcategory: result.expenseCategory,
+  })
+  return c.json(parsed, codes.CREATED)
 }
