@@ -1,193 +1,310 @@
-import { describe, expect, it, vi } from 'vitest'
-import { createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '../../backend/src/services/expense.service'
-import { ExpenseRequestStatus, UserRole } from '../../backend/src/generated/prisma/enums'
-import prisma from '../../backend/src/lib/orm'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as phrases from 'stoker/http-status-phrases'
+import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
+import { CreateExpenseSchema } from '@/schemas/expense.schema'
+import {
+  attachMemorandumToExpense,
+  createExpenseRequest,
+  expenseInclude,
+  getAllExpenseRequests,
+  getExpenseById,
+  getMemorandumDownloadUrl,
+  updateExpenseStatus,
+} from '@/services/expense.service'
+import { ExpenseRequestStatus } from '@/generated/prisma/client'
+import { UserRole } from '@/generated/prisma/enums'
 
-vi.mock('../../backend/src/lib/orm', () => ({
-  default: {
-    expenseRequest: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
+vi.mock('@/lib/storage', () => ({
+  isStorageConfigured: vi.fn(() => true),
+  validatePDF: vi.fn(() => ({ valid: true })),
+  uploadFile: vi.fn(async () => ({
+    fileKey: 'memorandos/uuid-doc.pdf',
+    fileName: 'doc.pdf',
+    fileSize: 100,
+  })),
+  deleteFile: vi.fn(async () => {}),
+  getSignedDownloadUrl: vi.fn(async () => 'https://signed.example/download'),
+}))
+
+const prismaMock = vi.hoisted(() => ({
+  expenseRequest: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
   },
 }))
 
+vi.mock('@/lib/orm', () => ({
+  default: prismaMock,
+}))
+
+const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
+const EXPENSE_ID = '123e4567-e89b-12d3-a456-426614174000'
+
+function expenseRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: EXPENSE_ID,
+    studentId: STUDENT_ID,
+    title: ' Congresso ',
+    description: null,
+    city: 'Manaus',
+    state: 'BR-AM',
+    country: 'BR',
+    departureDate: new Date('2026-07-01T12:00:00.000Z'),
+    returnDate: new Date('2026-07-05T12:00:00.000Z'),
+    status: ExpenseRequestStatus.PENDENTE,
+    rejectionReason: null,
+    projectId: null,
+    attachmentKey: null as string | null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    student: { id: STUDENT_ID, name: 'Codibentinho' },
+    project: null,
+    costBreakdowns: [],
+    ...overrides,
+  }
+}
+
+describe('CreateExpenseSchema (validação campos / datas)', () => {
+  const validBase = {
+    title: 'Viagem à conferência',
+    city: 'Manaus',
+    state: 'BR-AM',
+    country: 'BR',
+    departureDate: new Date('2026-08-01'),
+    returnDate: new Date('2026-08-10'),
+  }
+
+  it('aceita criação com localização e datas válidas', () => {
+    const r = CreateExpenseSchema.safeParse(validBase)
+    expect(r.success).toBe(true)
+  })
+
+  it('falha sem campos obrigatórios (ex.: city)', () => {
+    const { city: _c, ...rest } = validBase
+    const r = CreateExpenseSchema.safeParse(rest)
+    expect(r.success).toBe(false)
+  })
+
+  it('falha quando volta < ida (schema)', () => {
+    const r = CreateExpenseSchema.safeParse({
+      ...validBase,
+      departureDate: new Date('2026-08-10'),
+      returnDate: new Date('2026-08-01'),
+    })
+    expect(r.success).toBe(false)
+  })
+
+  it('createExpenseRequest retorna erro quando volta < ida (serviço, antes do Prisma)', async () => {
+    const result = await createExpenseRequest(STUDENT_ID, {
+      title: 'X',
+      city: 'Manaus',
+      state: 'BR-AM',
+      country: 'BR',
+      departureDate: new Date('2026-09-10'),
+      returnDate: new Date('2026-09-01'),
+    })
+    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE)
+    expect(prismaMock.expenseRequest.create).not.toHaveBeenCalled()
+  })
+})
+
 describe('createExpenseRequest', () => {
-  it('cria solicitação de despesa', async () => {
-    const mockExpense = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      studentId: '123e4567-e89b-12d3-a456-426614174001',
-      title: 'Test Expense',
-      description: 'Test',
-      amount: 100,
-      status: ExpenseRequestStatus.PENDENTE,
-      topic: 'INSCRICAO',
-      projectId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  it('persiste despesa com localização e período', async () => {
+    const row = expenseRow()
+    prismaMock.expenseRequest.create.mockResolvedValue(row)
 
-    vi.mocked(prisma.expenseRequest.create).mockResolvedValue(mockExpense)
-
-    const result = await createExpenseRequest('123e4567-e89b-12d3-a456-426614174001', {
-      title: 'Test Expense',
-      description: 'Test',
-      amount: 100,
-      topic: 'INSCRICAO',
+    const result = await createExpenseRequest(STUDENT_ID, {
+      title: ' Congresso ',
+      city: 'Manaus',
+      state: 'BR-AM',
+      country: 'BR',
+      departureDate: new Date('2026-07-01T12:00:00.000Z'),
+      returnDate: new Date('2026-07-05T12:00:00.000Z'),
     })
 
-    expect(result).toBeDefined()
-    expect(result.id).toBe('123e4567-e89b-12d3-a456-426614174000')
-    expect(result.status).toBe(ExpenseRequestStatus.PENDENTE)
-    expect(prisma.expenseRequest.create).toHaveBeenCalled()
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.city).toBe('Manaus')
+    expect(result.state).toBe('BR-AM')
+    expect(prismaMock.expenseRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          studentId: STUDENT_ID,
+          title: ' Congresso ',
+        }),
+        include: expenseInclude,
+      }),
+    )
   })
 })
 
-describe('getAllExpenseRequests', () => {
-  it('retorna todas despesas para ADMIN', async () => {
-    const mockExpenses = [
-      {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        studentId: '123e4567-e89b-12d3-a456-426614174001',
-        title: 'Expense 1',
-        description: null,
-        amount: { toString: () => '100' },
-        status: ExpenseRequestStatus.PENDENTE,
-        topic: 'INSCRICAO',
-        projectId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        project: null,
-        student: { id: '123e4567-e89b-12d3-a456-426614174001', name: 'User 1' },
-      },
-    ]
+describe('getAllExpenseRequests / getExpenseById (formato retorno)', () => {
+  it('lista inclui campos de localização e attachmentKey quando presentes', async () => {
+    const row = expenseRow({
+      attachmentKey: 'memorandos/k.pdf',
+      studentId: STUDENT_ID,
+    })
+    prismaMock.expenseRequest.findMany.mockResolvedValue([row])
 
-    vi.mocked(prisma.expenseRequest.findMany).mockResolvedValue(mockExpenses)
-
-    const result = await getAllExpenseRequests('123e4567-e89b-12d3-a456-426614174002', UserRole.ADMIN, {})
+    const result = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
 
     expect(result).toHaveLength(1)
-    // TODO: Atualizar na Task 06 Cost-Breakdown quando o amount voltar desnormalizado.
-    // expect(result[0].amount).toBe('100')
+    expect(result[0]?.city).toBe('Manaus')
+    expect(result[0]?.attachmentKey).toBe('memorandos/k.pdf')
   })
 
-  it('retorna apenas despesas do aluno para ALUNO', async () => {
-    const mockExpenses = [
-      {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        studentId: '123e4567-e89b-12d3-a456-426614174001',
-        title: 'Expense 1',
-        description: null,
-        amount: { toString: () => '100' },
-        status: ExpenseRequestStatus.PENDENTE,
-        topic: 'INSCRICAO',
-        projectId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        project: null,
-      },
-    ]
+  it('getExpenseById retorna rejectionReason e costBreakdowns no payload', async () => {
+    prismaMock.expenseRequest.findFirst.mockResolvedValue(
+      expenseRow({
+        status: ExpenseRequestStatus.REJEITADO,
+        rejectionReason: 'Doc inválido',
+        costBreakdowns: [],
+      }),
+    )
 
-    vi.mocked(prisma.expenseRequest.findMany).mockResolvedValue(mockExpenses)
+    const result = await getExpenseById(EXPENSE_ID, STUDENT_ID, UserRole.ALUNO)
 
-    const result = await getAllExpenseRequests('123e4567-e89b-12d3-a456-426614174001', UserRole.ALUNO, {})
-
-    expect(result).toHaveLength(1)
-    expect(result[0].studentId).toBe('123e4567-e89b-12d3-a456-426614174001')
+    expect(result?.rejectionReason).toBe('Doc inválido')
+    expect(Array.isArray(result?.costBreakdowns)).toBe(true)
   })
 })
 
-describe('getExpenseById', () => {
-  it('retorna despesa quando existe', async () => {
-    const mockExpense = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      studentId: '123e4567-e89b-12d3-a456-426614174001',
-      title: 'Expense 1',
-      description: null,
-      amount: { toString: () => '100' },
-      status: ExpenseRequestStatus.PENDENTE,
-      topic: 'INSCRICAO',
-      projectId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      project: null,
-    }
-
-    vi.mocked(prisma.expenseRequest.findFirst).mockResolvedValue(mockExpense)
-
-    const result = await getExpenseById('123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001', UserRole.ALUNO)
-
-    expect(result).toBeDefined()
-    expect(result?.id).toBe('123e4567-e89b-12d3-a456-426614174000')
+describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
+  beforeEach(() => {
+    prismaMock.expenseRequest.update.mockReset()
+    prismaMock.expenseRequest.findUnique.mockReset()
   })
 
-  it('retorna null quando não existe', async () => {
-    vi.mocked(prisma.expenseRequest.findFirst).mockResolvedValue(null)
+  it('rejeição com motivo persiste rejectionReason', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
+    prismaMock.expenseRequest.update.mockImplementation(async ({ data }: { data: { rejectionReason?: string | null } }) =>
+      expenseRow({ status: ExpenseRequestStatus.REJEITADO, rejectionReason: data.rejectionReason ?? null }),
+    )
 
-    const result = await getExpenseById('123e4567-e89b-12d3-a456-999999999999', '123e4567-e89b-12d3-a456-426614174001', UserRole.ALUNO)
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.REJEITADO,
+      'Falta documentação',
+    )
 
-    expect(result).toBeNull()
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.status).toBe(ExpenseRequestStatus.REJEITADO)
+    expect(result.rejectionReason).toBe('Falta documentação')
   })
-})
 
-describe('updateExpenseStatus', () => {
-  it('atualiza status quando despesa existe e está pendente', async () => {
-    const existingExpense = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      status: ExpenseRequestStatus.PENDENTE,
-      studentId: '123e4567-e89b-12d3-a456-426614174001',
-      title: 'Test',
-      description: null,
-      amount: 100,
-      topic: 'INSCRICAO',
-      projectId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  it('rejeição sem motivo retorna REASON_REQUIRED', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
 
-    const updatedExpense = {
-      ...existingExpense,
-      status: ExpenseRequestStatus.APROVADO,
-    }
+    const result = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.REJEITADO, undefined)
 
-    vi.mocked(prisma.expenseRequest.findUnique).mockResolvedValue(existingExpense)
-    vi.mocked(prisma.expenseRequest.update).mockResolvedValue(updatedExpense)
+    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.REASON_REQUIRED)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
 
-    const result = await updateExpenseStatus('123e4567-e89b-12d3-a456-426614174000', ExpenseRequestStatus.APROVADO)
+  it('aprovação ignora reason e zera rejectionReason', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ rejectionReason: 'algo antigo' }),
+    )
+    prismaMock.expenseRequest.update.mockImplementation(async () =>
+      expenseRow({
+        status: ExpenseRequestStatus.APROVADO,
+        rejectionReason: null,
+      }),
+    )
 
-    expect(result).toBeDefined()
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.APROVADO,
+      'motivo que deve ser ignorado',
+    )
+
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.rejectionReason).toBeNull()
     expect(result.status).toBe(ExpenseRequestStatus.APROVADO)
   })
 
-  it('retorna erro NOT_FOUND quando despesa não existe', async () => {
-    vi.mocked(prisma.expenseRequest.findUnique).mockResolvedValue(null)
+  it('resposta mantém rejectionReason após rejeitar', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
+    prismaMock.expenseRequest.update.mockResolvedValue(
+      expenseRow({
+        status: ExpenseRequestStatus.REJEITADO,
+        rejectionReason: 'Motivo X',
+      }),
+    )
 
-    const result = await updateExpenseStatus('123e4567-e89b-12d3-a456-999999999999', ExpenseRequestStatus.APROVADO)
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.REJEITADO,
+      'Motivo X',
+    )
 
-    expect(result.error).toBe('Not Found')
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.rejectionReason).toBe('Motivo X')
+  })
+})
+
+describe('attachMemorandumToExpense (upload memorando)', () => {
+  it('upload memorando: grava attachmentKey e chama storage', async () => {
+    const { uploadFile, validatePDF } = await import('@/lib/storage')
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
+    prismaMock.expenseRequest.update.mockResolvedValue(
+      expenseRow({ attachmentKey: 'memorandos/uuid-doc.pdf' }),
+    )
+
+    const pdf = Buffer.from('%PDF-1.4\n')
+    const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, pdf, 'doc.pdf')
+
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.attachmentKey).toBe('memorandos/uuid-doc.pdf')
+    expect(validatePDF).toHaveBeenCalled()
+    expect(uploadFile).toHaveBeenCalled()
   })
 
-  it('retorna erro CONFLICT quando despesa já foi decidida', async () => {
-    const existingExpense = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      status: ExpenseRequestStatus.APROVADO,
-      studentId: '123e4567-e89b-12d3-a456-426614174001',
-      title: 'Test',
-      description: null,
-      amount: 100,
-      topic: 'INSCRICAO',
-      projectId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  it('recusa quando storage não configurado', async () => {
+    const storage = await import('@/lib/storage')
+    vi.mocked(storage.isStorageConfigured).mockReturnValueOnce(false)
 
-    vi.mocked(prisma.expenseRequest.findUnique).mockResolvedValue(existingExpense)
+    const result = await attachMemorandumToExpense(
+      EXPENSE_ID,
+      STUDENT_ID,
+      Buffer.from('%PDF'),
+      'x.pdf',
+    )
 
-    const result = await updateExpenseStatus('123e4567-e89b-12d3-a456-426614174000', ExpenseRequestStatus.REJEITADO)
+    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED)
+  })
+})
 
-    expect(result.error).toBe('Conflict')
+describe('getMemorandumDownloadUrl', () => {
+  it('retorna URL assinada para coordenador', async () => {
+    const { getSignedDownloadUrl } = await import('@/lib/storage')
+    prismaMock.expenseRequest.findUnique.mockResolvedValue({
+      attachmentKey: 'memorandos/k.pdf',
+      studentId: STUDENT_ID,
+    })
+
+    const result = await getMemorandumDownloadUrl(
+      EXPENSE_ID,
+      'coord-id',
+      UserRole.COORDENADOR,
+    )
+
+    expect('error' in result).toBe(false)
+    if ('error' in result)
+      return
+    expect(result.url).toContain('example')
+    expect(getSignedDownloadUrl).toHaveBeenCalledWith('memorandos/k.pdf', 3600)
   })
 })

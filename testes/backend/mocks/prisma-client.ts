@@ -1,19 +1,33 @@
+/** Minimal Prisma.Decimal stand-in for unit tests (budget / cost-breakdown). */
+export class PrismaDecimal {
+  constructor(public readonly v: number) {}
+
+  minus(other: PrismaDecimal) {
+    return new PrismaDecimal(this.v - other.v)
+  }
+
+  plus(other: PrismaDecimal) {
+    return new PrismaDecimal(this.v + other.v)
+  }
+
+  lessThanOrEqualTo(n: number) {
+    return this.v <= n
+  }
+
+  toString() {
+    return String(this.v)
+  }
+}
+
+export const Prisma = {
+  Decimal: PrismaDecimal,
+}
+
 export const ExpenseRequestStatus = {
   PENDENTE: 'PENDENTE',
   APROVADO: 'APROVADO',
   REJEITADO: 'REJEITADO',
-}
-
-export const UserRole = {
-  ALUNO: 'ALUNO',
-  COORDENADOR: 'COORDENADOR',
-  ADMIN: 'ADMIN',
-}
-
-export const ExpenseTopic = {
-  INSCRICAO: 'INSCRICAO',
-  PASSAGEM: 'PASSAGEM',
-  HOSPEDAGEM: 'HOSPEDAGEM',
+  EM_PROCESSAMENTO: 'EM_PROCESSAMENTO',
 }
 
 export class PrismaClient {}
