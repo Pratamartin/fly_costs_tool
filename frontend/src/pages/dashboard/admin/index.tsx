@@ -176,14 +176,14 @@ export default function DashboardAdmin() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Painel Global</h1>
-            <p className="text-sm text-gray-500">Visão geral de todos os projetos e despesas acadêmicas</p>
+            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Painel Global</h1>
+            <p className="text-xs text-gray-500 sm:text-sm">Visão geral de todos os projetos e despesas acadêmicas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
@@ -192,7 +192,7 @@ export default function DashboardAdmin() {
               <input
                 type="text"
                 placeholder="Pesquisar projetos, despesas..."
-                className="w-64 rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56"
               />
             </div>
 
@@ -205,7 +205,7 @@ export default function DashboardAdmin() {
             </button>
 
             {/* Invite Users */}
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 018 18a9.953 9.953 0 01-5.385-1.572zM16.25 5.75a.75.75 0 00-1.5 0v2h-2a.75.75 0 000 1.5h2v2a.75.75 0 001.5 0v-2h2a.75.75 0 000-1.5h-2v-2z" />
               </svg>
@@ -215,26 +215,27 @@ export default function DashboardAdmin() {
             {/* Create Project */}
             <button
               onClick={() => setShowModalCriar(true)}
-              className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition"
+              className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition sm:px-4"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
               </svg>
-              Criar Projeto
+              <span className="hidden sm:inline">Criar Projeto</span>
+              <span className="sm:hidden">Criar</span>
             </button>
           </div>
         </header>
 
         {/* Scrollable area */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Stats cards */}
-          <div className="mb-6 grid grid-cols-3 gap-4">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             {/* Total Academic Spend */}
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Total de Gastos Acadêmicos</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">$1.245.890</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$1.245.890</p>
                 <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-green-600">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                     <path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042-.815a.75.75 0 01-.53-.918z" clipRule="evenodd" />
@@ -251,11 +252,11 @@ export default function DashboardAdmin() {
             </div>
 
             {/* Global Remaining Budget */}
-            <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Orçamento Global Restante</p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">$3.754.110</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$3.754.110</p>
                 </div>
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-50">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-green-600">
@@ -272,10 +273,10 @@ export default function DashboardAdmin() {
             </div>
 
             {/* Pending Requests */}
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Solicitações Pendentes</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">142</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">142</p>
                 <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                     <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -292,9 +293,9 @@ export default function DashboardAdmin() {
           </div>
 
           {/* Charts row */}
-          <div className="mb-6 grid grid-cols-5 gap-4">
+          <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
             {/* Bar chart */}
-            <div className="col-span-3 rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5 lg:col-span-3">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800">Despesas Mensais</h2>
                 <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">
@@ -308,7 +309,7 @@ export default function DashboardAdmin() {
             </div>
 
             {/* Donut chart */}
-            <div className="col-span-2 rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5 lg:col-span-2">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800">Despesas por Categoria</h2>
                 <button className="text-xs font-medium text-[#2563EB] hover:underline">Ver Relatório</button>
@@ -351,7 +352,8 @@ export default function DashboardAdmin() {
               </div>
             </div>
 
-            <table className="w-full">
+            {/* Tabela — desktop */}
+            <table className="hidden w-full md:table">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">ID Despesa</th>
@@ -406,6 +408,34 @@ export default function DashboardAdmin() {
               <p className="text-sm text-gray-400">
                 Exibindo {RECENT_EXPENSES.length} de 142 solicitações
               </p>
+            </div>
+
+            {/* Cards — mobile */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {RECENT_EXPENSES.map((expense) => (
+                <div key={expense.id} className="px-4 py-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <button
+                      onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
+                      className="text-sm font-semibold text-[#2563EB] hover:underline"
+                    >
+                      {expense.id}
+                    </button>
+                    <StatusBadge status={expense.status} />
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 mb-1">{expense.project}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Avatar initial={expense.avatarInitial} />
+                      <span className="text-xs text-gray-600">{expense.submitter}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-900">${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs text-gray-400">{expense.date}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

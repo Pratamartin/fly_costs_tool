@@ -102,6 +102,35 @@ const MOCK_EXPENSES: ExpenseDetail[] = [
 
 const ALL_IDS = MOCK_EXPENSES.map((e) => e.id);
 
+type ExpenseTopic = "INSCRICAO" | "PASSAGEM" | "HOSPEDAGEM";
+
+const TOPIC_LABELS: Record<ExpenseTopic, string> = {
+  INSCRICAO: "Inscrição",
+  PASSAGEM: "Passagem Aérea",
+  HOSPEDAGEM: "Hospedagem",
+};
+
+const TOPIC_COLORS: Record<ExpenseTopic, string> = {
+  INSCRICAO: "bg-purple-50 text-purple-600",
+  PASSAGEM: "bg-sky-50 text-sky-600",
+  HOSPEDAGEM: "bg-emerald-50 text-emerald-600",
+};
+
+interface ProjectAllocation {
+  id: string;
+  name: string;
+  budgetTotal: number;
+  budgetSpent: number;
+  topics: ExpenseTopic[];
+}
+
+const MOCK_PROJECTS_ALLOCATION: ProjectAllocation[] = [
+  { id: "PRJ-001", name: "Laboratório de Robótica 2026", budgetTotal: 150000, budgetSpent: 45250, topics: ["INSCRICAO", "PASSAGEM", "HOSPEDAGEM"] },
+  { id: "PRJ-002", name: "Bolsa IA Alpha", budgetTotal: 100000, budgetSpent: 92000, topics: ["INSCRICAO", "PASSAGEM"] },
+  { id: "PRJ-004", name: "Upgrade Cloud Infraestrutura", budgetTotal: 80000, budgetSpent: 61000, topics: ["INSCRICAO", "HOSPEDAGEM"] },
+  { id: "PRJ-005", name: "Bolsa Viagem Internacional", budgetTotal: 60000, budgetSpent: 22000, topics: ["PASSAGEM", "HOSPEDAGEM"] },
+];
+
 function DocIcon({ type }: { type: ExpenseDetail["documents"][0]["type"] }) {
   if (type === "pdf")
     return (
@@ -207,6 +236,9 @@ export default function ExpenseDetalhe() {
   const [notes, setNotes] = useState("");
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseDetail[]>(MOCK_EXPENSES);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [allocations, setAllocations] = useState<Record<string, string>>({});
+  const [allocationSaved, setAllocationSaved] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -231,38 +263,47 @@ export default function ExpenseDetalhe() {
 
   const remaining = expense.budgetTotal - expense.budgetSpent;
 
+  const selectedProject = MOCK_PROJECTS_ALLOCATION.find((p) => p.id === selectedProjectId) ?? null;
+  const budgetRemaining = selectedProject ? selectedProject.budgetTotal - selectedProject.budgetSpent : 0;
+  const totalAllocated = selectedProject
+    ? selectedProject.topics.reduce((sum, t) => sum + (parseFloat(allocations[t] || "0") || 0), 0)
+    : 0;
+  const exceedsBudget = totalAllocated > budgetRemaining;
+  const exceedsExpense = totalAllocated > expense.amount;
+  const allocationComplete = selectedProject !== null && Math.abs(totalAllocated - expense.amount) < 0.01;
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar active="expenses" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
-          <div className="flex items-center gap-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard/admin/expenses")}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
               </svg>
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Detalhes da Despesa</h1>
-              <p className="text-sm text-gray-500">
+              <h1 className="text-base font-bold text-gray-900 sm:text-xl">Detalhes da Despesa</h1>
+              <p className="text-xs text-gray-500 sm:text-sm">
                 {expense.id} • {expense.projectName}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm0 2h8v2H6v-2z" clipRule="evenodd" />
               </svg>
               Imprimir
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
@@ -273,7 +314,7 @@ export default function ExpenseDetalhe() {
               <>
                 <button
                   onClick={handleApprove}
-                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition"
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 transition sm:px-4"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
@@ -282,7 +323,7 @@ export default function ExpenseDetalhe() {
                 </button>
                 <button
                   onClick={handleReject}
-                  className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
+                  className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition sm:px-4"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -295,12 +336,12 @@ export default function ExpenseDetalhe() {
         </header>
 
         {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
           <StatusBanner status={expense.status} submittedAt={expense.submittedAt} submittedAgo={expense.submittedAgo} />
 
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             {/* Left — main content */}
-            <div className="col-span-2 space-y-5">
+            <div className="col-span-1 space-y-5 lg:col-span-2">
 
               {/* Expense Overview */}
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -311,7 +352,7 @@ export default function ExpenseDetalhe() {
                   <h2 className="text-sm font-bold text-gray-800">Visão Geral da Despesa</h2>
                 </div>
 
-                <div className="grid grid-cols-2 gap-5 mb-5">
+                <div className="grid grid-cols-1 gap-5 mb-5 sm:grid-cols-2">
                   <div>
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">ID da Despesa</p>
                     <p className="text-sm font-bold text-[#2563EB]">{expense.id}</p>
@@ -342,7 +383,7 @@ export default function ExpenseDetalhe() {
 
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Alocação do Orçamento</p>
-                  <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
                       <p className="text-xs font-medium text-blue-600">Orçamento do Projeto</p>
                       <p className="mt-1 text-xl font-bold text-blue-800">
@@ -365,6 +406,165 @@ export default function ExpenseDetalhe() {
                 </div>
               </div>
 
+              {/* Cost Discrimination */}
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
+                    <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                  </svg>
+                  <h2 className="text-sm font-bold text-gray-800">Projeto Financiador & Discriminação de Custos</h2>
+                  {allocationSaved && (
+                    <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                      </svg>
+                      Discriminação Salva
+                    </span>
+                  )}
+                </div>
+
+                {/* Project selector */}
+                <div className="mb-5">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">Projeto Financiador</label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => {
+                      setSelectedProjectId(e.target.value);
+                      setAllocations({});
+                      setAllocationSaved(false);
+                    }}
+                    className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                  >
+                    <option value="">Selecionar projeto financiador...</option>
+                    {MOCK_PROJECTS_ALLOCATION.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedProject && (
+                  <>
+                    {/* Budget summary */}
+                    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                        <p className="text-xs font-medium text-blue-600">Budget do Projeto</p>
+                        <p className="mt-1 text-lg font-bold text-blue-800">
+                          ${selectedProject.budgetTotal.toLocaleString("en-US")}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+                        <p className="text-xs font-medium text-orange-600">Utilizado</p>
+                        <p className="mt-1 text-lg font-bold text-orange-800">
+                          ${selectedProject.budgetSpent.toLocaleString("en-US")}
+                        </p>
+                      </div>
+                      <div className={`rounded-xl border px-4 py-3 ${exceedsBudget ? "border-red-200 bg-red-50" : "border-green-100 bg-green-50"}`}>
+                        <p className={`text-xs font-medium ${exceedsBudget ? "text-red-600" : "text-green-600"}`}>Disponível</p>
+                        <p className={`mt-1 text-lg font-bold ${exceedsBudget ? "text-red-800" : "text-green-800"}`}>
+                          ${budgetRemaining.toLocaleString("en-US")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Allocation inputs */}
+                    <div className="mb-5">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Discriminação por Rubrica</p>
+                      <div className="space-y-3">
+                        {selectedProject.topics.map((topic) => (
+                          <div key={topic} className="flex items-center gap-3">
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${TOPIC_COLORS[topic]}`}>
+                              {topic[0]}
+                            </div>
+                            <span className="w-36 shrink-0 text-sm font-medium text-gray-700">{TOPIC_LABELS[topic]}</span>
+                            <div className="relative flex-1">
+                              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400">$</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={allocations[topic] ?? ""}
+                                onChange={(e) => {
+                                  setAllocations((prev) => ({ ...prev, [topic]: e.target.value }));
+                                  setAllocationSaved(false);
+                                }}
+                                placeholder="0.00"
+                                className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-8 pr-4 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Total row */}
+                    <div className={`mb-5 flex items-center justify-between rounded-xl border px-5 py-4 ${
+                      exceedsBudget || exceedsExpense
+                        ? "border-red-200 bg-red-50"
+                        : allocationComplete
+                        ? "border-green-200 bg-green-50"
+                        : "border-gray-200 bg-gray-50"
+                    }`}>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500">Total Discriminado</p>
+                        <p className={`text-2xl font-bold ${exceedsBudget || exceedsExpense ? "text-red-700" : allocationComplete ? "text-green-700" : "text-gray-900"}`}>
+                          ${totalAllocated.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-gray-500">Valor da Despesa</p>
+                        <p className="text-lg font-bold text-gray-700">
+                          ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        {allocationComplete && !exceedsBudget && (
+                          <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                            </svg>
+                            Valores conferem
+                          </span>
+                        )}
+                        {exceedsBudget && (
+                          <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                            Excede o budget disponível
+                          </span>
+                        )}
+                        {exceedsExpense && !exceedsBudget && (
+                          <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700">
+                            Excede o valor da despesa
+                          </span>
+                        )}
+                        {!allocationComplete && !exceedsExpense && totalAllocated > 0 && (
+                          <p className="text-xs text-gray-400">
+                            Falta ${(expense.amount - totalAllocated).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </p>
+                        )}
+                        {totalAllocated === 0 && (
+                          <p className="text-xs text-gray-400">Preencha os valores acima</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!allocationComplete || exceedsBudget}
+                      onClick={() => setAllocationSaved(true)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-40 transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                      </svg>
+                      Salvar Discriminação de Custos
+                    </button>
+                  </>
+                )}
+              </div>
+
               {/* Submitted Documents */}
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
@@ -377,7 +577,7 @@ export default function ExpenseDetalhe() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {expense.documents.map((doc) => (
                     <div key={doc.name} className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 hover:border-blue-200 hover:bg-blue-50/30 transition">
                       <DocIcon type={doc.type} />
@@ -470,7 +670,7 @@ export default function ExpenseDetalhe() {
                 </div>
 
                 <button
-                  onClick={() => router.push("/dashboard/admin/projects/detalhe")}
+                  onClick={() => router.push("/dashboard/admin/projects/detail")}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-sm font-medium text-[#2563EB] hover:bg-blue-50 transition"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">

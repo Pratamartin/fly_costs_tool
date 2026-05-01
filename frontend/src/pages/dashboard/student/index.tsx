@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
+import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, type Expense, type ExpenseTopic } from "@/services/expenses";
 
@@ -20,26 +21,19 @@ interface Despesa {
 
 function topicToIcone(topic: string): "componentes" | "livros" | "viagem" | "nuvem" {
   switch (topic) {
-    case "PASSAGEM":
-      return "viagem";
-    case "HOSPEDAGEM":
-      return "livros";
+    case "PASSAGEM": return "viagem";
+    case "HOSPEDAGEM": return "livros";
     case "INSCRICAO":
-    default:
-      return "componentes";
+    default: return "componentes";
   }
 }
 
 function statusBackendToFrontend(status: string): Status {
   switch (status) {
-    case "PENDENTE":
-      return "Pendente";
-    case "APROVADO":
-      return "Aprovado";
-    case "REJEITADO":
-      return "Rejeitado";
-    default:
-      return "Pendente";
+    case "PENDENTE": return "Pendente";
+    case "APROVADO": return "Aprovado";
+    case "REJEITADO": return "Rejeitado";
+    default: return "Pendente";
   }
 }
 
@@ -47,11 +41,7 @@ function expenseToDespesa(expense: Expense): Despesa {
   const valor = parseFloat(expense.amount);
   return {
     id: expense.id,
-    data: new Date(expense.createdAt).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
+    data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
     projeto: expense.project?.name || "Sem projeto",
@@ -153,12 +143,7 @@ export default function DashboardAluno() {
   useEffect(() => {
     const carregarDados = async () => {
       const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
+      if (!token) { router.push("/login"); return; }
       try {
         const meResult = await getMe(token);
         if (!meResult.ok) {
@@ -178,7 +163,6 @@ export default function DashboardAluno() {
         setCarregando(false);
       }
     };
-
     carregarDados();
   }, [router]);
 
@@ -204,10 +188,8 @@ export default function DashboardAluno() {
   async function handleNovaDespesa(data: NovaDespesaData) {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
-
     setCriandoDespesa(true);
     setErro(null);
-
     try {
       const topicMap: Record<string, ExpenseTopic> = {
         componentes: "INSCRICAO",
@@ -215,17 +197,14 @@ export default function DashboardAluno() {
         viagem: "PASSAGEM",
         nuvem: "INSCRICAO",
       };
-
       const result = await createExpense(token, {
         title: data.descricao,
         description: data.descricaoDetalhada || data.descricao,
         topic: topicMap[data.categoria] || "INSCRICAO",
         amount: data.valor,
       });
-
       if (result.ok) {
-        const novaDespesa = expenseToDespesa(result.data);
-        setDespesas((prev) => [novaDespesa, ...prev]);
+        setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
         setModalAberto(false);
       } else if (result.error === "UNAUTHORIZED") {
         localStorage.removeItem("accessToken");
@@ -248,7 +227,9 @@ export default function DashboardAluno() {
 
   const despesasFiltradas = despesas.filter((d) => {
     const matchFiltro = filtro === "Todos" || d.status === filtro;
-    const matchBusca = (d.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) || (d.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase());
+    const matchBusca =
+      (d.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) ||
+      (d.reqId?.toLowerCase() ?? "").includes(busca.toLowerCase());
     return matchFiltro && matchBusca;
   });
 
@@ -260,8 +241,8 @@ export default function DashboardAluno() {
         <div className="text-center">
           <div className="mb-4 flex justify-center">
             <svg className="animate-spin h-8 w-8 text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
           <p className="text-gray-600">Carregando dashboard...</p>
@@ -281,79 +262,28 @@ export default function DashboardAluno() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className="flex w-56 shrink-0 flex-col justify-between bg-white border-r border-gray-200 py-6 px-4">
-        <div>
-          {/* Logo */}
-          <div className="mb-8 flex items-center gap-2 px-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4F46E5]">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="h-5 w-5">
-                <path d="M11.7 2.805a.75.75 0 01.6 0A60.65 60.65 0 0122.83 8.72a.75.75 0 01-.231 1.337 49.949 49.949 0 00-9.902 3.912l-.003.002-.34.18a.75.75 0 01-.707 0A50.009 50.009 0 007.5 12.174v-.224c0-.131.067-.248.172-.311a54.614 54.614 0 014.653-2.52.75.75 0 00-.65-1.352 56.129 56.129 0 00-4.78 2.589 1.858 1.858 0 00-.859 1.228 49.803 49.803 0 00-4.634-1.527.75.75 0 01-.231-1.337A60.653 60.653 0 0111.7 2.805z" />
-                <path d="M13.06 15.473a48.45 48.45 0 017.666-3.282c.134 1.414.22 2.843.255 4.285a.75.75 0 01-.46.71 47.878 47.878 0 00-8.105 4.342.75.75 0 01-.832 0 47.877 47.877 0 00-8.104-4.342.75.75 0 01-.461-.71c.035-1.442.121-2.87.255-4.286A48.4 48.4 0 016 13.18v1.27a1.5 1.5 0 00-.14 2.508c-.09.38-.222.753-.397 1.11.452.213.901.434 1.346.661a6.729 6.729 0 00.551-1.608 1.5 1.5 0 00.14-2.67v-.645a48.549 48.549 0 013.44 1.668 2.25 2.25 0 002.12 0z" />
-                <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
-              </svg>
-            </div>
-            <span className="text-sm font-bold text-gray-800">SGDA</span>
-          </div>
-
-          {/* Nav */}
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-            Portal do Aluno
-          </p>
-          <nav className="space-y-1">
-            <button className="flex w-full items-center gap-2 rounded-lg bg-[#4F46E5]/10 px-3 py-2 text-sm font-semibold text-[#4F46E5]">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-              </svg>
-              Minhas Solicitações
-            </button>
-          </nav>
-        </div>
-
-        {/* Usuário + Logout */}
-        <div className="space-y-3 border-t border-gray-200 pt-4">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-sm font-bold text-white">
-              {userProfile?.name.charAt(0).toUpperCase() || "?"}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-gray-800">{userProfile?.name || "Carregando..."}</p>
-              <p className="truncate text-xs text-gray-400">Aluno</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M19.293 9.293a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 11H6.75a1 1 0 110-2h9.836l-1.707-1.707a1 1 0 011.414-1.414l3 3z" clipRule="evenodd" />
-            </svg>
-            Sair
-          </button>
-        </div>
-      </aside>
+      <StudentSidebar userName={userProfile?.name ?? null} onLogout={handleLogout} />
 
       {/* Conteúdo principal */}
       <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* Topbar */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+        {/* Header */}
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Minhas Solicitações de Despesa</h1>
-            <p className="text-sm text-gray-500">Acompanhe e gerencie suas despesas de projetos acadêmicos</p>
+            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Minhas Solicitações</h1>
+            <p className="text-xs text-gray-500 sm:text-sm">Acompanhe e gerencie suas despesas acadêmicas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {erro && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-sm text-red-700">{erro}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
+                <p className="text-xs text-red-700 sm:text-sm">{erro}</p>
               </div>
             )}
             <button
               onClick={handleAtualizar}
               disabled={atualizando}
               title="Atualizar lista"
-              className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-5 w-5 ${atualizando ? "animate-spin" : ""}`}>
                 <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.389zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
@@ -362,24 +292,25 @@ export default function DashboardAluno() {
             <button
               onClick={() => setModalAberto(true)}
               disabled={criandoDespesa}
-              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] disabled:opacity-50 sm:px-4"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
               </svg>
-              Nova Solicitação
+              <span className="hidden sm:inline">Nova Solicitação</span>
+              <span className="sm:hidden">Nova</span>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Cards de resumo */}
-          <div className="mb-6 grid grid-cols-3 gap-4">
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Total Submetido</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalSubmetido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -389,10 +320,10 @@ export default function DashboardAluno() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Aguardando Aprovação</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -402,10 +333,10 @@ export default function DashboardAluno() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500">Aprovado (Este Ano)</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                   R$ {totalAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -417,11 +348,11 @@ export default function DashboardAluno() {
             </div>
           </div>
 
-          {/* Tabela */}
+          {/* Tabela / Cards */}
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
 
-            {/* Barra de busca e filtros */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            {/* Toolbar: busca + filtros */}
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="relative">
                 <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -433,20 +364,16 @@ export default function DashboardAluno() {
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="Buscar solicitações..."
-                  className="rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] w-52"
+                  className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] sm:w-52"
                 />
               </div>
-
-              {/* Tabs de status */}
-              <div className="flex gap-1 rounded-lg border border-gray-200 p-1">
+              <div className="flex gap-1 rounded-lg border border-gray-200 p-1 overflow-x-auto">
                 {filtros.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFiltro(f)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                      filtro === f
-                        ? "bg-[#4F46E5] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-800"
+                    className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                      filtro === f ? "bg-[#4F46E5] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
                     }`}
                   >
                     {f}
@@ -455,8 +382,8 @@ export default function DashboardAluno() {
               </div>
             </div>
 
-            {/* Tabela */}
-            <table className="w-full">
+            {/* Tabela — desktop */}
+            <table className="hidden w-full md:table">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
@@ -499,7 +426,40 @@ export default function DashboardAluno() {
               </tbody>
             </table>
 
-            <div className="border-t border-gray-100 px-6 py-4">
+            {/* Cards — mobile */}
+            <div className="md:hidden">
+              {despesasFiltradas.length === 0 ? (
+                <p className="py-12 text-center text-sm text-gray-400">Nenhuma solicitação encontrada.</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {despesasFiltradas.map((d) => (
+                    <div key={d.id} className="px-4 py-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <IconeDespesa tipo={d.icone} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{d.descricao}</p>
+                            <p className="text-xs text-gray-400">{d.reqId}</p>
+                          </div>
+                        </div>
+                        <BadgeStatus status={d.status} />
+                      </div>
+                      <div className="flex items-center justify-between pl-11">
+                        <p className="text-xs text-gray-500 truncate mr-2">{d.projeto}</p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-gray-900">
+                            R$ {d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-gray-400">{d.data}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
               <p className="text-sm text-gray-500">
                 Exibindo {despesasFiltradas.length} de {despesas.length} resultados
               </p>

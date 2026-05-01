@@ -145,13 +145,13 @@ export default function AdminProjects() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Projetos</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Gerencie e acompanhe todos os projetos acadêmicos</p>
+            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Projetos</h1>
+            <p className="text-xs text-gray-500 mt-0.5 sm:text-sm">Gerencie e acompanhe todos os projetos acadêmicos</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative shrink-0">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
@@ -159,17 +159,18 @@ export default function AdminProjects() {
             </button>
             <button
               onClick={() => setShowModalCriar(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors sm:px-4"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Criar Projeto
+              <span className="hidden sm:inline">Criar Projeto</span>
+              <span className="sm:hidden">Criar</span>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 px-8 py-6">
+        <main className="flex-1 px-4 py-4 md:px-8 md:py-6">
           {/* Filters */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
             <div className="flex flex-wrap items-center gap-3">
@@ -214,7 +215,8 @@ export default function AdminProjects() {
 
           {/* Table */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+            {/* Desktop table */}
+            <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
@@ -239,7 +241,7 @@ export default function AdminProjects() {
                   <tr
                     key={project.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => router.push("/dashboard/admin/projects/detalhe")}
+                    onClick={() => router.push("/dashboard/admin/projects/detail")}
                   >
                     <td className="px-6 py-4">
                       <p className="font-semibold text-gray-900">{project.name}</p>
@@ -271,7 +273,7 @@ export default function AdminProjects() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push("/dashboard/admin/projects/detalhe");
+                          router.push("/dashboard/admin/projects/detail");
                         }}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Ver detalhes"
@@ -287,7 +289,7 @@ export default function AdminProjects() {
             </table>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-500">
                 Exibindo 1 a {filtered.length} de 24 projetos
               </p>
@@ -316,12 +318,36 @@ export default function AdminProjects() {
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <p className="text-center text-xs text-gray-400 mt-6">
-            © 2026 Academic Expense Management System. Todos os direitos reservados.
-          </p>
+            {/* Cards — mobile */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {filtered.map((project) => (
+                <div
+                  key={project.id}
+                  className="px-4 py-4 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push("/dashboard/admin/projects/detail")}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{project.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{project.id} · {project.department}</p>
+                    </div>
+                    <StatusBadge status={project.status} />
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: project.coordinator.color }}
+                    >
+                      {project.coordinator.initial}
+                    </div>
+                    <span className="text-xs text-gray-600">{project.coordinator.name}</span>
+                  </div>
+                  <BudgetBar spent={project.budgetSpent} total={project.budgetTotal} />
+                </div>
+              ))}
+            </div>
+          </div>
         </main>
       </div>
 

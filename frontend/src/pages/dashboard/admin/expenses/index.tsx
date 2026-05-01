@@ -172,13 +172,13 @@ export default function AdminExpenses() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Solicitações de Despesas</h1>
-            <p className="text-sm text-gray-500">Gerencie e revise todas as solicitações de despesas dos projetos</p>
+            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Solicitações de Despesas</h1>
+            <p className="text-xs text-gray-500 sm:text-sm">Gerencie e revise todas as solicitações de despesas dos projetos</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:flex-none">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
@@ -189,7 +189,7 @@ export default function AdminExpenses() {
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 placeholder="Pesquisar despesas..."
-                className="w-56 rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56"
               />
             </div>
 
@@ -200,7 +200,7 @@ export default function AdminExpenses() {
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
             </button>
 
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
@@ -208,18 +208,19 @@ export default function AdminExpenses() {
               Exportar Relatório
             </button>
 
-            <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition">
+            <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition sm:px-4">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clipRule="evenodd" />
               </svg>
-              Filtros Avançados
+              <span className="hidden sm:inline">Filtros Avançados</span>
+              <span className="sm:hidden">Filtros</span>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6 space-y-5">
           {/* Stats cards */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
@@ -281,7 +282,7 @@ export default function AdminExpenses() {
                 Limpar Filtros
               </button>
             </div>
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-500">Status</label>
                 <select
@@ -401,7 +402,7 @@ export default function AdminExpenses() {
 
             {viewMode === "table" ? (
               <>
-                <table className="w-full">
+                <table className="hidden w-full md:table">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <th className="px-6 py-3 text-left">
@@ -549,6 +550,40 @@ export default function AdminExpenses() {
                       </svg>
                     </button>
                   </div>
+                </div>
+
+                {/* Cards — mobile */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {paginated.length === 0 ? (
+                    <p className="py-12 text-center text-sm text-gray-400">Nenhuma despesa encontrada com os filtros aplicados.</p>
+                  ) : paginated.map((expense) => (
+                    <div key={expense.id} className={`px-4 py-4 hover:bg-gray-50 ${selected.has(expense.id) ? "bg-blue-50/40" : ""}`}>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <button
+                          onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
+                          className="text-sm font-semibold text-[#2563EB] hover:underline"
+                        >
+                          {expense.id}
+                        </button>
+                        <StatusBadge status={expense.status} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-800 mb-0.5">{expense.projectName}</p>
+                      <p className="text-xs text-gray-400 mb-2">{expense.projectId}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Avatar initial={expense.avatarInitial} />
+                          <div>
+                            <p className="text-xs font-medium text-gray-700">{expense.submitter}</p>
+                            <CategoryBadge category={expense.category} />
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-gray-900">${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                          <p className="text-xs text-gray-400">{expense.date}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             ) : (
