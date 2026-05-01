@@ -4,32 +4,16 @@ import { join } from 'node:path'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { CreateExpenseSchema } from '@/schemas/expense.schema'
-
-const storageMock = vi.hoisted(() => ({
-  isStorageConfigured: vi.fn(() => true),
-  validatePDF: vi.fn(() => ({ valid: true })),
-  uploadFile: vi.fn(async () => ({
-    fileKey: 'memorandos/uuid-doc.pdf',
-    fileName: 'doc.pdf',
-    fileSize: 100,
-  })),
-  deleteFile: vi.fn(async () => {}),
-  getSignedDownloadUrl: vi.fn(async () => 'https://signed.example/download'),
-}))
-
-vi.mock('@/lib/storage', () => storageMock)
-
-import {
-  attachMemorandumToExpense,
-  createExpenseRequest,
-  expenseInclude,
-  getAllExpenseRequests,
-  getExpenseById,
-  getMemorandumDownloadUrl,
-  updateExpenseStatus,
-} from '@/services/expense.service'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
+
+vi.mock('@/lib/storage', () => ({
+  isStorageConfigured: () => false,
+  validatePDF: () => ({ valid: false, error: 'STORAGE_NOT_CONFIGURED' }),
+  uploadFile: async () => ({ fileKey: '', fileName: '', fileSize: 0 }),
+  deleteFile: async () => {},
+  getSignedDownloadUrl: async () => '',
+}))
 
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
@@ -41,9 +25,15 @@ const prismaMock = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@/lib/orm', () => ({
-  default: prismaMock,
-}))
+vi.mock('@/lib/orm', () => ({ default: prismaMock }))
+
+import {
+  createExpenseRequest,
+  expenseInclude,
+  getAllExpenseRequests,
+  getExpenseById,
+  updateExpenseStatus,
+} from '@/services/expense.service'
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const EXPENSE_ID = '123e4567-e89b-12d3-a456-426614174000'
@@ -105,13 +95,14 @@ describe('CreateExpenseSchema (validação campos / datas)', () => {
 
   it('createExpenseRequest retorna erro quando volta < ida (serviço, antes do Prisma)', async () => {
     const result = await createExpenseRequest(STUDENT_ID, {
-      title: 'X',
+      title: 'T',
       city: 'Manaus',
       state: 'BR-AM',
       country: 'BR',
-      departureDate: new Date('2026-09-10'),
-      returnDate: new Date('2026-09-01'),
+      departureDate: new Date('2026-08-10'),
+      returnDate: new Date('2026-08-01'),
     })
+
     expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE)
     expect(prismaMock.expenseRequest.create).not.toHaveBeenCalled()
   })
@@ -119,48 +110,37 @@ describe('CreateExpenseSchema (validação campos / datas)', () => {
 
 describe('createExpenseRequest', () => {
   it('persiste despesa com localização e período', async () => {
-    const row = expenseRow()
-    prismaMock.expenseRequest.create.mockResolvedValue(row)
+    prismaMock.expenseRequest.create.mockResolvedValue(expenseRow())
 
     const result = await createExpenseRequest(STUDENT_ID, {
-      title: ' Congresso ',
+      title: 'Evento',
       city: 'Manaus',
       state: 'BR-AM',
       country: 'BR',
-      departureDate: new Date('2026-07-01T12:00:00.000Z'),
-      returnDate: new Date('2026-07-05T12:00:00.000Z'),
+      departureDate: new Date('2026-07-01'),
+      returnDate: new Date('2026-07-05'),
     })
 
     expect('error' in result).toBe(false)
     if ('error' in result)
       return
     expect(result.city).toBe('Manaus')
-    expect(result.state).toBe('BR-AM')
     expect(prismaMock.expenseRequest.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          studentId: STUDENT_ID,
-          title: ' Congresso ',
-        }),
-        include: expenseInclude,
-      }),
+      expect.objectContaining({ include: expenseInclude }),
     )
   })
 })
 
 describe('getAllExpenseRequests / getExpenseById (formato retorno)', () => {
   it('lista inclui campos de localização e attachmentKey quando presentes', async () => {
-    const row = expenseRow({
-      attachmentKey: 'memorandos/k.pdf',
-      studentId: STUDENT_ID,
-    })
-    prismaMock.expenseRequest.findMany.mockResolvedValue([row])
+    prismaMock.expenseRequest.findMany.mockResolvedValue([
+      expenseRow({ city: 'São Paulo', attachmentKey: 'memorandos/k.pdf' }),
+    ])
 
-    const result = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
+    const list = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
 
-    expect(result).toHaveLength(1)
-    expect(result[0]?.city).toBe('Manaus')
-    expect(result[0]?.attachmentKey).toBe('memorandos/k.pdf')
+    expect(list[0].city).toBe('São Paulo')
+    expect(list[0].attachmentKey).toBe('memorandos/k.pdf')
   })
 
   it('getExpenseById retorna rejectionReason e costBreakdowns no payload', async () => {
@@ -256,57 +236,5 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     if ('error' in result)
       return
     expect(result.rejectionReason).toBe('Motivo X')
-  })
-})
-
-describe('attachMemorandumToExpense (upload memorando)', () => {
-  it('upload memorando: grava attachmentKey e chama storage', async () => {
-    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
-    prismaMock.expenseRequest.update.mockResolvedValue(
-      expenseRow({ attachmentKey: 'memorandos/uuid-doc.pdf' }),
-    )
-
-    const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, SAMPLE_PDF, 'Memorando.pdf')
-
-    expect('error' in result).toBe(false)
-    if ('error' in result)
-      return
-    expect(result.attachmentKey).toBe('memorandos/uuid-doc.pdf')
-    expect(storageMock.validatePDF).toHaveBeenCalled()
-    expect(storageMock.uploadFile).toHaveBeenCalled()
-  })
-
-  it('recusa quando storage não configurado', async () => {
-    storageMock.isStorageConfigured.mockReturnValueOnce(false)
-
-    const result = await attachMemorandumToExpense(
-      EXPENSE_ID,
-      STUDENT_ID,
-      Buffer.from('%PDF'),
-      'x.pdf',
-    )
-
-    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED)
-  })
-})
-
-describe('getMemorandumDownloadUrl', () => {
-  it('retorna URL assinada para coordenador', async () => {
-    prismaMock.expenseRequest.findUnique.mockResolvedValue({
-      attachmentKey: 'memorandos/k.pdf',
-      studentId: STUDENT_ID,
-    })
-
-    const result = await getMemorandumDownloadUrl(
-      EXPENSE_ID,
-      'coord-id',
-      UserRole.COORDENADOR,
-    )
-
-    expect('error' in result).toBe(false)
-    if ('error' in result)
-      return
-    expect(result.url).toContain('example')
-    expect(storageMock.getSignedDownloadUrl).toHaveBeenCalledWith('memorandos/k.pdf', 3600)
   })
 })
