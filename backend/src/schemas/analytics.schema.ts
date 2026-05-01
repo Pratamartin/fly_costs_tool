@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { DEFAULT_TOP_PROJECTS_COUNT } from '@/constants/analytics.constant'
 import { IdSchema } from './shared.schema'
 
 export const AdminDashboardResponseSchema = z.object({
@@ -19,6 +20,8 @@ export const AdminDashboardResponseSchema = z.object({
   budgetCommitted: z.string()
     .openapi({ example: '11230.50' }),
 })
+
+export const TopProjectsQuerySchema = z.object({ limit: z.coerce.number().default(DEFAULT_TOP_PROJECTS_COUNT) }).partial()
 
 export const TopProjectSchema = z.object({
   id: IdSchema,

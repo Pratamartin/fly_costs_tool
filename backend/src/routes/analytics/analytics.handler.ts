@@ -14,7 +14,8 @@ export const adminDashboard: AppRouteHandler<AdminDashboardRoute> = async (c) =>
 }
 
 export const topProjects: AppRouteHandler<TopProjectsRoute> = async (c) => {
-  const rawProjects = await getTopProjects()
+  const { limit } = c.req.valid('query')
+  const rawProjects = await getTopProjects(limit)
 
   const response = rawProjects.map(project => ({
     ...project,
