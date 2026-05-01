@@ -2,6 +2,7 @@ export enum ExpenseRequestStatus {
   PENDENTE = 'PENDENTE',
   APROVADO = 'APROVADO',
   REJEITADO = 'REJEITADO',
+  EM_PROCESSAMENTO = 'EM_PROCESSAMENTO',
 }
 
 export enum UserRole {
