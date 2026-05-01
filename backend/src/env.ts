@@ -1,10 +1,9 @@
 /* eslint-disable node/no-process-env */
-import path from 'node:path'
 import { config } from 'dotenv'
 import { expand } from 'dotenv-expand'
 import { z } from 'zod'
 
-expand(config({ path: path.resolve(process.cwd(), process.env.NODE_ENV === 'test' ? '.env.test.local' : '.env') }))
+expand(config())
 
 const EnvSchema = z.object({
   NODE_ENV: z.string().default('development'),
@@ -15,7 +14,8 @@ const EnvSchema = z.object({
   SALT_ROUNDS: z.coerce.number().default(10),
   ALLOWED_ORIGINS: z.string()
     .transform(str => str.split(','))
-    .pipe(z.array(z.url())),
+    .pipe(z.array(z.url()))
+    .default(['http://localhost:3000']),
   DATABASE_URL: z.url(),
 })
 

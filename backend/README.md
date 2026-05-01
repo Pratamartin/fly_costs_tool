@@ -9,7 +9,9 @@
 - **Validação:** [Zod](https://zod.dev/)
 - **ORM:** [Prisma](https://www.prisma.io/)
 - **Banco de Dados:** [PostgreSQL](https://www.postgresql.org/)
-- **Testes:** [Vitest](https://vitest.dev/)
+- **Testes:**
+    - [Vitest](https://vitest.dev/)
+    - [TestContainers](https://testcontainers.com/)
 - **Linting:** [ESLint](https://eslint.org/)
 
 ## ⚙️ Setup
@@ -77,7 +79,9 @@
 
 ## 🧪 Testes
 
-Antes de iniciar, crie seu arquivo `.env.test.local` com base no `.env.test`.
+Os testes de integração utilizam a tecnologia **Testcontainers** para provisionar um banco de dados PostgreSQL efêmero e isolado automaticamente.
+
+> ⚠️ **Pré-requisito:** Certifique-se de que o **Docker** esteja instalado em sua máquina.
 
 | Comando | Descrição |
 | :--- | :--- |

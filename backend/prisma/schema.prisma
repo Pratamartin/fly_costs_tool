@@ -14,6 +14,7 @@ model User {
   passwordHash    String
   role            UserRole         @default(ALUNO)
   expenseRequests ExpenseRequest[]
+  isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
@@ -28,12 +29,19 @@ enum ExpenseRequestStatus {
   PENDENTE
   APROVADO
   REJEITADO
+  EM_PROCESSAMENTO
 }
 
-enum ExpenseTopic {
-  INSCRICAO
-  PASSAGEM
-  HOSPEDAGEM
+model ExpenseCategory {
+  id             String @id @default(uuid())
+  name           String
+  normalizedName String @unique
+
+  projects Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  costBreakdowns CostBreakdown[]
 }
 
 model ExpenseRequest {
@@ -45,23 +53,44 @@ model ExpenseRequest {
 
   title       String
   description String?
-  amount      Decimal
 
-  topic     ExpenseTopic
+  city    String
+  state   String @db.VarChar(6) // ISO 3166-2 (e.g., "US-NY", "BR-AM")
+  country String @db.Char(2) // ISO 3166-1 (e.g., "US", "BR")
+
+  departureDate DateTime
+  returnDate    DateTime
+
   projectId String?
-  project   Project?     @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id])
 
+  rejectionReason String?
+
+  costBreakdowns CostBreakdown[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Project {
-  id              String           @id @default(uuid())
-  name            String
-  code            String?          @unique
-  budget          Decimal
-  expenseTopics   ExpenseTopic[]
-  expenseRequests ExpenseRequest[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique
+  budget            Decimal          @db.Decimal(10, 2) 
+  usedBudget        Decimal          @default(0) @db.Decimal(10, 2)
+  expenseCategories ExpenseCategory[]
+  expenseRequests   ExpenseRequest[]
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model CostBreakdown {
+  id                String          @id @default(uuid())
+  amount            Decimal         @db.Decimal(10, 2)
+  expenseRequestId  String
+  expenseRequest    ExpenseRequest  @relation(fields: [expenseRequestId], references: [id], onDelete: Cascade)
+  expenseCategoryId String
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }

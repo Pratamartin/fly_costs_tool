@@ -1,14 +1,12 @@
 /* eslint-disable no-console */
-import type { User } from '@/generated/prisma/client'
+import type { Prisma } from '@/generated/prisma/client'
 import { genSalt, hash } from 'bcryptjs'
 import { DEFAULT_USER_PASSWORD, ID_ALUNO } from '@/constants/seed.constant'
 import env from '@/env'
 import { UserRole } from '@/generated/prisma/client'
 import prisma from '@/lib/orm'
 
-type DummyUser = Omit<User, 'passwordHash' | 'createdAt' | 'updatedAt'>
-
-export const dummyUsers: DummyUser[] = [
+export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
   {
     id: 'f3b3e1a2-9b0c-4d1e-8f2g-5h6i7j8k9l0m',
     email: 'coordenador@test.com',

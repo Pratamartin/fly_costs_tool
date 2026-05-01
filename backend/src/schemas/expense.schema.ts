@@ -1,66 +1,84 @@
 import { z } from '@hono/zod-openapi'
-import { ExpenseRequestStatus, ExpenseTopic } from '@/generated/prisma/enums'
+import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
 import ProjectSchema from './project.schema'
-import { IdSchema, TimestampSchema } from './shared.schema'
+import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
+import { IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
 import { UserProfileSchema } from './user.schema'
 
-const ExpenseRelationsSchema = {
+export const ExpenseRelationsSchema = {
   student: UserProfileSchema.pick({
     id: true,
     name: true,
   }).optional(),
-  project: ProjectSchema.pick({ name: true }).extend({ id: IdSchema })
+  project: ProjectSchema.pick({
+    name: true,
+    code: true,
+  }).extend({ id: IdSchema })
     .nullable()
     .optional(),
+  costBreakdowns: z.array(CostBreakdownResponseSchema).optional(),
 }
-
-const AmountStringSchema = z.string().openapi({
-  description: 'Valor total formatado como string para garantir precisão (BRL).',
-  example: '450.00',
-})
 
 const BaseSchema = z.object({
   title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
-  description: z.string().openapi({
-    example:
-      'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
-  }),
-  topic: z.enum(ExpenseTopic).openapi({ examples: Object.values(ExpenseTopic) }),
-  amount: z.number()
-    .positive()
-    .multipleOf(0.01)
+  description: z.string().nullable()
+    .optional()
     .openapi({
-      description: 'Valor total em Reais (BRL).',
-      example: 450.00,
+      example:
+      'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
     }),
   status: z.enum(ExpenseRequestStatus)
     .openapi({
       description: 'Status atual da solicitação',
-      example: ExpenseRequestStatus.APROVADO,
+      example: ExpenseRequestStatus.REJEITADO,
+    }),
+  rejectionReason: z.string().nullable()
+    .openapi({
+      description: 'Motivo registrado caso a solicitação tenha sido rejeitada.',
+      example: 'O aluno solicitante excedeu o limite semestral de benefícios.',
     }),
 })
+  .extend(LocationSchema.shape)
+  .extend(TripPeriodSchema.shape)
 
-export const CreateExpenseSchema = BaseSchema.omit({ status: true })
+export const CreateExpenseSchema = BaseSchema.omit({
+  status: true,
+  rejectionReason: true,
+})
+  .check(validStateCheck)
+  .check(validCountryCheck)
+  .check(stateBelongsToCountryCheck)
+  .check(returnDateAfterDepartureDateCheck)
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
     ...BaseSchema.shape,
-    amount: AmountStringSchema,
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
   })
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
 
-export const ExpenseListItemSchema = z.object({ id: IdSchema })
+export const ExpenseListItemSchema = z.object({
+  id: IdSchema,
+  studentId: IdSchema
+    .optional(),
+  projectId: IdSchema
+    .nullable()
+    .optional(),
+})
   .extend(BaseSchema.pick({
     title: true,
     status: true,
+    rejectionReason: true,
+    city: true,
+    state: true,
+    country: true,
+    departureDate: true,
+    returnDate: true,
   }).shape)
-  .extend({
-    amount: AmountStringSchema,
-    ...ExpenseRelationsSchema,
-  })
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
@@ -69,4 +87,14 @@ export const UpdateExpenseStatusSchema = z.object({
     description: 'O novo status a ser atribuído à solicitação.',
     example: ExpenseRequestStatus.REJEITADO,
   }),
-})
+  reason: z.string().nullable()
+    .optional()
+    .openapi({
+      description: `Motivo da alteração. **Obrigatório** se o status for: ${STATUSES_WHERE_REASON_REQUIRED.join(' ou ')}.`,
+      example: 'Documentação pendente: Realize o ajuste necessário.',
+    }),
+}).check(reasonFieldRequired)
+
+export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
+
+export const AssignProjectResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) })

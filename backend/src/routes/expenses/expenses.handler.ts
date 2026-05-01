@@ -1,9 +1,12 @@
-import type { CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
+import type { AssignProjectRoute, CreateCostBreakdownRoute, CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
-import { ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
-import { createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
+import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
+import { CostBreakdownResponseSchema } from '@/schemas/cost-breakdown.schema'
+import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
+import { createCostBreakdown as createCostBreakdownService } from '@/services/budget.service'
+import { assignProjectToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -23,7 +26,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 
   const result = await createExpenseRequest(sub, data)
 
-  const parsed = ExpenseResponseSchema.parse(result)
+  const parsed = CreateExpenseResponseSchema.parse(result)
 
   return c.json(parsed, codes.CREATED)
 }
@@ -44,18 +47,82 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
 
 export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
   const { id } = c.req.valid('param')
-  const { status } = c.req.valid('json')
+  const { status, reason } = c.req.valid('json')
 
-  const result = await updateExpenseStatus(id, status)
+  const result = await updateExpenseStatus(id, status, reason)
 
-  if (result?.error === phrases.NOT_FOUND) {
-    return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+
+      case phrases.CONFLICT:
+        return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
+    }
   }
 
-  if (result?.error === phrases.CONFLICT) {
-    return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
-  }
-
-  const parsed = ExpenseResponseSchema.parse(result.data)
+  const parsed = ExpenseResponseSchema.parse(result)
   return c.json(parsed, codes.OK)
+}
+
+export const assignProject: AppRouteHandler<AssignProjectRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const { projectId } = c.req.valid('json')
+
+  const result = await assignProjectToExpense(id, projectId)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json(
+          { message: 'Solicitação ou Projeto não encontrados.' },
+          codes.NOT_FOUND,
+        )
+
+      case phrases.CONFLICT:
+        return c.json(
+          { message: 'A solicitação não está com status APROVADO' },
+          codes.CONFLICT,
+        )
+
+      case PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS:
+        return c.json(
+          { message: 'Projeto não possui budget suficiente.' },
+          codes.CONFLICT,
+        )
+
+      case PROJECT_ERROR_CODES.PROJECT_ARCHIVED:
+        return c.json(
+          { message: 'Este projeto está arquivado e não pode ser vinculado.' },
+          codes.CONFLICT,
+        )
+    }
+  }
+  const parsed = AssignProjectResponseSchema.parse(result)
+  return c.json(parsed, codes.OK)
+}
+
+export const createCostBreakdown: AppRouteHandler<CreateCostBreakdownRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+
+  const result = await createCostBreakdownService(id, data)
+
+  if ('error' in result) {
+    if (result.error === phrases.NOT_FOUND) {
+      return c.json({ message: 'Despesa ou Projeto não encontrados' }, codes.NOT_FOUND)
+    }
+
+    if (result.error === PROJECT_ERROR_CODES.PROJECT_ARCHIVED) {
+      return c.json({ message: 'Este projeto está arquivado e não pode receber discriminação de custo.' }, codes.CONFLICT)
+    }
+
+    return c.json({ message: result.error }, codes.BAD_REQUEST)
+  }
+
+  const parsed = CostBreakdownResponseSchema.parse({
+    ...result,
+    subcategory: result.expenseCategory,
+  })
+  return c.json(parsed, codes.CREATED)
 }

@@ -22,5 +22,5 @@
   "tsc-alias": {
     "resolveFullPaths": true
   },
-  "include": ["src", "prisma.config.ts"]
+  "include": ["src", "prisma.config.ts", "tests"],
 }
