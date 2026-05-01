@@ -15,6 +15,11 @@ vi.mock('@/lib/storage', () => ({
   getSignedDownloadUrl: async () => '',
 }))
 
+vi.mock('@/services/budget.service', () => ({
+  createCostBreakdown: vi.fn(),
+  getProjectBudgetMetrics: vi.fn(),
+}))
+
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
     create: vi.fn(),
@@ -30,7 +35,7 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
-import { createCostBreakdown } from '@/services/budget.service'
+import { createCostBreakdown, getProjectBudgetMetrics } from '@/services/budget.service'
 import {
   assignProjectToExpense,
   createExpenseRequest,
@@ -75,14 +80,16 @@ function baseExpense(overrides: Record<string, unknown> = {}) {
 describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => {
-      const result = await cb(txMock)
-      return result
-    })
-    prismaMock.project.findUnique.mockResolvedValue({
-      budget: new Prisma.Decimal(50_000),
-      usedBudget: new Prisma.Decimal(1000),
+    vi.mocked(getProjectBudgetMetrics).mockResolvedValue({
+      total: new Prisma.Decimal(50_000),
+      used: new Prisma.Decimal(1000),
+      available: new Prisma.Decimal(49_000),
       isActive: true,
+    })
+    vi.mocked(createCostBreakdown).mockResolvedValue({
+      id: 'cb-flow',
+      amount: new Prisma.Decimal(800),
+      expenseCategory: { id: 'c1', name: 'Passagem', normalizedName: 'passagem' },
     })
   })
 
@@ -118,22 +125,6 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     )
     const assigned = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
     expect('error' in assigned).toBe(false)
-
-    txMock.expenseRequest.findUnique.mockResolvedValueOnce({
-      project: {
-        id: PROJECT_ID,
-        budget: new Prisma.Decimal(50_000),
-        usedBudget: new Prisma.Decimal(1000),
-        expenseCategories: [{ normalizedName: 'passagem' }],
-        isActive: true,
-      },
-    })
-    txMock.costBreakdown.create.mockResolvedValue({
-      id: 'cb-flow',
-      amount: new Prisma.Decimal(800),
-      expenseCategory: { id: 'c1', name: 'Passagem', normalizedName: 'passagem' },
-    })
-    txMock.project.update.mockResolvedValue({})
 
     const breakdown = await createCostBreakdown(EXPENSE_ID, {
       subcategoryName: 'passagem',

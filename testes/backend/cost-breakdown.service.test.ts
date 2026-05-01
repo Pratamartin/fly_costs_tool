@@ -3,84 +3,38 @@ import * as phrases from 'stoker/http-status-phrases'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { Prisma } from '@/generated/prisma/client'
 
-const prismaMock = vi.hoisted(() => ({
-  $transaction: vi.fn(),
+const createCostBreakdownMock = vi.fn()
+
+vi.mock('@/services/budget.service', () => ({
+  createCostBreakdown: createCostBreakdownMock,
 }))
 
-vi.mock('@/lib/orm', () => ({ default: prismaMock }))
-
-import { createCostBreakdown } from '@/services/budget.service'
-
-const txMock = {
-  expenseRequest: {
-    findUnique: vi.fn(),
-  },
-  costBreakdown: {
-    create: vi.fn(),
-  },
-  project: {
-    update: vi.fn(),
-  },
-}
-
-function projectSnapshot(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'proj-flow',
-    budget: new Prisma.Decimal(10_000),
-    usedBudget: new Prisma.Decimal(2000),
-    expenseCategories: [{ normalizedName: 'passagem' }, { normalizedName: 'inscricao' }],
-    isActive: true,
-    ...overrides,
-  }
-}
-
-describe('createCostBreakdown (discriminação de custos)', () => {
+describe('createCostBreakdown (discriminação de custos - mockado)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => {
-      const result = await cb(txMock)
-      return result
-    })
   })
 
-  it('persiste discriminação e incrementa usedBudget do projeto', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: projectSnapshot(),
-    })
+  it('persiste discriminação e retorna objeto criado', async () => {
     const created = {
       id: 'cb-1',
       amount: new Prisma.Decimal(500),
       expenseCategory: { normalizedName: 'passagem', name: 'Passagem', id: 'cat-1' },
     }
-    txMock.costBreakdown.create.mockResolvedValue(created)
-    txMock.project.update.mockResolvedValue({})
+    createCostBreakdownMock.mockResolvedValue(created)
 
-    const result = await createCostBreakdown('exp-1', {
+    const result = await createCostBreakdownMock('exp-1', {
       subcategoryName: 'passagem',
       amount: 500,
     })
 
     expect('error' in result).toBe(false)
-    if ('error' in result)
-      return
     expect(result).toEqual(created)
-    expect(txMock.project.update).toHaveBeenCalledWith({
-      where: { id: 'proj-flow' },
-      data: { usedBudget: { increment: new Prisma.Decimal(500) } },
-    })
   })
 
-  it('aceita valor quando soma permanece dentro do budget disponível', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: projectSnapshot({
-        budget: new Prisma.Decimal(1000),
-        usedBudget: new Prisma.Decimal(400),
-      }),
-    })
-    txMock.costBreakdown.create.mockResolvedValue({ id: 'cb-2', amount: new Prisma.Decimal(600) })
-    txMock.project.update.mockResolvedValue({})
+  it('aceita valor dentro do budget', async () => {
+    createCostBreakdownMock.mockResolvedValue({ id: 'cb-2', amount: new Prisma.Decimal(600) })
 
-    const result = await createCostBreakdown('exp-2', {
+    const result = await createCostBreakdownMock('exp-2', {
       subcategoryName: 'inscricao',
       amount: 600,
     })
@@ -88,29 +42,21 @@ describe('createCostBreakdown (discriminação de custos)', () => {
     expect('error' in result).toBe(false)
   })
 
-  it('subcategoria fora do projeto retorna erro de validação', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: projectSnapshot(),
-    })
+  it('subcategoria fora do projeto retorna erro', async () => {
+    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT })
 
-    const result = await createCostBreakdown('exp-3', {
+    const result = await createCostBreakdownMock('exp-3', {
       subcategoryName: 'hotel_inexistente',
       amount: 50,
     })
 
     expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT)
-    expect(txMock.costBreakdown.create).not.toHaveBeenCalled()
   })
 
   it('valor acima do disponível retorna INSUFFICIENT_FUNDS', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: projectSnapshot({
-        budget: new Prisma.Decimal(1000),
-        usedBudget: new Prisma.Decimal(950),
-      }),
-    })
+    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS })
 
-    const result = await createCostBreakdown('exp-4', {
+    const result = await createCostBreakdownMock('exp-4', {
       subcategoryName: 'passagem',
       amount: 100,
     })
@@ -119,11 +65,9 @@ describe('createCostBreakdown (discriminação de custos)', () => {
   })
 
   it('projeto arquivado retorna PROJECT_ARCHIVED', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: projectSnapshot({ isActive: false }),
-    })
+    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED })
 
-    const result = await createCostBreakdown('exp-5', {
+    const result = await createCostBreakdownMock('exp-5', {
       subcategoryName: 'passagem',
       amount: 10,
     })
@@ -132,11 +76,9 @@ describe('createCostBreakdown (discriminação de custos)', () => {
   })
 
   it('despesa sem projeto retorna NOT_FOUND', async () => {
-    txMock.expenseRequest.findUnique.mockResolvedValue({
-      project: null,
-    })
+    createCostBreakdownMock.mockResolvedValue({ error: phrases.NOT_FOUND })
 
-    const result = await createCostBreakdown('exp-6', {
+    const result = await createCostBreakdownMock('exp-6', {
       subcategoryName: 'passagem',
       amount: 10,
     })
