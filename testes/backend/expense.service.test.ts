@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { CreateExpenseSchema } from '@/schemas/expense.schema'
@@ -42,6 +44,7 @@ vi.mock('@/lib/orm', () => ({
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const EXPENSE_ID = '123e4567-e89b-12d3-a456-426614174000'
+const SAMPLE_PDF = readFileSync(join(__dirname, 'memorando', 'Memorando.pdf'))
 
 function expenseRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -261,8 +264,7 @@ describe('attachMemorandumToExpense (upload memorando)', () => {
       expenseRow({ attachmentKey: 'memorandos/uuid-doc.pdf' }),
     )
 
-    const pdf = Buffer.from('%PDF-1.4\n')
-    const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, pdf, 'doc.pdf')
+    const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, SAMPLE_PDF, 'Memorando.pdf')
 
     expect('error' in result).toBe(false)
     if ('error' in result)

@@ -3,6 +3,8 @@
  * Ordem: o memorando só pode ser anexado em PENDENTE — antes da aprovação.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createCostBreakdown } from '@/services/budget.service'
 import {
   assignProjectToExpense,
@@ -14,18 +16,6 @@ import {
 import { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
-
-const budgetPartial = vi.hoisted(() => ({
-  getProjectBudgetMetrics: vi.fn(),
-}))
-
-vi.mock('@/services/budget.service', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('@/services/budget.service')>()
-  return {
-    ...mod,
-    getProjectBudgetMetrics: budgetPartial.getProjectBudgetMetrics,
-  }
-})
 
 vi.mock('@/lib/storage', () => ({
   isStorageConfigured: vi.fn(() => true),
@@ -46,6 +36,9 @@ const prismaMock = vi.hoisted(() => ({
     findFirst: vi.fn(),
     update: vi.fn(),
   },
+  project: {
+    findUnique: vi.fn(),
+  },
   $transaction: vi.fn(),
 }))
 
@@ -60,6 +53,7 @@ const txMock = {
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const EXPENSE_ID = '123e4567-e89b-12d3-a456-426614174000'
 const PROJECT_ID = '223e4567-e89b-12d3-a456-426614174001'
+const SAMPLE_PDF = readFileSync(join(__dirname, 'memorando', 'Memorando.pdf'))
 
 function baseExpense(overrides: Record<string, unknown> = {}) {
   return {
@@ -91,10 +85,9 @@ describe('Sprint 2 — fluxo memorando (integração em serviço)', () => {
     prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) =>
       cb(txMock),
     )
-    budgetPartial.getProjectBudgetMetrics.mockResolvedValue({
-      total: new Prisma.Decimal(50_000),
-      used: new Prisma.Decimal(1000),
-      available: new Prisma.Decimal(49_000),
+    prismaMock.project.findUnique.mockResolvedValue({
+      budget: new Prisma.Decimal(50_000),
+      usedBudget: new Prisma.Decimal(1000),
       isActive: true,
     })
   })
@@ -116,8 +109,7 @@ describe('Sprint 2 — fluxo memorando (integração em serviço)', () => {
     prismaMock.expenseRequest.update.mockResolvedValueOnce(
       baseExpense({ attachmentKey: 'memorandos/uuid-memo.pdf' }),
     )
-    const pdf = Buffer.from('%PDF-1.4\n')
-    const attached = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, pdf, 'memo.pdf')
+    const attached = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, SAMPLE_PDF, 'Memorando.pdf')
     expect('error' in attached).toBe(false)
 
     prismaMock.expenseRequest.findUnique.mockResolvedValueOnce(

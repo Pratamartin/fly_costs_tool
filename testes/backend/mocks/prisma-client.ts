@@ -10,7 +10,9 @@ export class PrismaDecimal {
     return new PrismaDecimal(this.v + other.v)
   }
 
-  lessThanOrEqualTo(n: number) {
+  /** Prisma compara com Decimal ou número; o stub aceita ambos. */
+  lessThanOrEqualTo(other: number | PrismaDecimal) {
+    const n = typeof other === 'number' ? other : other.v
     return this.v <= n
   }
 

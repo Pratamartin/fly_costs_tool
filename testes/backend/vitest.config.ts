@@ -16,6 +16,8 @@ export default defineConfig({
       '@/generated/prisma/client': path.resolve(__dirname, './mocks/prisma-client.ts'),
       '@/generated/prisma/enums': path.resolve(__dirname, './mocks/prisma-enums.ts'),
       '@aws-sdk/client-s3': path.resolve(__dirname, './mocks/aws-s3-client.ts'),
+      /** Evita falha de resolução em alguns ambientes CI (subpath @/lib/...). */
+      '@/lib/storage': path.resolve(__dirname, '../../backend/src/lib/storage.ts'),
     },
   },
 })
