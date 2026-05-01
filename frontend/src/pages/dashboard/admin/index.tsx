@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
+import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 type StatusType = "Pending" | "Approved" | "Rejected";
 
 interface RecentExpense {
@@ -155,6 +156,11 @@ function DonutChart() {
 
 export default function DashboardAdmin() {
   const router = useRouter();
+  const [showModalCriar, setShowModalCriar] = useState(false);
+
+  function handleCriarProjeto(data: NovoDadosProjeto) {
+    console.log("Novo projeto:", data);
+  }
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") return;
@@ -208,7 +214,10 @@ export default function DashboardAdmin() {
             </button>
 
             {/* Create Project */}
-            <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition">
+            <button
+              onClick={() => setShowModalCriar(true)}
+              className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
               </svg>
@@ -400,6 +409,13 @@ export default function DashboardAdmin() {
 
         </main>
       </div>
+
+      {showModalCriar && (
+        <ModalCriarProjeto
+          onClose={() => setShowModalCriar(false)}
+          onConfirm={handleCriarProjeto}
+        />
+      )}
     </div>
   );
 }

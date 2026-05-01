@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
+import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 
 type ProjectStatus = "Ativo" | "Concluído" | "Pausado";
 
@@ -114,6 +115,11 @@ export default function AdminProjects() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [deptFilter, setDeptFilter] = useState("Todos");
+  const [showModalCriar, setShowModalCriar] = useState(false);
+
+  function handleCriarProjeto(data: NovoDadosProjeto) {
+    console.log("Novo projeto:", data);
+  }
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") return;
@@ -153,7 +159,7 @@ export default function AdminProjects() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
             <button
-              onClick={() => router.push("/dashboard/admin/projects/detalhe")}
+              onClick={() => setShowModalCriar(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -319,6 +325,13 @@ export default function AdminProjects() {
           </p>
         </main>
       </div>
+
+      {showModalCriar && (
+        <ModalCriarProjeto
+          onClose={() => setShowModalCriar(false)}
+          onConfirm={handleCriarProjeto}
+        />
+      )}
     </div>
   );
 }
