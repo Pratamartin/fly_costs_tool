@@ -73,6 +73,11 @@ export const ExpenseListItemSchema = z.object({
     title: true,
     status: true,
     rejectionReason: true,
+    city: true,
+    state: true,
+    country: true,
+    departureDate: true,
+    returnDate: true,
   }).shape)
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
