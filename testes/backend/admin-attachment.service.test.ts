@@ -1,7 +1,7 @@
 import { awsSendMock } from '@aws-sdk/client-s3'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/env', () => ({
+const envMock = vi.hoisted(() => ({
   default: {
     R2_ACCESS_KEY_ID: 'test-access',
     R2_SECRET_ACCESS_KEY: 'test-secret',
@@ -9,6 +9,8 @@ vi.mock('@/env', () => ({
     R2_BUCKET_NAME: 'test-bucket',
   },
 }))
+
+vi.mock('@/env', () => envMock)
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: vi.fn(async () => 'https://signed.example/object'),

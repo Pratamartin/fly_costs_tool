@@ -36,9 +36,10 @@ function projectSnapshot(overrides: Record<string, unknown> = {}) {
 describe('createCostBreakdown (discriminação de custos)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) =>
-      cb(txMock),
-    )
+    prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => {
+      const result = await cb(txMock)
+      return result
+    })
   })
 
   it('persiste discriminação e incrementa usedBudget do projeto', async () => {

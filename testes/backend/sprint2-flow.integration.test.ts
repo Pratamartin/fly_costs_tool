@@ -5,6 +5,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+const storageMock = vi.hoisted(() => ({
+  isStorageConfigured: vi.fn(() => true),
+  validatePDF: vi.fn(() => ({ valid: true })),
+  uploadFile: vi.fn(async () => ({
+    fileKey: 'memorandos/uuid-memo.pdf',
+    fileName: 'memo.pdf',
+    fileSize: 400,
+  })),
+  deleteFile: vi.fn(async () => {}),
+  getSignedDownloadUrl: vi.fn(async () => 'https://signed.example/dl'),
+}))
+
+vi.mock('@/lib/storage', () => storageMock)
+
 import { createCostBreakdown } from '@/services/budget.service'
 import {
   assignProjectToExpense,
@@ -16,18 +31,6 @@ import {
 import { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
-
-vi.mock('@/lib/storage', () => ({
-  isStorageConfigured: vi.fn(() => true),
-  validatePDF: vi.fn(() => ({ valid: true })),
-  uploadFile: vi.fn(async () => ({
-    fileKey: 'memorandos/uuid-memo.pdf',
-    fileName: 'memo.pdf',
-    fileSize: 400,
-  })),
-  deleteFile: vi.fn(async () => {}),
-  getSignedDownloadUrl: vi.fn(async () => 'https://signed.example/dl'),
-}))
 
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {

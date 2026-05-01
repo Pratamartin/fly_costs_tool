@@ -4,17 +4,6 @@ import { join } from 'node:path'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { CreateExpenseSchema } from '@/schemas/expense.schema'
-import {
-  attachMemorandumToExpense,
-  createExpenseRequest,
-  expenseInclude,
-  getAllExpenseRequests,
-  getExpenseById,
-  getMemorandumDownloadUrl,
-  updateExpenseStatus,
-} from '@/services/expense.service'
-import { ExpenseRequestStatus } from '@/generated/prisma/client'
-import { UserRole } from '@/generated/prisma/enums'
 
 const storageMock = vi.hoisted(() => ({
   isStorageConfigured: vi.fn(() => true),
@@ -29,6 +18,18 @@ const storageMock = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/storage', () => storageMock)
+
+import {
+  attachMemorandumToExpense,
+  createExpenseRequest,
+  expenseInclude,
+  getAllExpenseRequests,
+  getExpenseById,
+  getMemorandumDownloadUrl,
+  updateExpenseStatus,
+} from '@/services/expense.service'
+import { ExpenseRequestStatus } from '@/generated/prisma/client'
+import { UserRole } from '@/generated/prisma/enums'
 
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
