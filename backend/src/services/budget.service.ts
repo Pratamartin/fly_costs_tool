@@ -7,8 +7,6 @@ import prisma from '@/lib/orm'
 
 type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal }
 
-const ISOLATION_LEVEL: Prisma.TransactionIsolationLevel = Prisma.TransactionIsolationLevel.Serializable
-
 export async function getProjectBudgetMetrics(projectId: string): Promise<BudgetMetricsResult | { error: string }> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -100,7 +98,7 @@ export async function createCostBreakdown(
     })
 
     return costBreakdown
-  }, { isolationLevel: ISOLATION_LEVEL })
+  }, { isolationLevel: 'Serializable' })
 
   return result
 }
