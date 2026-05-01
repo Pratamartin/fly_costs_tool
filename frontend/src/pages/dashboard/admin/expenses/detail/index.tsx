@@ -209,7 +209,6 @@ export default function ExpenseDetalhe() {
   const [expenses, setExpenses] = useState<ExpenseDetail[]>(MOCK_EXPENSES);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") return;
     const token = localStorage.getItem("accessToken");
     if (!token) router.push("/login");
   }, [router]);

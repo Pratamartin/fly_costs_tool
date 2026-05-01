@@ -135,7 +135,6 @@ export default function DashboardAdminProjectDetalhe() {
   const [abaAtiva, setAbaAtiva] = useState<TabType>("overview");
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") return;
     const token = localStorage.getItem("accessToken");
     if (!token) router.push("/login");
   }, [router]);

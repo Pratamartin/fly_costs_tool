@@ -152,7 +152,6 @@ export default function DashboardAluno() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      if (process.env.NODE_ENV === "development") return;
       const token = localStorage.getItem("accessToken");
 
       if (!token) {
@@ -219,7 +218,7 @@ export default function DashboardAluno() {
 
       const result = await createExpense(token, {
         title: data.descricao,
-        description: data.descricao,
+        description: data.descricaoDetalhada || data.descricao,
         topic: topicMap[data.categoria] || "INSCRICAO",
         amount: data.valor,
       });

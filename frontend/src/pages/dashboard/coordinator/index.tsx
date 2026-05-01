@@ -128,17 +128,20 @@ export default function DashboardCoordenador() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      if (process.env.NODE_ENV === "development") return;
       const token = localStorage.getItem("accessToken");
-
       if (!token) {
         router.push("/login");
         return;
       }
 
       try {
-        // Carregar perfil do usuário
-        const meResult = await getMe(token);
+        const [meResult, pendingResult, approvedResult, rejectedResult] = await Promise.all([
+          getMe(token),
+          listExpenses(token, "PENDENTE"),
+          listExpenses(token, "APROVADO"),
+          listExpenses(token, "REJEITADO"),
+        ]);
+
         if (!meResult.ok) {
           if (meResult.error === "UNAUTHORIZED") {
             localStorage.removeItem("accessToken");
@@ -150,26 +153,21 @@ export default function DashboardCoordenador() {
         }
         setUserProfile(meResult.data);
 
-        // Carregar despesas por status
-        const novasDespesas: Record<TabType, Solicitacao[]> = {
-          PENDENTE: [],
-          APROVADO: [],
-          REJEITADO: [],
-        };
-
-        for (const status of ["PENDENTE", "APROVADO", "REJEITADO"] as TabType[]) {
-          const expensesResult = await listExpenses(token, status);
-          if (expensesResult.ok) {
-            const solicitacoes = expensesResult.data.map(expenseToSolicitacao);
-            novasDespesas[status] = solicitacoes;
-          } else if (expensesResult.error === "UNAUTHORIZED") {
-            localStorage.removeItem("accessToken");
-            router.push("/login");
-            return;
-          }
+        if (
+          !pendingResult.ok && pendingResult.error === "UNAUTHORIZED" ||
+          !approvedResult.ok && approvedResult.error === "UNAUTHORIZED" ||
+          !rejectedResult.ok && rejectedResult.error === "UNAUTHORIZED"
+        ) {
+          localStorage.removeItem("accessToken");
+          router.push("/login");
+          return;
         }
 
-        setDespesas(novasDespesas);
+        setDespesas({
+          PENDENTE: pendingResult.ok ? pendingResult.data.map(expenseToSolicitacao) : [],
+          APROVADO: approvedResult.ok ? approvedResult.data.map(expenseToSolicitacao) : [],
+          REJEITADO: rejectedResult.ok ? rejectedResult.data.map(expenseToSolicitacao) : [],
+        });
       } catch (_err) {
         setErro("Erro de conexão com o servidor");
       } finally {
