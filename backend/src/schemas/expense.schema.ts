@@ -87,7 +87,3 @@ export const UpdateExpenseStatusSchema = z.object({
       example: 'Documentação pendente: Realize o ajuste necessário.',
     }),
 }).check(reasonFieldRequired)
-
-export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
-
-export const AssignProjectResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) })
