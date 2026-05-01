@@ -5,7 +5,7 @@ import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { Prisma } from '@/generated/prisma/client'
 import prisma from '@/lib/orm'
 
-type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal }
+type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal, isActive: boolean }
 
 export async function getProjectBudgetMetrics(projectId: string): Promise<BudgetMetricsResult | { error: string }> {
   const project = await prisma.project.findUnique({
@@ -13,6 +13,7 @@ export async function getProjectBudgetMetrics(projectId: string): Promise<Budget
     select: {
       budget: true,
       usedBudget: true,
+      isActive: true,
     },
   })
 
@@ -23,6 +24,7 @@ export async function getProjectBudgetMetrics(projectId: string): Promise<Budget
     total: project.budget,
     used: project.usedBudget,
     available: project.budget.minus(project.usedBudget),
+    isActive: project.isActive,
   }
 }
 
@@ -56,6 +58,7 @@ async function getExpenseContext(tx: Prisma.TransactionClient, expenseRequestId:
           budget: true,
           usedBudget: true,
           expenseCategories: { select: { normalizedName: true } },
+          isActive: true,
         },
       },
     },
@@ -74,6 +77,10 @@ export async function createCostBreakdown(
     }
 
     const project = expense.project
+
+    if (!project.isActive) {
+      return { error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED }
+    }
 
     if (!isCategoryAllowedInProject(project.expenseCategories, data.subcategoryName)) {
       return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }

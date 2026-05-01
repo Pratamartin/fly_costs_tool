@@ -149,6 +149,10 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
     return { error: budgetMetrics.error }
   }
 
+  if (!budgetMetrics.isActive) {
+    return { error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED }
+  }
+
   if (budgetMetrics.available.lessThanOrEqualTo(0)) {
     return { error: PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS }
   }

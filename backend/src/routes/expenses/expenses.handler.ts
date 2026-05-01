@@ -90,6 +90,12 @@ export const assignProject: AppRouteHandler<AssignProjectRoute> = async (c) => {
           { message: 'Projeto não possui budget suficiente.' },
           codes.CONFLICT,
         )
+
+      case PROJECT_ERROR_CODES.PROJECT_ARCHIVED:
+        return c.json(
+          { message: 'Este projeto está arquivado e não pode ser vinculado.' },
+          codes.CONFLICT,
+        )
     }
   }
   const parsed = AssignProjectResponseSchema.parse(result)
@@ -105,6 +111,10 @@ export const createCostBreakdown: AppRouteHandler<CreateCostBreakdownRoute> = as
   if ('error' in result) {
     if (result.error === phrases.NOT_FOUND) {
       return c.json({ message: 'Despesa ou Projeto não encontrados' }, codes.NOT_FOUND)
+    }
+
+    if (result.error === PROJECT_ERROR_CODES.PROJECT_ARCHIVED) {
+      return c.json({ message: 'Este projeto está arquivado e não pode receber discriminação de custo.' }, codes.CONFLICT)
     }
 
     return c.json({ message: result.error }, codes.BAD_REQUEST)
