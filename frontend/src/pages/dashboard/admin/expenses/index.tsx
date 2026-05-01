@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
 
+
 type StatusType = "Pending" | "Approved" | "Rejected";
 type CategoryType = "Equipment" | "Travel" | "Software" | "Research Grant" | "Other";
 type ViewMode = "table" | "grid";
@@ -96,99 +97,6 @@ function CategoryBadge({ category }: { category: CategoryType }) {
   );
 }
 
-interface ModalDetalheAdminProps {
-  expense: ExpenseRequest;
-  onClose: () => void;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
-}
-
-function ModalDetalheAdmin({ expense, onClose, onApprove, onReject }: ModalDetalheAdminProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{expense.id}</p>
-            <h2 className="mt-0.5 text-lg font-bold text-gray-900">{expense.projectName}</h2>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="px-6 py-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <StatusBadge status={expense.status} />
-            <p className="text-2xl font-bold text-gray-900">
-              ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-400">Projeto</p>
-              <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.projectName}</p>
-              <p className="text-xs text-gray-400">{expense.projectId}</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-400">Categoria</p>
-              <div className="mt-1"><CategoryBadge category={expense.category} /></div>
-            </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-400">Solicitante</p>
-              <div className="mt-1.5 flex items-center gap-2">
-                <Avatar initial={expense.avatarInitial} />
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{expense.submitter}</p>
-                  <p className="text-xs text-gray-400">{expense.submitterRole}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-400">Data</p>
-              <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.date}</p>
-              <p className="text-xs text-gray-400">{expense.time}</p>
-            </div>
-          </div>
-        </div>
-
-        {expense.status === "Pending" && (
-          <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
-            <button
-              onClick={() => { onReject(expense.id); onClose(); }}
-              className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
-              Rejeitar
-            </button>
-            <button
-              onClick={() => { onApprove(expense.id); onClose(); }}
-              className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-              </svg>
-              Aprovar
-            </button>
-          </div>
-        )}
-        {expense.status !== "Pending" && (
-          <div className="flex justify-end border-t border-gray-100 px-6 py-4">
-            <button onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-              Fechar
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function AdminExpenses() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>(MOCK_EXPENSES);
@@ -201,7 +109,6 @@ export default function AdminExpenses() {
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [search, setSearch] = useState("");
-  const [detailExpense, setDetailExpense] = useState<ExpenseRequest | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 8;
 
@@ -535,7 +442,7 @@ export default function AdminExpenses() {
                         </td>
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => setDetailExpense(expense)}
+                            onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
                             className="text-sm font-semibold text-[#2563EB] hover:underline whitespace-nowrap"
                           >
                             {expense.id}
@@ -570,7 +477,7 @@ export default function AdminExpenses() {
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => setDetailExpense(expense)}
+                              onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
                               title="Ver detalhes"
                               className="rounded-lg p-1.5 text-blue-400 hover:bg-blue-50 hover:text-blue-600 transition"
                             >
@@ -656,7 +563,7 @@ export default function AdminExpenses() {
                       <div key={expense.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <button
-                            onClick={() => setDetailExpense(expense)}
+                            onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
                             className="text-sm font-semibold text-[#2563EB] hover:underline"
                           >
                             {expense.id}
@@ -680,7 +587,7 @@ export default function AdminExpenses() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => setDetailExpense(expense)} className="rounded-lg p-1 text-blue-400 hover:bg-blue-50 transition">
+                            <button onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })} className="rounded-lg p-1 text-blue-400 hover:bg-blue-50 transition">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                                 <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
                                 <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41z" clipRule="evenodd" />
@@ -741,14 +648,6 @@ export default function AdminExpenses() {
         </main>
       </div>
 
-      {detailExpense && (
-        <ModalDetalheAdmin
-          expense={detailExpense}
-          onClose={() => setDetailExpense(null)}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
     </div>
   );
 }

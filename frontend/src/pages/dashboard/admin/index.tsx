@@ -368,7 +368,10 @@ export default function DashboardAdmin() {
                 {RECENT_EXPENSES.map((expense) => (
                   <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <button className="text-sm font-semibold text-[#2563EB] hover:underline">
+                      <button
+                        onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })}
+                        className="text-sm font-semibold text-[#2563EB] hover:underline"
+                      >
                         {expense.id}
                       </button>
                     </td>
