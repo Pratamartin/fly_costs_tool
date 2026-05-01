@@ -3,7 +3,7 @@ import { createRoute } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
 import { requireAuth, requireRole } from '@/middlewares'
-import { AdminDashboardResponseSchema, TopProjectsResponseSchema } from '@/schemas/analytics.schema'
+import { AdminDashboardResponseSchema, TopProjectsQuerySchema, TopProjectsResponseSchema } from '@/schemas/analytics.schema'
 import { ForbiddenResponse, UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Analytics']
@@ -32,9 +32,10 @@ export const topProjects = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
-  summary: 'Top 5 projects by approved expenses',
-  description: 'Retorna os cinco projetos mais relevantes com base no valor aprovado das solicitações de despesa.',
+  summary: 'Top projects by approved expenses',
+  description: 'Retorna os N projetos mais relevantes com base no valor aprovado das solicitações de despesa.',
   tags,
+  request: { query: TopProjectsQuerySchema },
   responses: {
     [codes.OK]: jsonContent(TopProjectsResponseSchema, 'Lista de top projects retornada com sucesso.'),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
