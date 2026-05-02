@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { listCategories } from "@/services/categories";
+import type { ExpenseCategory } from "@/services/categories";
 
 const MIN_TOPICS = 1;
 
@@ -24,7 +25,7 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
   const [topics, setTopics] = useState<string[]>([]);
   const [showTopicPicker, setShowTopicPicker] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; code?: string; budget?: string; topics?: string }>({});
-  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
+  const [categorias, setCategorias] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(true);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
     const token = localStorage.getItem("accessToken") ?? undefined;
     listCategories(undefined, token).then((result) => {
       if (result.ok) {
-        setAvailableTopics(result.data.map((c) => c.name));
+        setCategorias(result.data);
         setTopics(result.data.slice(0, 3).map((c) => c.name));
       }
       setCarregandoCategorias(false);
@@ -64,11 +65,13 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
   function handleSubmit() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    onConfirm({ name: name.trim(), code: code.trim().toUpperCase(), budget: parseFloat(budget.replace(",", ".")), topics });
+    const normalizedTopics = topics.map((t) => categorias.find((c) => c.name === t)?.normalizedName ?? t);
+    onConfirm({ name: name.trim(), code: code.trim().toUpperCase(), budget: parseFloat(budget.replace(",", ".")), topics: normalizedTopics });
     onClose();
   }
 
-  const availableToAdd = availableTopics.filter((t) => !topics.includes(t));
+  const availableTopicsNames = categorias.map((c) => c.name);
+  const availableToAdd = availableTopicsNames.filter((t) => !topics.includes(t));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">

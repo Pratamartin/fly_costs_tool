@@ -218,7 +218,12 @@ export default function DashboardAdminProjectDetalhe() {
     }
   }
 
-  const availableTopicsToAdd = categoriasApi.map((c) => c.name).filter((n) => !editTopics.includes(n));
+  const availableTopicsToAdd = categoriasApi
+    .filter((c) => !editTopics.includes(c.normalizedName))
+    .map((c) => c.name);
+  // helper: resolve display name from normalizedName or return as-is
+  const resolveTopicName = (key: string) =>
+    categoriasApi.find((c) => c.normalizedName === key)?.name ?? key;
 
   const tabs: { id: TabType; label: string; count?: number }[] = [
     { id: "overview", label: "Visão Geral" },
@@ -307,7 +312,7 @@ export default function DashboardAdminProjectDetalhe() {
                 <div className="flex flex-wrap gap-2">
                   {editTopics.map((t) => (
                     <span key={t} className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">
-                      {t}
+                       {resolveTopicName(t)}
                       <button onClick={() => setEditTopics((prev) => prev.filter((x) => x !== t))} disabled={salvando} className="rounded-full p-0.5 hover:bg-white/20 transition disabled:opacity-50">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
                           <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -332,7 +337,7 @@ export default function DashboardAdminProjectDetalhe() {
                           {availableTopicsToAdd.map((t) => (
                             <button
                               key={t}
-                              onClick={() => { setEditTopics((prev) => [...prev, t]); setShowTopicPicker(false); }}
+                                onClick={() => { const cat = categoriasApi.find((c) => c.name === t); setEditTopics((prev) => [...prev, cat?.normalizedName ?? t]); setShowTopicPicker(false); }}
                               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition"
                             >
                               <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
