@@ -21,13 +21,6 @@ interface Solicitacao {
   sugestaoCompra: string;
 }
 
-function topicToIcone(topic: string): CategoriaIcone {
-  switch (topic) {
-    case "PASSAGEM": return "viagem";
-    case "HOSPEDAGEM": return "livros";
-    default: return "componentes";
-  }
-}
 
 function formatarData(dateString: string): string {
   return new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -35,7 +28,7 @@ function formatarData(dateString: string): string {
 
 function expenseToSolicitacao(expense: Expense): Solicitacao {
   const inicial = expense.student?.name.charAt(0).toUpperCase() || "?";
-  const valor = parseFloat(expense.amount);
+  const totalCost = expense.costBreakdowns?.reduce((sum, cb) => sum + cb.amount, 0) ?? 0;
   return {
     id: expense.id,
     reqId: `REQ-${expense.id.slice(0, 8).toUpperCase()}`,
@@ -43,9 +36,9 @@ function expenseToSolicitacao(expense: Expense): Solicitacao {
     projeto: expense.project?.name || "Sem projeto",
     aluno: expense.student?.name || "Aluno",
     avatarInicial: inicial,
-    valor: isNaN(valor) ? 0 : valor,
+    valor: totalCost,
     dataSubmissao: formatarData(expense.createdAt),
-    icone: topicToIcone(expense.topic),
+    icone: "viagem",
     sugestaoCompra: "—",
   };
 }
@@ -191,11 +184,11 @@ export default function DashboardCoordenador() {
     }
   }
 
-  async function handleRejeitar(id: string, _motivo: string) {
+  async function handleRejeitar(id: string, motivo: string) {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     try {
-      const result = await updateExpenseStatus(token, id, "REJEITADO");
+      const result = await updateExpenseStatus(token, id, "REJEITADO", motivo);
       if (result.ok) {
         setDespesas((prev) => ({
           ...prev,
