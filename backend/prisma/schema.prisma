@@ -66,6 +66,9 @@ model ExpenseRequest {
 
   rejectionReason String?
 
+  /// Chave do objeto no bucket R2 (ex.: memorandos/uuid-nome.pdf)
+  attachmentKey String?
+
   costBreakdowns CostBreakdown[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

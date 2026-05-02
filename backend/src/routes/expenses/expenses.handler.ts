@@ -1,12 +1,13 @@
-import type { AssignProjectRoute, CreateCostBreakdownRoute, CreateRoute, IndexRoute, ReadRoute, UpdateStatusRoute } from './expenses.route'
+import type { AssignProjectRoute, CreateCostBreakdownRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
+import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { CostBreakdownResponseSchema } from '@/schemas/cost-breakdown.schema'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
 import { createCostBreakdown as createCostBreakdownService } from '@/services/budget.service'
-import { assignProjectToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, updateExpenseStatus } from '@/services/expense.service'
+import { assignProjectToExpense, attachMemorandumToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -125,4 +126,62 @@ export const createCostBreakdown: AppRouteHandler<CreateCostBreakdownRoute> = as
     subcategory: result.expenseCategory,
   })
   return c.json(parsed, codes.CREATED)
+}
+
+export const uploadMemorandum: AppRouteHandler<UploadMemorandumRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const { sub } = c.get('jwtPayload')
+  const body = await c.req.parseBody({ all: true })
+  const raw = body.file
+
+  if (!raw || typeof raw === 'string' || Array.isArray(raw)) {
+    return c.json({ message: 'Envie o arquivo PDF no campo \"file\".' }, codes.BAD_REQUEST)
+  }
+
+  const buf = Buffer.from(await raw.arrayBuffer())
+  const name = typeof raw.name === 'string' ? raw.name : 'memorando.pdf'
+
+  const result = await attachMemorandumToExpense(id, sub, buf, name)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+      case phrases.FORBIDDEN:
+        return c.json({ message: 'Sem permissão para anexar nesta solicitação' }, codes.FORBIDDEN)
+      case phrases.CONFLICT:
+        return c.json({ message: 'Só é possível anexar memorando em solicitações pendentes' }, codes.CONFLICT)
+      case EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED:
+        return c.json({ message: 'Armazenamento de arquivos não configurado' }, codes.SERVICE_UNAVAILABLE)
+      default:
+        return c.json({ message: result.error }, codes.BAD_REQUEST)
+    }
+  }
+
+  const parsed = ExpenseResponseSchema.parse(result)
+  return c.json(parsed, codes.OK)
+}
+
+export const getMemorandumDownload: AppRouteHandler<GetMemorandumDownloadRoute> = async (c) => {
+  const { sub, role } = c.get('jwtPayload')
+  const { id } = c.req.valid('param')
+
+  const result = await getMemorandumDownloadUrl(id, sub, role)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+      case phrases.FORBIDDEN:
+        return c.json({ message: 'Sem permissão para acessar este memorando' }, codes.FORBIDDEN)
+      case EXPENSE_ERROR_CODES.MEMORANDUM_MISSING:
+        return c.json({ message: 'Esta solicitação não possui memorando anexado' }, codes.BAD_REQUEST)
+      case EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED:
+        return c.json({ message: 'Armazenamento de arquivos não configurado' }, codes.SERVICE_UNAVAILABLE)
+      default:
+        return c.json({ message: result.error }, codes.BAD_REQUEST)
+    }
+  }
+
+  return c.json({ downloadUrl: result.url, expiresIn: result.expiresIn }, codes.OK)
 }

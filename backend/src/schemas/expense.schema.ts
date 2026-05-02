@@ -55,6 +55,9 @@ export const CreateExpenseSchema = BaseSchema.omit({
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
     ...BaseSchema.shape,
+    attachmentKey: z.string().nullable().optional().openapi({
+      description: 'Chave do memorando (PDF) no armazenamento R2.',
+    }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
   })
@@ -79,6 +82,9 @@ export const ExpenseListItemSchema = z.object({
     departureDate: true,
     returnDate: true,
   }).shape)
+  .extend({
+    attachmentKey: z.string().nullable().optional(),
+  })
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
