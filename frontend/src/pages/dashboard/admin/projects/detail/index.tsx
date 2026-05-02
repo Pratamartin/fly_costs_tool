@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
+import { getProjectById, updateProject, type Project, type UpdateProjectPayload } from "@/services/projects";
+import { listCategories, type ExpenseCategory } from "@/services/categories";
 
 type TabType = "overview" | "expenses" | "team";
 type StatusType = "Pendente" | "Aprovado" | "Rejeitado";
@@ -133,21 +135,235 @@ function GroupedBarChart() {
 export default function DashboardAdminProjectDetalhe() {
   const router = useRouter();
   const [abaAtiva, setAbaAtiva] = useState<TabType>("overview");
+  const [project, setProject] = useState<Project | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erroCarregar, setErroCarregar] = useState<string | null>(null);
+
+  // edit modal
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editTopics, setEditTopics] = useState<string[]>([]);
+  const [showTopicPicker, setShowTopicPicker] = useState(false);
+  const [categoriasApi, setCategoriasApi] = useState<ExpenseCategory[]>([]);
+  const [carregandoCat, setCarregandoCat] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erroEdit, setErroEdit] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) router.push("/login");
-  }, [router]);
+    if (!token) { router.push("/login"); return; }
+    const id = router.query.id as string | undefined;
+    if (!id) return;
+
+    setCarregando(true);
+    getProjectById(token, id).then((result) => {
+      if (result.ok) {
+        setProject(result.data);
+      } else if (result.error === "UNAUTHORIZED") {
+        localStorage.removeItem("accessToken");
+        router.push("/login");
+      } else if (result.error === "NOT_FOUND") {
+        setErroCarregar("Projeto não encontrado.");
+      } else {
+        setErroCarregar("Erro ao carregar o projeto.");
+      }
+      setCarregando(false);
+    });
+  }, [router, router.query.id]);
+
+  function openEditModal() {
+    if (!project) return;
+    setEditName(project.name);
+    setEditCode(project.code);
+    setEditTopics([...project.subcategories]);
+    setErroEdit(null);
+    setShowEdit(true);
+
+    if (categoriasApi.length === 0) {
+      setCarregandoCat(true);
+      const token = localStorage.getItem("accessToken") ?? undefined;
+      listCategories(undefined, token).then((r) => {
+        if (r.ok) setCategoriasApi(r.data);
+        setCarregandoCat(false);
+      });
+    }
+  }
+
+  async function handleSalvarEdicao() {
+    if (!project) return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setSalvando(true);
+    setErroEdit(null);
+    const payload: UpdateProjectPayload = {};
+    if (editName.trim() !== project.name) payload.name = editName.trim();
+    if (editCode.trim().toUpperCase() !== project.code) payload.code = editCode.trim().toUpperCase();
+    const subcatsChanged = JSON.stringify([...editTopics].sort()) !== JSON.stringify([...project.subcategories].sort());
+    if (subcatsChanged) payload.subcategories = editTopics;
+
+    if (Object.keys(payload).length === 0) { setShowEdit(false); setSalvando(false); return; }
+
+    const result = await updateProject(token, project.id, payload);
+    setSalvando(false);
+    if (result.ok) {
+      setProject(result.data);
+      setShowEdit(false);
+    } else if (result.error === "CONFLICT") {
+      setErroEdit("Já existe um projeto com esse código.");
+    } else if (result.error === "BAD_REQUEST") {
+      setErroEdit("Dados inválidos. Verifique os campos.");
+    } else {
+      setErroEdit("Erro ao salvar. Tente novamente.");
+    }
+  }
+
+  const availableTopicsToAdd = categoriasApi.map((c) => c.name).filter((n) => !editTopics.includes(n));
 
   const tabs: { id: TabType; label: string; count?: number }[] = [
     { id: "overview", label: "Visão Geral" },
-    { id: "expenses", label: "Despesas", count: 12 },
-    { id: "team", label: "Membros da Equipe", count: 5 },
+    { id: "expenses", label: "Despesas" },
+    { id: "team", label: "Membros da Equipe" },
   ];
+
+  const budgetPct = project && project.budget > 0
+    ? Math.min(100, Math.round((project.usedBudget / project.budget) * 100))
+    : 0;
+
+  const fmtBRL = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  if (carregando) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (erroCarregar || !project) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">{erroCarregar ?? "Projeto não encontrado."}</p>
+          <button onClick={() => router.push("/dashboard/admin/projects")} className="text-sm text-blue-600 hover:underline">
+            Voltar aos Projetos
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar active="projects" />
+
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-900">Editar Projeto</h2>
+              <button onClick={() => setShowEdit(false)} disabled={salvando} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {erroEdit && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erroEdit}</p>
+              )}
+
+              <div>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Nome do Projeto <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  disabled={salvando}
+                  className="w-full rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Código do Projeto <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value.toUpperCase())}
+                  disabled={salvando}
+                  className="w-full rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 uppercase outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <p className="mt-1 text-xs text-gray-400">O orçamento não pode ser alterado após a criação.</p>
+              </div>
+
+              <div>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Subcategorias</label>
+                <div className="flex flex-wrap gap-2">
+                  {editTopics.map((t) => (
+                    <span key={t} className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">
+                      {t}
+                      <button onClick={() => setEditTopics((prev) => prev.filter((x) => x !== t))} disabled={salvando} className="rounded-full p-0.5 hover:bg-white/20 transition disabled:opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                  {availableTopicsToAdd.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowTopicPicker((v) => !v)}
+                        disabled={salvando || carregandoCat}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-500 hover:border-blue-400 hover:text-blue-600 transition disabled:opacity-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                        {carregandoCat ? "Carregando..." : "Adicionar"}
+                      </button>
+                      {showTopicPicker && (
+                        <div className="absolute left-0 top-full mt-1 z-10 w-52 rounded-xl border border-gray-200 bg-white shadow-xl py-1 max-h-48 overflow-y-auto">
+                          {availableTopicsToAdd.map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => { setEditTopics((prev) => [...prev, t]); setShowTopicPicker(false); }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition"
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3">
+              <button onClick={() => setShowEdit(false)} disabled={salvando} className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={handleSalvarEdicao} disabled={salvando} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50">
+                {salvando && (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {salvando ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="border-b border-gray-200 bg-white">
@@ -159,29 +375,27 @@ export default function DashboardAdminProjectDetalhe() {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-gray-300">
                 <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
               </svg>
-              <span className="font-medium text-gray-700">Laboratório de Robótica 2026</span>
+              <span className="font-medium text-gray-700">{project.name}</span>
             </div>
             <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => router.push("/dashboard/admin/projects")} className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5"><path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" /></svg>
                 </button>
-                <h1 className="text-base font-bold text-gray-900 sm:text-xl">Laboratório de Robótica 2026</h1>
-                <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">Ativo</span>
+                <h1 className="text-base font-bold text-gray-900 sm:text-xl">{project.name}</h1>
+                {project.isActive ? (
+                  <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">Ativo</span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-200">Arquivado</span>
+                )}
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
-                <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 transition shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5"><path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.73-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" /></svg>
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-                </button>
-                <button className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex">
+                <button
+                  onClick={openEditModal}
+                  className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                   Editar Projeto
-                </button>
-                <button className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition sm:px-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 018 18a9.953 9.953 0 01-5.385-1.572zM16.25 5.75a.75.75 0 00-1.5 0v2h-2a.75.75 0 000 1.5h2v2a.75.75 0 001.5 0v-2h2a.75.75 0 000-1.5h-2v-2z" /></svg>
-                  <span className="hidden sm:inline">Adicionar Membro</span>
-                  <span className="sm:hidden">Membro</span>
                 </button>
               </div>
             </div>
@@ -190,11 +404,6 @@ export default function DashboardAdminProjectDetalhe() {
                 <button key={tab.id} onClick={() => setAbaAtiva(tab.id)}
                   className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${abaAtiva === tab.id ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"}`}>
                   {tab.label}
-                  {tab.count !== undefined && (
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${abaAtiva === tab.id ? "bg-blue-50 text-[#2563EB]" : "bg-gray-100 text-gray-500"}`}>
-                      {tab.count}
-                    </span>
-                  )}
                 </button>
               ))}
             </nav>
@@ -205,24 +414,25 @@ export default function DashboardAdminProjectDetalhe() {
           {abaAtiva === "overview" && (
             <>
               <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                {/* Orçamento Total */}
                 <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
                   <div>
                     <p className="text-sm text-gray-500">Orçamento Total</p>
-                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$150.000<span className="text-base font-normal text-gray-400">,00</span></p>
-                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-green-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042-.815a.75.75 0 01-.53-.918z" clipRule="evenodd" /></svg>
-                      12% vs semestre anterior
-                    </p>
+                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">{fmtBRL(project.budget)}</p>
+                    <span className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-gray-400">
+                      Código: <span className="font-mono font-semibold text-gray-600">{project.code}</span>
+                    </span>
                   </div>
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-600"><path fillRule="evenodd" d="M1 2.75A.75.75 0 011.75 2h16.5a.75.75 0 010 1.5H18v8.75A2.75 2.75 0 0115.25 15h-1.072l.798 3.06a.75.75 0 01-1.452.38L13.41 18H6.59l-.114.44a.75.75 0 01-1.452-.38L5.823 15H4.75A2.75 2.75 0 012 12.25V3.5h-.25A.75.75 0 011 2.75z" clipRule="evenodd" /></svg>
                   </div>
                 </div>
+                {/* Orçamento Utilizado */}
                 <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-gray-500">Total Gasto</p>
-                      <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">$45.250<span className="text-base font-normal text-gray-400">,50</span></p>
+                      <p className="text-sm text-gray-500">Orçamento Utilizado</p>
+                      <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">{fmtBRL(project.usedBudget)}</p>
                     </div>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-purple-600"><path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.615z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-1a.75.75 0 000 1.5h1v.75a.75.75 0 001.5 0v-.75h1a.75.75 0 000-1.5h-1v-2.5z" clipRule="evenodd" /></svg>
@@ -230,22 +440,23 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                   <div className="mt-3">
                     <div className="mb-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div className="h-2 rounded-full bg-purple-500" style={{ width: "30%" }} />
+                      <div className={`h-2 rounded-full ${budgetPct >= 100 ? "bg-red-500" : budgetPct >= 85 ? "bg-amber-400" : "bg-purple-500"}`} style={{ width: `${budgetPct}%` }} />
                     </div>
-                    <p className="text-xs text-gray-400">30% do orçamento utilizado</p>
+                    <p className="text-xs text-gray-400">{budgetPct}% do orçamento utilizado</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
-                  <div>
-                    <p className="text-sm text-gray-500">Solicitações Pendentes</p>
-                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">8</p>
-                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-                      $12.400,00 aguardando aprovação
-                    </p>
+                {/* Subcategorias */}
+                <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm text-gray-500">Subcategorias</p>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-orange-500"><path fillRule="evenodd" d="M6 4.75A.75.75 0 016.75 4h10.5a.75.75 0 010 1.5H6.75A.75.75 0 016 4.75zM6 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H6.75A.75.75 0 016 10zm0 5.25a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H6.75a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>
+                    </div>
                   </div>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-orange-500"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" /></svg>
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.subcategories.map((s) => (
+                      <span key={s} className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{s}</span>
+                    ))}
                   </div>
                 </div>
               </div>

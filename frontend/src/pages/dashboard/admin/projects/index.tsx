@@ -2,100 +2,29 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
+import { listProjects, createProject, deleteProject, type Project } from "@/services/projects";
 
-type ProjectStatus = "Ativo" | "Concluído" | "Pausado";
-
-interface Project {
-  id: string;
-  name: string;
-  department: string;
-  coordinator: { name: string; role: string; initial: string; color: string };
-  budgetSpent: number;
-  budgetTotal: number;
-  status: ProjectStatus;
-  startDate: string;
-  endDate: string;
-}
-
-const PROJECTS: Project[] = [
-  {
-    id: "PRJ-001",
-    name: "Laboratório de Robótica 2026",
-    department: "Engenharia",
-    coordinator: { name: "Dr. Marcelo Silva", role: "Coordenador", initial: "M", color: "#3b82f6" },
-    budgetSpent: 45250,
-    budgetTotal: 150000,
-    status: "Ativo",
-    startDate: "Jan 2026",
-    endDate: "Dez 2026",
-  },
-  {
-    id: "PRJ-002",
-    name: "Bolsa IA Alpha",
-    department: "Ciência da Computação",
-    coordinator: { name: "Profa. Carla Rocha", role: "Coordenadora", initial: "C", color: "#8b5cf6" },
-    budgetSpent: 92000,
-    budgetTotal: 100000,
-    status: "Ativo",
-    startDate: "Mar 2025",
-    endDate: "Fev 2026",
-  },
-  {
-    id: "PRJ-003",
-    name: "Simpósio Bio-Tech 2025",
-    department: "Biologia",
-    coordinator: { name: "Dr. Rafael Andrade", role: "Coordenador", initial: "R", color: "#10b981" },
-    budgetSpent: 38500,
-    budgetTotal: 38500,
-    status: "Concluído",
-    startDate: "Ago 2025",
-    endDate: "Nov 2025",
-  },
-  {
-    id: "PRJ-004",
-    name: "Upgrade Cloud Infraestrutura",
-    department: "TI Institucional",
-    coordinator: { name: "Eng. Tatiana Lima", role: "Coordenadora", initial: "T", color: "#f59e0b" },
-    budgetSpent: 61000,
-    budgetTotal: 80000,
-    status: "Pausado",
-    startDate: "Set 2025",
-    endDate: "Abr 2026",
-  },
-  {
-    id: "PRJ-005",
-    name: "Bolsa Viagem Internacional",
-    department: "Pesquisa",
-    coordinator: { name: "Profa. Juliana Melo", role: "Coordenadora", initial: "J", color: "#ec4899" },
-    budgetSpent: 22000,
-    budgetTotal: 60000,
-    status: "Ativo",
-    startDate: "Fev 2026",
-    endDate: "Jul 2026",
-  },
-];
-
-
-function StatusBadge({ status }: { status: ProjectStatus }) {
-  const config: Record<ProjectStatus, { dot: string; text: string; bg: string }> = {
-    Ativo: { dot: "bg-green-400", text: "text-green-700", bg: "bg-green-50" },
-    Concluído: { dot: "bg-gray-400", text: "text-gray-600", bg: "bg-gray-100" },
-    Pausado: { dot: "bg-orange-400", text: "text-orange-700", bg: "bg-orange-50" },
-  };
-  const c = config[status];
+function StatusBadge({ isActive }: { isActive: boolean }) {
+  if (isActive) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+        Ativo
+      </span>
+    );
+  }
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {status}
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+      Arquivado
     </span>
   );
 }
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
-  const pct = Math.min(100, Math.round((spent / total) * 100));
+  const pct = total > 0 ? Math.min(100, Math.round((spent / total) * 100)) : 0;
   const barColor = pct >= 100 ? "bg-gray-400" : pct >= 85 ? "bg-amber-400" : "bg-blue-500";
-  const fmt = (v: number) =>
-    v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`;
+  const fmt = (v: number) => v >= 1000 ? `R$${(v / 1000).toFixed(0)}k` : `R$${v}`;
   return (
     <div className="min-w-[140px]">
       <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -112,37 +41,99 @@ function BudgetBar({ spent, total }: { spent: number; total: number }) {
 
 export default function AdminProjects() {
   const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [deptFilter, setDeptFilter] = useState("Todos");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showModalCriar, setShowModalCriar] = useState(false);
-
-  function handleCriarProjeto(data: NovoDadosProjeto) {
-    console.log("Novo projeto:", data);
-  }
+  const [criando, setCriando] = useState(false);
+  const [erroCriar, setErroCriar] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) router.push("/login");
+    if (!token) { router.push("/login"); return; }
+    carregarProjetos(token);
   }, [router]);
 
-  const filtered = PROJECTS.filter((p) => {
-    const matchSearch =
-      search === "" ||
+  async function carregarProjetos(token: string) {
+    setCarregando(true);
+    const result = await listProjects(token, { isActive: undefined });
+    if (result.ok) {
+      setProjects(result.data);
+    } else if (result.error === "UNAUTHORIZED") {
+      localStorage.removeItem("accessToken");
+      router.push("/login");
+    } else {
+      setErro("Erro ao carregar projetos");
+    }
+    setCarregando(false);
+  }
+
+  async function handleCriarProjeto(data: NovoDadosProjeto) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setCriando(true);
+    setErroCriar(null);
+    const result = await createProject(token, {
+      name: data.name,
+      code: data.code,
+      budget: data.budget,
+      subcategories: data.topics,
+    });
+    setCriando(false);
+    if (result.ok) {
+      setProjects((prev) => [result.data, ...prev]);
+      setShowModalCriar(false);
+    } else if (result.error === "CONFLICT") {
+      setErroCriar("Já existe um projeto com esse código.");
+    } else {
+      setErroCriar("Erro ao criar projeto. Tente novamente.");
+    }
+  }
+
+  async function handleArquivar(id: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    const result = await deleteProject(token, id);
+    if (result.ok) {
+      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, isActive: false } : p));
+    } else {
+      setErro("Erro ao arquivar projeto");
+    }
+  }
+
+  const filtered = projects.filter((p) => {
+    const matchSearch = search === "" ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "Todos" || p.status === statusFilter;
-    const matchDept = deptFilter === "Todos" || p.department === deptFilter;
-    return matchSearch && matchStatus && matchDept;
+      p.code.toLowerCase().includes(search.toLowerCase());
+    const matchStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && p.isActive) ||
+      (statusFilter === "archived" && !p.isActive);
+    return matchSearch && matchStatus;
   });
 
-  const departments = ["Todos", ...Array.from(new Set(PROJECTS.map((p) => p.department)))];
+  if (carregando) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 flex justify-center">
+            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+          <p className="text-gray-600">Carregando projetos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <AdminSidebar active="projects" />
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
@@ -151,14 +142,13 @@ export default function AdminProjects() {
             <p className="text-xs text-gray-500 mt-0.5 sm:text-sm">Gerencie e acompanhe todos os projetos acadêmicos</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            {erro && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
+                <p className="text-xs text-red-700">{erro}</p>
+              </div>
+            )}
             <button
-              onClick={() => setShowModalCriar(true)}
+              onClick={() => { setErroCriar(null); setShowModalCriar(true); }}
               className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors sm:px-4"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -180,7 +170,7 @@ export default function AdminProjects() {
                 </svg>
                 <input
                   type="text"
-                  placeholder="Buscar projetos por nome ou ID..."
+                  placeholder="Buscar por nome ou código..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -191,132 +181,112 @@ export default function AdminProjects() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 bg-white"
               >
-                <option>Todos os Status</option>
-                <option value="Ativo">Ativo</option>
-                <option value="Concluído">Concluído</option>
-                <option value="Pausado">Pausado</option>
+                <option value="all">Todos os Status</option>
+                <option value="active">Ativo</option>
+                <option value="archived">Arquivado</option>
               </select>
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 bg-white"
-              >
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d === "Todos" ? "Todos os Departamentos" : d}
-                  </option>
-                ))}
-              </select>
-              <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                Aplicar Filtros
-              </button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm text-center">
+              <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
+              <p className="text-sm text-gray-500">Total</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm text-center">
+              <p className="text-2xl font-bold text-green-600">{projects.filter((p) => p.isActive).length}</p>
+              <p className="text-sm text-gray-500">Ativos</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm text-center">
+              <p className="text-2xl font-bold text-gray-400">{projects.filter((p) => !p.isActive).length}</p>
+              <p className="text-sm text-gray-500">Arquivados</p>
             </div>
           </div>
 
           {/* Table */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Desktop table */}
             <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Detalhes do Projeto
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Coordenador
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Utilização do Orçamento
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Status
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Ações
-                  </th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Projeto</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Código</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Orçamento</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Status</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((project) => (
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-16 text-center text-sm text-gray-400">
+                      Nenhum projeto encontrado.
+                    </td>
+                  </tr>
+                ) : filtered.map((project) => (
                   <tr
                     key={project.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => router.push("/dashboard/admin/projects/detail")}
+                    onClick={() => router.push({ pathname: "/dashboard/admin/projects/detail", query: { id: project.id } })}
                   >
                     <td className="px-6 py-4">
                       <p className="font-semibold text-gray-900">{project.name}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {project.id} · {project.department} · {project.startDate} – {project.endDate}
+                        {project.subcategories.slice(0, 3).join(" · ")}
+                        {project.subcategories.length > 3 && ` +${project.subcategories.length - 3}`}
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ backgroundColor: project.coordinator.color }}
+                      <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700">
+                        {project.code}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <BudgetBar spent={project.usedBudget} total={project.budget} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge isActive={project.isActive} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push({ pathname: "/dashboard/admin/projects/detail", query: { id: project.id } });
+                          }}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Ver detalhes"
                         >
-                          {project.coordinator.initial}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800 text-sm">{project.coordinator.name}</p>
-                          <p className="text-xs text-gray-400">{project.coordinator.role}</p>
-                        </div>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        {project.isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Arquivar o projeto "${project.name}"?`)) handleArquivar(project.id);
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Arquivar projeto"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <BudgetBar spent={project.budgetSpent} total={project.budgetTotal} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={project.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push("/dashboard/admin/projects/detail");
-                        }}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Ver detalhes"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Rodapé */}
+            <div className="px-6 py-4 border-t border-gray-200">
               <p className="text-sm text-gray-500">
-                Exibindo 1 a {filtered.length} de 24 projetos
+                Exibindo {filtered.length} de {projects.length} projetos
               </p>
-              <div className="flex items-center gap-1">
-                <button className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  Anterior
-                </button>
-                {[1, 2, 3].map((n) => (
-                  <button
-                    key={n}
-                    className={`w-8 h-8 text-sm rounded-lg transition-colors ${
-                      n === 1
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-600 border border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <span className="px-2 text-gray-400 text-sm">...</span>
-                <button className="w-8 h-8 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  5
-                </button>
-                <button className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  Próximo
-                </button>
-              </div>
             </div>
 
             {/* Cards — mobile */}
@@ -325,25 +295,16 @@ export default function AdminProjects() {
                 <div
                   key={project.id}
                   className="px-4 py-4 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => router.push("/dashboard/admin/projects/detail")}
+                  onClick={() => router.push({ pathname: "/dashboard/admin/projects/detail", query: { id: project.id } })}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{project.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{project.id} · {project.department}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono">{project.code}</p>
                     </div>
-                    <StatusBadge status={project.status} />
+                    <StatusBadge isActive={project.isActive} />
                   </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: project.coordinator.color }}
-                    >
-                      {project.coordinator.initial}
-                    </div>
-                    <span className="text-xs text-gray-600">{project.coordinator.name}</span>
-                  </div>
-                  <BudgetBar spent={project.budgetSpent} total={project.budgetTotal} />
+                  <BudgetBar spent={project.usedBudget} total={project.budget} />
                 </div>
               ))}
             </div>
@@ -355,6 +316,8 @@ export default function AdminProjects() {
         <ModalCriarProjeto
           onClose={() => setShowModalCriar(false)}
           onConfirm={handleCriarProjeto}
+          carregando={criando}
+          erro={erroCriar}
         />
       )}
     </div>
