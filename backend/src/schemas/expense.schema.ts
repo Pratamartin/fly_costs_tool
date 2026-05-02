@@ -84,6 +84,7 @@ export const ExpenseListItemSchema = z.object({
   }).shape)
   .extend({
     attachmentKey: z.string().nullable().optional(),
+    ...TimestampSchema,
   })
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)

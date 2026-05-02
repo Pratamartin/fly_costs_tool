@@ -158,6 +158,8 @@ export default function ExpenseDetalhe() {
       setBaixandoMemorandum(false);
     }
   }
+
+  useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token) { router.push("/login"); return; }
     if (!id || typeof id !== "string") return;
