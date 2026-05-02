@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, createExpense, type Expense } from "@/services/expenses";
+import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
 
 type Status = "Pendente" | "Aprovado" | "Rejeitado";
 type Filtro = "Todos" | Status;
@@ -193,6 +193,9 @@ export default function DashboardAluno() {
         returnDate: data.returnDate,
       });
       if (result.ok) {
+        if (data.arquivo) {
+          await uploadMemorandum(token, result.data.id, data.arquivo);
+        }
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
         setModalAberto(false);
       } else if (result.error === "UNAUTHORIZED") {
