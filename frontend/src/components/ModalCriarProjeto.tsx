@@ -1,19 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { listCategories } from "@/services/categories";
 
-const AVAILABLE_TOPICS = [
-  "Diárias",
-  "Passagens",
-  "Serviço de Terceiros",
-  "Material de Consumo",
-  "Material Permanente",
-  "Equipamentos",
-  "Software / Cloud",
-  "Bolsa de Pesquisa",
-  "Outros",
-];
+const MIN_TOPICS = 1;
 
 export interface NovoDadosProjeto {
   name: string;
+  code: string;
   budget: number;
   topics: string[];
 }
@@ -21,23 +13,38 @@ export interface NovoDadosProjeto {
 interface ModalCriarProjetoProps {
   onClose: () => void;
   onConfirm: (data: NovoDadosProjeto) => void;
+  carregando?: boolean;
+  erro?: string | null;
 }
 
-export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProjetoProps) {
+export default function ModalCriarProjeto({ onClose, onConfirm, carregando = false, erro = null }: ModalCriarProjetoProps) {
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [budget, setBudget] = useState("");
-  const [topics, setTopics] = useState<string[]>(["Diárias", "Passagens", "Serviço de Terceiros"]);
+  const [topics, setTopics] = useState<string[]>([]);
   const [showTopicPicker, setShowTopicPicker] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; budget?: string; topics?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; code?: string; budget?: string; topics?: string }>({});
+  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
+  const [carregandoCategorias, setCarregandoCategorias] = useState(true);
 
-  const MAX_TOPICS = 10;
+  useEffect(() => {
+    setCarregandoCategorias(true);
+    const token = localStorage.getItem("accessToken") ?? undefined;
+    listCategories(undefined, token).then((result) => {
+      if (result.ok) {
+        setAvailableTopics(result.data.map((c) => c.name));
+        setTopics(result.data.slice(0, 3).map((c) => c.name));
+      }
+      setCarregandoCategorias(false);
+    });
+  }, []);
 
   function removeTopic(topic: string) {
     setTopics((prev) => prev.filter((t) => t !== topic));
   }
 
   function addTopic(topic: string) {
-    if (topics.length >= MAX_TOPICS) return;
+    if (availableToAdd.length === 0) return;
     if (!topics.includes(topic)) {
       setTopics((prev) => [...prev, topic]);
     }
@@ -47,20 +54,21 @@ export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProj
   function validate() {
     const errs: typeof errors = {};
     if (!name.trim()) errs.name = "Nome do projeto é obrigatório.";
+    if (!code.trim()) errs.code = "Código do projeto é obrigatório.";
     const budgetNum = parseFloat(budget.replace(",", "."));
     if (!budget || isNaN(budgetNum) || budgetNum <= 0) errs.budget = "Informe um orçamento válido.";
-    if (topics.length === 0) errs.topics = "Selecione ao menos um tópico de custo.";
+    if (topics.length < MIN_TOPICS) errs.topics = "Selecione ao menos um tópico de custo.";
     return errs;
   }
 
   function handleSubmit() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    onConfirm({ name: name.trim(), budget: parseFloat(budget.replace(",", ".")), topics });
+    onConfirm({ name: name.trim(), code: code.trim().toUpperCase(), budget: parseFloat(budget.replace(",", ".")), topics });
     onClose();
   }
 
-  const availableToAdd = AVAILABLE_TOPICS.filter((t) => !topics.includes(t));
+  const availableToAdd = availableTopics.filter((t) => !topics.includes(t));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -115,6 +123,19 @@ export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProj
             </div>
             {errors.name && <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>}
             <p className="mt-1.5 text-xs text-gray-400">Um nome claro e identificável para o projeto.</p>
+
+            <label className="mt-4 block mb-1.5 text-sm font-medium text-gray-700">
+              Código do Projeto <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => { setCode(e.target.value); setErrors((prev) => ({ ...prev, code: undefined })); }}
+              placeholder="ex.: LAB-ROBOT-2026"
+              className={`w-full rounded-lg border py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition uppercase ${errors.code ? "border-red-400 focus:border-red-400 focus:ring-red-400" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}`}
+            />
+            {errors.code && <p className="mt-1.5 text-xs text-red-500">{errors.code}</p>}
+            <p className="mt-1.5 text-xs text-gray-400">Código único para identificar o projeto no sistema.</p>
           </div>
 
           {/* FINANCIAL SETUP */}
@@ -155,12 +176,11 @@ export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProj
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Tópicos de Custo</span>
               </div>
               <span className="text-xs font-semibold text-blue-600">
-                {topics.length} selecionado{topics.length !== 1 ? "s" : ""}{" "}
-                <span className="font-normal text-gray-400">de {MAX_TOPICS} máx.</span>
+                {topics.length} selecionado{topics.length !== 1 ? "s" : ""}
               </span>
             </div>
             <p className="mb-3 text-xs text-gray-400">
-              Selecione as categorias de custo para este projeto (mínimo 1, máximo {MAX_TOPICS}).
+              {carregandoCategorias ? "Carregando categorias..." : "Selecione as categorias de custo para este projeto (mínimo 1)."}
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -181,7 +201,7 @@ export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProj
                 </span>
               ))}
 
-              {topics.length < MAX_TOPICS && (
+              {availableToAdd.length > 0 && (
                 <div className="relative">
                   <button
                     onClick={() => setShowTopicPicker((v) => !v)}
@@ -218,22 +238,36 @@ export default function ModalCriarProjeto({ onClose, onConfirm }: ModalCriarProj
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-            </svg>
-            Criar Projeto
-          </button>
+        <div className="border-t border-gray-100 px-6 py-4 space-y-3">
+          {erro && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</p>
+          )}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              disabled={carregando}
+              className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={carregando}
+              className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {carregando ? (
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+              )}
+              {carregando ? "Criando..." : "Criar Projeto"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

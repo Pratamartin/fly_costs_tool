@@ -5,18 +5,6 @@ interface ModalDetalheProps {
   onClose: () => void;
 }
 
-function topicLabel(topic: string): string {
-  switch (topic) {
-    case "INSCRICAO":
-      return "Inscrição";
-    case "PASSAGEM":
-      return "Passagem";
-    case "HOSPEDAGEM":
-      return "Hospedagem";
-    default:
-      return topic;
-  }
-}
 
 function statusBadgeColor(status: string): string {
   switch (status) {
@@ -66,14 +54,14 @@ export default function ModalDetalhe({ despesa, onClose }: ModalDetalheProps) {
           {/* Principais Informações */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg bg-gray-50 p-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total de Custos</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">
-                R$ {parseFloat(despesa.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {(despesa.costBreakdowns ?? []).reduce((s, cb) => s + cb.amount, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="rounded-lg bg-gray-50 p-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</p>
-              <p className="mt-1 text-lg font-semibold text-gray-900">{topicLabel(despesa.topic)}</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900">{despesa.city}, {despesa.state}</p>
             </div>
           </div>
 

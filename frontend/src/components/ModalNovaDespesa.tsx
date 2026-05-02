@@ -1,18 +1,18 @@
-import { useState, useRef } from "react";
-
-export type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
+import { useState, useRef, useEffect } from "react";
+import { listCategories, type ExpenseCategory } from "@/services/categories";
 
 export interface NovaDespesaData {
   projeto: string;
   descricao: string;
   descricaoDetalhada: string;
   valor: number;
-  categoria: CategoriaIcone;
+  categoria: string;
   sugestaoCompra: string;
-  origemLocal: string;
-  destinoLocal: string;
-  dataPartida: string;
-  dataRetorno: string;
+  city: string;
+  state: string;
+  country: string;
+  departureDate: string;
+  returnDate: string;
   arquivo: File | null;
 }
 
@@ -23,29 +23,34 @@ interface Props {
   erro?: string | null;
 }
 
-const categorias: { value: CategoriaIcone; label: string }[] = [
-  { value: "componentes", label: "Componentes / Hardware" },
-  { value: "livros", label: "Livros / Material Didático" },
-  { value: "viagem", label: "Viagem / Transporte" },
-  { value: "nuvem", label: "Software / Cloud / Outros" },
-];
-
 export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false, erro = null }: Props) {
   const [form, setForm] = useState({
     projeto: "",
     nome: "",
     descricaoDetalhada: "",
     valor: "",
-    categoria: "" as CategoriaIcone | "",
+    categoria: "",
     sugestaoCompra: "",
-    origemLocal: "",
-    destinoLocal: "",
-    dataPartida: "",
-    dataRetorno: "",
+    city: "",
+    state: "",
+    country: "BR",
+    departureDate: "",
+    returnDate: "",
   });
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arrastandoArquivo, setArrastandoArquivo] = useState(false);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
+  const [categorias, setCategorias] = useState<ExpenseCategory[]>([]);
+  const [carregandoCategorias, setCarregandoCategorias] = useState(true);
+
+  useEffect(() => {
+    setCarregandoCategorias(true);
+    const token = localStorage.getItem("accessToken") ?? undefined;
+    listCategories(undefined, token).then((result) => {
+      if (result.ok) setCategorias(result.data);
+      setCarregandoCategorias(false);
+    });
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -70,17 +75,16 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       descricao: form.nome,
       descricaoDetalhada: form.descricaoDetalhada,
       valor: parseFloat(form.valor),
-      categoria: form.categoria as CategoriaIcone,
+      categoria: form.categoria,
       sugestaoCompra: form.sugestaoCompra,
-      origemLocal: form.origemLocal,
-      destinoLocal: form.destinoLocal,
-      dataPartida: form.dataPartida,
-      dataRetorno: form.dataRetorno,
+      city: form.city,
+      state: form.state,
+      country: form.country || "BR",
+      departureDate: form.departureDate,
+      returnDate: form.returnDate,
       arquivo,
     });
   }
-
-  const ehViagem = form.categoria === "viagem";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -151,13 +155,15 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                   name="categoria"
                   value={form.categoria}
                   onChange={handleChange}
-                  disabled={carregando}
+                  disabled={carregando || carregandoCategorias}
                   required
                   className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
                 >
-                  <option value="" disabled>Escolha uma categoria...</option>
+                  <option value="" disabled>
+                    {carregandoCategorias ? "Carregando categorias..." : "Escolha uma categoria..."}
+                  </option>
                   {categorias.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
+                    <option key={c.id} value={c.normalizedName}>{c.name}</option>
                   ))}
                 </select>
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
@@ -225,69 +231,88 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
               </div>
             </div>
 
-            {/* Informações de Viagem — exibido apenas para categoria viagem */}
-            {ehViagem && (
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-                <p className="text-sm font-semibold text-gray-700">Informações de Viagem</p>
+            {/* Informações de Viagem */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+              <p className="text-sm font-semibold text-gray-700">Informações de Viagem / Local do Evento</p>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                      Local de Origem
-                    </label>
-                    <input
-                      type="text"
-                      name="origemLocal"
-                      value={form.origemLocal}
-                      onChange={handleChange}
-                      disabled={carregando}
-                      placeholder="Cidade/Estado"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                      Local de Destino
-                    </label>
-                    <input
-                      type="text"
-                      name="destinoLocal"
-                      value={form.destinoLocal}
-                      onChange={handleChange}
-                      disabled={carregando}
-                      placeholder="Cidade/Estado"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                      Data de Partida
-                    </label>
-                    <input
-                      type="date"
-                      name="dataPartida"
-                      value={form.dataPartida}
-                      onChange={handleChange}
-                      disabled={carregando}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                      Data de Retorno
-                    </label>
-                    <input
-                      type="date"
-                      name="dataRetorno"
-                      value={form.dataRetorno}
-                      onChange={handleChange}
-                      disabled={carregando}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Cidade <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={form.city}
+                    onChange={handleChange}
+                    disabled={carregando}
+                    placeholder="ex.: Dois Vizinhos"
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Estado (ISO 3166-2) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={form.state}
+                    onChange={handleChange}
+                    disabled={carregando}
+                    placeholder="ex.: BR-PR"
+                    required
+                    minLength={4}
+                    maxLength={6}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    País (ISO 3166-1)
+                  </label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={form.country}
+                    onChange={handleChange}
+                    disabled={carregando}
+                    placeholder="ex.: BR"
+                    maxLength={2}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Data de Partida <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="departureDate"
+                    value={form.departureDate}
+                    onChange={handleChange}
+                    disabled={carregando}
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Data de Retorno <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="returnDate"
+                    value={form.returnDate}
+                    onChange={handleChange}
+                    disabled={carregando}
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+                  />
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Sugestão de compra */}
             <div>
