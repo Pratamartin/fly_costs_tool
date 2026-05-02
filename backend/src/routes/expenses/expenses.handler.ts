@@ -131,17 +131,9 @@ export const createCostBreakdown: AppRouteHandler<CreateCostBreakdownRoute> = as
 export const uploadMemorandum: AppRouteHandler<UploadMemorandumRoute> = async (c) => {
   const { id } = c.req.valid('param')
   const { sub } = c.get('jwtPayload')
-  const body = await c.req.parseBody({ all: true })
-  const raw = body.file
+  const form = c.req.valid('form')
 
-  if (!raw || typeof raw === 'string' || Array.isArray(raw)) {
-    return c.json({ message: 'Envie o arquivo PDF no campo \"file\".' }, codes.BAD_REQUEST)
-  }
-
-  const buf = Buffer.from(await raw.arrayBuffer())
-  const name = typeof raw.name === 'string' ? raw.name : 'memorando.pdf'
-
-  const result = await attachMemorandumToExpense(id, sub, buf, name)
+  const result = await attachMemorandumToExpense(id, sub, form.file)
 
   if ('error' in result) {
     switch (result.error) {
@@ -183,5 +175,8 @@ export const getMemorandumDownload: AppRouteHandler<GetMemorandumDownloadRoute> 
     }
   }
 
-  return c.json({ downloadUrl: result.url, expiresIn: result.expiresIn }, codes.OK)
+  return c.json({
+    downloadUrl: result.url,
+    expiresIn: result.expiresIn,
+  }, codes.OK)
 }

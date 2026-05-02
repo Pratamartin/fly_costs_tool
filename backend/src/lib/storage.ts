@@ -1,6 +1,7 @@
+import crypto from 'node:crypto'
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import crypto from 'node:crypto'
+import { FILENAME_SANITIZE_REGEX } from '@/constants/file.constant'
 import env from '@/env'
 
 function r2Configured(): boolean {
@@ -30,30 +31,28 @@ function getClient(): S3Client {
   return _client
 }
 
-export interface UploadFileOptions {
-  file: Buffer
-  fileName: string
+export type UploadFileOptions = {
+  file: File
   contentType: string
   folder: 'memorandos' | 'admin-attachments'
 }
 
-export interface UploadFileResult {
+export type UploadFileResult = {
   fileKey: string
   fileName: string
   fileSize: number
 }
 
 export async function uploadFile(options: UploadFileOptions): Promise<UploadFileResult> {
-  const { file, fileName, contentType, folder } = options
-
+  const { file, contentType, folder } = options
   const uniqueId = crypto.randomUUID()
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const sanitizedFileName = file.name.replace(FILENAME_SANITIZE_REGEX, '_')
   const fileKey = `${folder}/${uniqueId}-${sanitizedFileName}`
 
   const command = new PutObjectCommand({
     Bucket: env.R2_BUCKET_NAME!,
     Key: fileKey,
-    Body: file,
+    Body: new Uint8Array(await file.arrayBuffer()),
     ContentType: contentType,
   })
 
@@ -62,7 +61,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadFile
   return {
     fileKey,
     fileName: sanitizedFileName,
-    fileSize: file.length,
+    fileSize: file.size,
   }
 }
 
@@ -84,16 +83,22 @@ export async function deleteFile(fileKey: string): Promise<void> {
   await getClient().send(command)
 }
 
-export function validatePDF(file: Buffer, maxSizeInMB: number = 5): { valid: boolean, error?: string } {
+export async function validatePDF(file: File, maxSizeInMB: number = 5): Promise<{ valid: boolean, error?: string }> {
   const maxSizeBytes = maxSizeInMB * 1024 * 1024
 
-  if (file.length > maxSizeBytes) {
-    return { valid: false, error: `Arquivo excede o tamanho máximo de ${maxSizeInMB}MB` }
+  if (file.size > maxSizeBytes) {
+    return {
+      valid: false,
+      error: `Arquivo excede o tamanho máximo de ${maxSizeInMB}MB`,
+    }
   }
 
-  const pdfSignature = file.slice(0, 4).toString('ascii')
+  const pdfSignature = await file.slice(0, 4).text()
   if (pdfSignature !== '%PDF') {
-    return { valid: false, error: 'Arquivo não é um PDF válido' }
+    return {
+      valid: false,
+      error: 'Arquivo não é um PDF válido',
+    }
   }
 
   return { valid: true }

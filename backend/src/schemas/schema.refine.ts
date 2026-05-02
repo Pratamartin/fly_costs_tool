@@ -3,6 +3,7 @@ import { z } from '@hono/zod-openapi'
 import countries from 'i18n-iso-countries'
 import iso31662 from 'iso-3166-2'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { validatePDF } from '@/lib/storage'
 
 export const validStateCheck = z.refine<{ state: string }>(
   value => iso31662.subdivision(value.state) !== null,
@@ -43,3 +44,17 @@ export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reas
     path: ['reason'],
   },
 )
+
+export function validPDFCheck(maxSizeInMB: number) {
+  return async (value: File, ctx: z.RefinementCtx) => {
+    const validation = await validatePDF(value, maxSizeInMB)
+
+    if (!validation.valid) {
+      ctx.addIssue({
+        code: 'custom',
+        message: validation.error,
+        path: ['file'],
+      })
+    }
+  }
+}

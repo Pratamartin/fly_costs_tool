@@ -55,5 +55,14 @@ export const TripPeriodSchema = z.object({
   }),
 })
 
+export const FileItemSchema = z
+  .instanceof(File)
+  .openapi({
+    type: 'string',
+    format: 'binary',
+    description: 'Arquivo binário para upload',
+  })
+
+export const MultiFileSchema = z.object({ files: z.array(FileItemSchema).openapi({ description: 'Múltiplos arquivos para upload' }) })
 export const UnauthorizedResponse = jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou expirado.')
 export const ForbiddenResponse = jsonContent(createMessageObjectSchema('Acesso restrito'), 'Erro: Perfil não autorizado.')

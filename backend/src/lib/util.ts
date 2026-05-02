@@ -1,3 +1,4 @@
+import type { z } from '@hono/zod-openapi'
 import type { AppContext, AppOpenAPI } from './type'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { defaultHook } from 'stoker/openapi'
@@ -15,6 +16,16 @@ export function registerRoutes(app: AppOpenAPI, routes: ReturnType<typeof create
   })
 
   return app
+}
+
+export function multipartFormContentRequired<
+  T extends z.ZodSchema | z.ZodUnion | z.ZodAny | z.ZodArray<z.ZodAny>,
+>(schema: T, description: string) {
+  return {
+    content: { 'multipart/form-data': { schema } },
+    description,
+    required: true,
+  }
 }
 
 /**

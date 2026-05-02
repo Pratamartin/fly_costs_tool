@@ -3,11 +3,12 @@ import type { Prisma } from '@/generated/prisma/client'
 import type { CreateExpenseSchema, ExpenseListQuerySchema } from '@/schemas/expense.schema'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES, STATUSES_ALLOWED_TO_ASSIGN_PROJECT, STATUSES_FOR_COORDINATOR_ANALYSIS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
-import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import prisma from '@/lib/orm'
+import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import { getProjectBudgetMetrics } from './budget.service'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
@@ -173,8 +174,7 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
 export async function attachMemorandumToExpense(
   expenseId: string,
   userId: string,
-  file: Buffer,
-  fileName: string,
+  file: File,
 ): Promise<ExpenseWithRelations | { error: string }> {
   if (!isStorageConfigured()) {
     return { error: EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED }
@@ -191,7 +191,7 @@ export async function attachMemorandumToExpense(
     return { error: phrases.CONFLICT }
   }
 
-  const validation = validatePDF(file)
+  const validation = await validatePDF(file)
   if (!validation.valid) {
     return { error: validation.error ?? 'INVALID_FILE' }
   }
@@ -207,7 +207,6 @@ export async function attachMemorandumToExpense(
 
   const uploaded = await uploadFile({
     file,
-    fileName,
     contentType: 'application/pdf',
     folder: 'memorandos',
   })
@@ -248,7 +247,9 @@ export async function getMemorandumDownloadUrl(
     return { error: phrases.FORBIDDEN }
   }
 
-  const expiresIn = 3600
-  const url = await getSignedDownloadUrl(expense.attachmentKey, expiresIn)
-  return { url, expiresIn }
+  const url = await getSignedDownloadUrl(expense.attachmentKey, MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS)
+  return {
+    url,
+    expiresIn: MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS,
+  }
 }

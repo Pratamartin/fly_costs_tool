@@ -3,9 +3,11 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { UserRole } from '@/generated/prisma/enums'
+import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole } from '@/middlewares'
+import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
 import { CostBreakdownResponseSchema, CreateCostBreakdownSchema } from '@/schemas/cost-breakdown.schema'
-import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
+import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
 import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
@@ -185,13 +187,16 @@ export const createCostBreakdown = createRoute({
 export const uploadMemorandum = createRoute({
   path: '/{id}/memorandum',
   method: 'post',
-  middleware: [requireAuth, requireRole(ALLOWED_ROLES)],
+  middleware: [requireAuth, requireRole(ALLOWED_ROLES), uploadMemorandumSettings.size, uploadMemorandumSettings.content],
   security: [{ bearerAuth: [] }],
   summary: 'Upload memorando (PDF)',
   description:
     'Aluno anexa PDF à solicitação **PENDENTE**. Envie `multipart/form-data` com campo **file**.',
   tags,
-  request: { params: z.object({ id: IdSchema }) },
+  request: {
+    params: z.object({ id: IdSchema }),
+    body: multipartFormContentRequired(UploadMemorandumSchema, 'Upload do arquivo PDF do memorando'),
+  },
   responses: {
     [codes.OK]: jsonContent(
       ExpenseResponseSchema,
