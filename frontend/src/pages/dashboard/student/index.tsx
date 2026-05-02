@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, createExpense, type Expense, type ExpenseTopic } from "@/services/expenses";
+import { listExpenses, createExpense, type Expense } from "@/services/expenses";
 
 type Status = "Pendente" | "Aprovado" | "Rejeitado";
 type Filtro = "Todos" | Status;
@@ -19,14 +19,6 @@ interface Despesa {
   icone: "componentes" | "livros" | "viagem" | "nuvem";
 }
 
-function topicToIcone(topic: string): "componentes" | "livros" | "viagem" | "nuvem" {
-  switch (topic) {
-    case "PASSAGEM": return "viagem";
-    case "HOSPEDAGEM": return "livros";
-    case "INSCRICAO":
-    default: return "componentes";
-  }
-}
 
 function statusBackendToFrontend(status: string): Status {
   switch (status) {
@@ -38,16 +30,16 @@ function statusBackendToFrontend(status: string): Status {
 }
 
 function expenseToDespesa(expense: Expense): Despesa {
-  const valor = parseFloat(expense.amount);
+  const valor = (expense.costBreakdowns ?? []).reduce((sum, cb) => sum + cb.amount, 0);
   return {
     id: expense.id,
     data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
     projeto: expense.project?.name || "Sem projeto",
-    valor: isNaN(valor) ? 0 : valor,
+    valor,
     status: statusBackendToFrontend(expense.status),
-    icone: topicToIcone(expense.topic),
+    icone: "viagem",
   };
 }
 
@@ -191,17 +183,14 @@ export default function DashboardAluno() {
     setCriandoDespesa(true);
     setErro(null);
     try {
-      const topicMap: Record<string, ExpenseTopic> = {
-        componentes: "INSCRICAO",
-        livros: "HOSPEDAGEM",
-        viagem: "PASSAGEM",
-        nuvem: "INSCRICAO",
-      };
       const result = await createExpense(token, {
         title: data.descricao,
-        description: data.descricaoDetalhada || data.descricao,
-        topic: topicMap[data.categoria] || "INSCRICAO",
-        amount: data.valor,
+        description: data.descricaoDetalhada || undefined,
+        city: data.city,
+        state: data.state,
+        country: data.country || "BR",
+        departureDate: data.departureDate,
+        returnDate: data.returnDate,
       });
       if (result.ok) {
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
