@@ -39,6 +39,7 @@ export type Expense = {
   updatedAt: string
   studentId?: string
   projectId?: string | null
+  attachmentKey?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -251,6 +252,36 @@ export async function uploadMemorandum(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type GetMemorandumUrlError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+
+export type GetMemorandumUrlResult =
+  | { ok: true; downloadUrl: string; expiresIn: number }
+  | { ok: false; error: GetMemorandumUrlError }
+
+export async function getMemorandumDownloadUrl(
+  token: string,
+  expenseId: string
+): Promise<GetMemorandumUrlResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/memorandum/download`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (res.status === 200) {
+    const data = await res.json()
+    return { ok: true, downloadUrl: data.downloadUrl, expiresIn: data.expiresIn }
+  }
+  if (res.status === 400) return { ok: false, error: "BAD_REQUEST" }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
   return { ok: false, error: "UNKNOWN" }
 }

@@ -249,7 +249,11 @@ export default function DashboardCoordenador() {
         />
       )}
       {detalheAberto && (
-        <ModalDetalhe despesa={detalheAberto} onClose={() => setDetalheAberto(null)} />
+        <ModalDetalhe
+          despesa={detalheAberto}
+          token={localStorage.getItem("accessToken") ?? ""}
+          onClose={() => setDetalheAberto(null)}
+        />
       )}
 
       <CoordinatorSidebar
