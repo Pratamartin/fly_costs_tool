@@ -1,10 +1,11 @@
 import { z } from '@hono/zod-openapi'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
 import ProjectSchema from './project.schema'
-import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validStateCheck } from './schema.refine'
-import { IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
+import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validPDFCheck, validStateCheck } from './schema.refine'
+import { FileItemSchema, IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
 import { UserProfileSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
@@ -55,9 +56,9 @@ export const CreateExpenseSchema = BaseSchema.omit({
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
     ...BaseSchema.shape,
-    attachmentKey: z.string().nullable().optional().openapi({
-      description: 'Chave do memorando (PDF) no armazenamento R2.',
-    }),
+    attachmentKey: z.string().nullable()
+      .optional()
+      .openapi({ description: 'Chave do memorando (PDF) no armazenamento R2.' }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
   })
@@ -83,7 +84,8 @@ export const ExpenseListItemSchema = z.object({
     returnDate: true,
   }).shape)
   .extend({
-    attachmentKey: z.string().nullable().optional(),
+    attachmentKey: z.string().nullable()
+      .optional(),
     ...TimestampSchema,
   })
 
@@ -101,6 +103,8 @@ export const UpdateExpenseStatusSchema = z.object({
       example: 'Documentação pendente: Realize o ajuste necessário.',
     }),
 }).check(reasonFieldRequired)
+
+export const UploadMemorandumSchema = z.object({ file: FileItemSchema.superRefine(validPDFCheck(MEMORANDUM_UPLOAD_MAX_SIZE_MB)) })
 
 export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
 
