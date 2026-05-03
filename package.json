@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "country-state-city": "^3.2.1",
+    "iso-3166-2": "^1.0.0"
+  }
+}

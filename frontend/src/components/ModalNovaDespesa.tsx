@@ -1,5 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
+import { Country, State } from "country-state-city";
+
+const getCountries = () => {
+  return Country.getAllCountries().map((c) => ({
+    label: c.name,
+    value: c.isoCode,
+  }));
+};
+
+const getStates = (countryCode: string) => {
+  if (!countryCode) return [];
+
+  return State.getStatesOfCountry(countryCode).map((s) => ({
+    label: s.name,
+    value: `${countryCode}-${s.isoCode}`,
+  }));
+};
 
 export interface NovaDespesaData {
   projeto: string;
@@ -119,60 +136,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
               </div>
             )}
 
-            {/* Projeto */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Projeto <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  name="projeto"
-                  value={form.projeto}
-                  onChange={handleChange}
-                  disabled={carregando}
-                  required
-                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                >
-                  <option value="" disabled>Escolha um projeto...</option>
-                  <option>Laboratório de Robótica</option>
-                  <option>Bolsa de Pesquisa em IA</option>
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-
-            {/* Categoria */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Categoria <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  name="categoria"
-                  value={form.categoria}
-                  onChange={handleChange}
-                  disabled={carregando || carregandoCategorias}
-                  required
-                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                >
-                  <option value="" disabled>
-                    {carregandoCategorias ? "Carregando categorias..." : "Escolha uma categoria..."}
-                  </option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.normalizedName}>{c.name}</option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
-                </span>
-              </div>
-            </div>
+         
+            
 
             {/* Nome da despesa */}
             <div>
@@ -207,112 +172,111 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
               />
             </div>
 
-            {/* Valor */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Valor Estimado <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-medium text-gray-400">
-                  R$
-                </span>
-                <input
-                  type="number"
-                  name="valor"
-                  value={form.valor}
-                  onChange={handleChange}
-                  disabled={carregando}
-                  placeholder="0,00"
-                  min="0"
-                  step="0.01"
-                  required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                />
-              </div>
-            </div>
 
-            {/* Informações de Viagem */}
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-              <p className="text-sm font-semibold text-gray-700">Informações de Viagem / Local do Evento</p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Cidade <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={form.city}
-                    onChange={handleChange}
-                    disabled={carregando}
-                    placeholder="ex.: Dois Vizinhos"
-                    required
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Estado (ISO 3166-2) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={form.state}
-                    onChange={handleChange}
-                    disabled={carregando}
-                    placeholder="ex.: BR-PR"
-                    required
-                    minLength={4}
-                    maxLength={6}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                    País (ISO 3166-1)
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={form.country}
-                    onChange={handleChange}
-                    disabled={carregando}
-                    placeholder="ex.: BR"
-                    maxLength={2}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Data de Partida <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="departureDate"
-                    value={form.departureDate}
-                    onChange={handleChange}
-                    disabled={carregando}
-                    required
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                    Data de Retorno <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="returnDate"
-                    value={form.returnDate}
-                    onChange={handleChange}
-                    disabled={carregando}
-                    required
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
-                  />
-                </div>
-              </div>
-            </div>
+              {/* Informações de Viagem */}
+<div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+  <p className="text-sm font-semibold text-gray-700">
+    Informações de Viagem / Local do Evento
+  </p>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    {/* Cidade */}
+    <div className="col-span-2">
+      <label className="mb-1.5 block text-xs font-medium text-gray-600">
+        Cidade <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        name="city"
+        value={form.city}
+        onChange={handleChange}
+        disabled={carregando}
+        placeholder="ex.: Dois Vizinhos"
+        required
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+      />
+    </div>
+
+    {/* País */}
+<div className="flex flex-col">
+  <label className="mb-1.5 text-xs font-medium text-gray-600">
+    País (ISO 3166-1) <span className="text-red-500">*</span>
+  </label>
+
+  <select
+    name="country"
+    value={form.country}
+    onChange={handleChange}
+    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+  >
+    <option value="">Selecione o país</option>
+    {getCountries().map((c) => (
+      <option key={c.value} value={c.value}>
+        {c.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* Estado */}
+<div className="flex flex-col">
+  <label className="mb-1.5 text-xs font-medium text-gray-600">
+    Estado (ISO 3166-2) <span className="text-red-500">*</span>
+  </label>
+
+  <select
+    name="state"
+    value={form.state}
+    onChange={handleChange}
+    disabled={!form.country}
+    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+  >
+    <option value="">Selecione um estado</option>
+
+    {getStates(form.country).map((s) => (
+      <option key={s.value} value={s.value}>
+        {s.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+    {/* Data de Partida */}
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-gray-600">
+        Data de Partida <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="date"
+        name="departureDate"
+        value={form.departureDate}
+        onChange={handleChange}
+        disabled={carregando}
+        required
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+      />
+    </div>
+
+    {/* Data de Retorno */}
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-gray-600">
+        Data de Retorno <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="date"
+        name="returnDate"
+        value={form.returnDate}
+        onChange={handleChange}
+        disabled={carregando}
+        required
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-50"
+      />
+    </div>
+
+  </div>
+</div>
 
             {/* Sugestão de compra */}
             <div>
