@@ -16,6 +16,8 @@ export type ReadRoute = typeof read
 export type UpdateStatusRoute = typeof updateStatus
 export type AssignProjectRoute = typeof assignProject
 export type CreateCostBreakdownRoute = typeof createCostBreakdown
+export type UploadMemorandumRoute = typeof uploadMemorandum
+export type GetMemorandumDownloadRoute = typeof getMemorandumDownload
 
 const ALLOWED_ROLES: UserRole[] = ['ALUNO']
 
@@ -177,5 +179,82 @@ export const createCostBreakdown = createRoute({
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
+  },
+})
+
+export const uploadMemorandum = createRoute({
+  path: '/{id}/memorandum',
+  method: 'post',
+  middleware: [requireAuth, requireRole(ALLOWED_ROLES)],
+  security: [{ bearerAuth: [] }],
+  summary: 'Upload memorando (PDF)',
+  description:
+    'Aluno anexa PDF à solicitação **PENDENTE**. Envie `multipart/form-data` com campo **file**.',
+  tags,
+  request: { params: z.object({ id: IdSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(
+      ExpenseResponseSchema,
+      'Memorando anexado; despesa atualizada.',
+    ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Arquivo inválido'),
+      'PDF ausente, inválido ou solicitação sem memorando.',
+    ),
+    [codes.FORBIDDEN]: jsonContent(
+      createMessageObjectSchema('Sem permissão'),
+      'Somente o aluno dono pode anexar.',
+    ),
+    [codes.CONFLICT]: jsonContent(
+      createMessageObjectSchema('Estado inválido'),
+      'Só é possível anexar em solicitação pendente.',
+    ),
+    [codes.NOT_FOUND]: jsonContent(
+      createMessageObjectSchema('Despesa não encontrada'),
+      'ID inválido.',
+    ),
+    [codes.SERVICE_UNAVAILABLE]: jsonContent(
+      createMessageObjectSchema('Armazenamento indisponível'),
+      'Variáveis R2 não configuradas.',
+    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+  },
+})
+
+export const getMemorandumDownload = createRoute({
+  path: '/{id}/memorandum/download',
+  method: 'get',
+  middleware: [requireAuth],
+  security: [{ bearerAuth: [] }],
+  summary: 'URL assinada para download do memorando',
+  description:
+    'Aluno (próprio), coordenador ou admin obtém URL temporária (1h) para baixar o PDF no R2.',
+  tags,
+  request: { params: z.object({ id: IdSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(
+      z.object({
+        downloadUrl: z.string().url(),
+        expiresIn: z.number(),
+      }),
+      'URL gerada.',
+    ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Sem memorando'),
+      'Despesa sem anexo.',
+    ),
+    [codes.FORBIDDEN]: jsonContent(
+      createMessageObjectSchema('Sem permissão'),
+      'Aluno só acessa a própria solicitação.',
+    ),
+    [codes.NOT_FOUND]: jsonContent(
+      createMessageObjectSchema('Despesa não encontrada'),
+      'ID inválido.',
+    ),
+    [codes.SERVICE_UNAVAILABLE]: jsonContent(
+      createMessageObjectSchema('Armazenamento indisponível'),
+      'Variáveis R2 não configuradas.',
+    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
   },
 })

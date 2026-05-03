@@ -17,6 +17,11 @@ const EnvSchema = z.object({
     .pipe(z.array(z.url()))
     .default(['http://localhost:3000']),
   DATABASE_URL: z.url(),
+  /** Cloudflare R2 (S3-compatible). Opcional em testes; obrigatório para upload/download de memorando. */
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_ENDPOINT: z.url().optional(),
+  R2_BUCKET_NAME: z.string().optional(),
 })
 
 export type Env = z.infer<typeof EnvSchema>

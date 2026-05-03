@@ -6,6 +6,7 @@ import { EXPENSE_ERROR_CODES, STATUSES_ALLOWED_TO_ASSIGN_PROJECT, STATUSES_FOR_C
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
+import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import prisma from '@/lib/orm'
 import { getProjectBudgetMetrics } from './budget.service'
 
@@ -167,4 +168,87 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
   })
 
   return updatedExpense
+}
+
+export async function attachMemorandumToExpense(
+  expenseId: string,
+  userId: string,
+  file: Buffer,
+  fileName: string,
+): Promise<ExpenseWithRelations | { error: string }> {
+  if (!isStorageConfigured()) {
+    return { error: EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED }
+  }
+
+  const expense = await prisma.expenseRequest.findUnique({ where: { id: expenseId } })
+  if (!expense) {
+    return { error: phrases.NOT_FOUND }
+  }
+  if (expense.studentId !== userId) {
+    return { error: phrases.FORBIDDEN }
+  }
+  if (expense.status !== ExpenseRequestStatus.PENDENTE) {
+    return { error: phrases.CONFLICT }
+  }
+
+  const validation = validatePDF(file)
+  if (!validation.valid) {
+    return { error: validation.error ?? 'INVALID_FILE' }
+  }
+
+  if (expense.attachmentKey) {
+    try {
+      await deleteFile(expense.attachmentKey)
+    }
+    catch {
+      // objeto antigo pode não existir mais no bucket
+    }
+  }
+
+  const uploaded = await uploadFile({
+    file,
+    fileName,
+    contentType: 'application/pdf',
+    folder: 'memorandos',
+  })
+
+  return prisma.expenseRequest.update({
+    where: { id: expenseId },
+    data: { attachmentKey: uploaded.fileKey },
+    include: expenseInclude,
+  })
+}
+
+export async function getMemorandumDownloadUrl(
+  expenseId: string,
+  userId: string,
+  role: UserRole,
+): Promise<{ url: string, expiresIn: number } | { error: string }> {
+  if (!isStorageConfigured()) {
+    return { error: EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED }
+  }
+
+  const expense = await prisma.expenseRequest.findUnique({
+    where: { id: expenseId },
+    select: {
+      attachmentKey: true,
+      studentId: true,
+    },
+  })
+
+  if (!expense) {
+    return { error: phrases.NOT_FOUND }
+  }
+
+  if (!expense.attachmentKey) {
+    return { error: EXPENSE_ERROR_CODES.MEMORANDUM_MISSING }
+  }
+
+  if (role === UserRole.ALUNO && expense.studentId !== userId) {
+    return { error: phrases.FORBIDDEN }
+  }
+
+  const expiresIn = 3600
+  const url = await getSignedDownloadUrl(expense.attachmentKey, expiresIn)
+  return { url, expiresIn }
 }
