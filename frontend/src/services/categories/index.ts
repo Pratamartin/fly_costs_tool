@@ -20,8 +20,7 @@ export async function listCategories(search?: string, token?: string): Promise<L
 
   const url = `${API_URL}/v1/expenses/categories${params.toString() ? `?${params.toString()}` : ""}`
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" }
-  if (token) headers["Authorization"] = `Bearer ${token}`
+  const res = await fetch(url)
 
   return {
   ok: true,
