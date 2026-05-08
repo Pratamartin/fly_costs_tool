@@ -4,7 +4,7 @@ import { jsonContent } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { requireAuth } from '@/middlewares'
 import { UnauthorizedResponse } from '@/schemas/shared.schema'
-import { UserProfileSchema } from '@/schemas/user.schema'
+import { UserSchema } from '@/schemas/user.schema'
 
 const tags = ['Me']
 
@@ -20,7 +20,7 @@ export const index = createRoute({
   security: [{ Bearer: [] }],
   responses: {
     [codes.OK]: jsonContent(
-      UserProfileSchema,
+      UserSchema,
       'Perfil do usuário retornado com sucesso.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
