@@ -17,6 +17,26 @@ model User {
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  profile         Profile?
+}
+
+model Profile {
+  id            String    @id @default(uuid())
+  cpf           String?   @unique
+  rgPassaporte  String?
+  birthDate     DateTime?
+  profession    String?
+  address       String?
+  bankCode      String?
+  bankName      String?
+  bankAgency    String?
+  bankAccount   String?
+  
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum UserRole {
