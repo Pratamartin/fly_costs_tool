@@ -3,51 +3,56 @@ import { zodValidator } from 'cpf-cnpj-validator/zod'
 
 import { MOCK_PROFILE, MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
-import { maskBankAccountTransform } from './schema.refine'
+import { maskBankAccountTransform, validBankCode, validBirthDate } from './schema.refine'
 import { IdSchema, TimestampSchema } from './shared.schema'
 
 const { cpf: zCpf } = zodValidator(z)
 
 export const ProfileSchema = z.object({
   cpf: zCpf()
+    .nullish()
     .openapi({ example: MOCK_PROFILE.cpf }),
 
   rgPassaporte: z.string()
     .trim()
     .toUpperCase()
+    .nullish()
     .openapi({ example: MOCK_PROFILE.rgPassaporte }),
 
-  birthDate: z.coerce.date()
+  birthDate: validBirthDate.nullish()
     .openapi({ example: MOCK_PROFILE.birthDate }),
 
   profession: z.string()
     .trim()
+    .nullish()
     .openapi({ example: MOCK_PROFILE.profession }),
 
   address: z.string()
     .trim()
     .min(5, 'O endereço deve ter pelo menos 5 caracteres.')
+    .nullish()
     .openapi({ example: MOCK_PROFILE.address }),
 
-  bankCode: z.string()
-    .trim()
-    .length(3)
+  bankCode: validBankCode.nullish()
     .openapi({ example: MOCK_PROFILE.bankCode }),
 
   bankName: z.string()
     .trim()
     .toUpperCase()
     .min(2, 'O nome do banco deve ter pelo menos 2 caracteres.')
+    .nullish()
     .openapi({ example: MOCK_PROFILE.bankName }),
 
   bankAgency: z.string()
     .trim()
     .toUpperCase()
+    .nullish()
     .openapi({ example: MOCK_PROFILE.bankAgency }),
 
   bankAccount: z.string()
     .trim()
     .toUpperCase()
+    .nullish()
     .openapi({ example: MOCK_PROFILE.bankAccount }),
 })
 
@@ -58,9 +63,11 @@ export const UserSchema = z.object({
     .openapi({ example: MOCK_USER.email }),
   role: z.enum(UserRole).openapi({ examples: Object.values(UserRole) }),
   isActive: z.boolean().openapi({ example: true }),
-  profile: ProfileSchema.partial().extend({
-    bankAccount: z.string().transform(maskBankAccountTransform),
+  profile: ProfileSchema.extend({
+    bankAccount: z.string().transform(maskBankAccountTransform)
+      .nullish(),
   })
-    .optional()
-    .nullable(),
+    .nullish(),
 }).extend(TimestampSchema)
+
+export const UpdateProfileSchema = ProfileSchema.partial().extend({ name: z.string().optional() })

@@ -62,7 +62,7 @@ export function validPDFCheck(maxSizeInMB: number) {
 export function maskBankAccountTransform(val: string | undefined): string | undefined {
   if (!val)
     return val
-  return val.length > 4 ? `${val.slice(0, -4)}****` : '****'
+  return val.length > 4 ? `****${val.slice(-4)}` : '****'
 }
 
 export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
@@ -87,10 +87,11 @@ export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
   }
 })
 
-export const validBankCodeCheck = z.refine<{ bankCode: string }>(
-  value => /^\d{3}$/.test(value.bankCode),
-  {
-    message: 'Código de banco inválido. Utilize um código COMPE de 3 dígitos (ex: 001).',
-    path: ['bankCode'],
-  },
-)
+export const validBankCode = z.string().superRefine((val, ctx) => {
+  if (!/^\d{3}$/.test(val)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Código de banco inválido. Utilize um código COMPE de 3 dígitos (ex: 001).',
+    })
+  }
+})
