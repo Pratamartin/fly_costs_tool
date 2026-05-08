@@ -5,7 +5,6 @@ import type { UpdateProfileSchema } from '@/schemas/user.schema'
 import bcrypt from 'bcryptjs'
 import * as phrases from 'stoker/http-status-phrases'
 import { ROLES_ALLOWED_TO_HAVE_PROFILE, USER_ERROR_CODES } from '@/constants/user.constant'
-import { UserRole } from '@/generated/prisma/client'
 import prisma from '@/lib/orm'
 
 const omit = { passwordHash: true }
@@ -19,7 +18,7 @@ export async function createUser(data: CreateUserDTO, saltRounds: number) {
   const salt = await bcrypt.genSalt(saltRounds)
   const hash = await bcrypt.hash(password, salt)
 
-  const profileData: ProfileCreateWithoutUserInput | undefined = data.role === UserRole.ALUNO
+  const profileData: ProfileCreateWithoutUserInput | undefined = data.role === 'ALUNO'
     ? {
         cpf: data.cpf,
         rgPassaporte: data.rgPassaporte,
