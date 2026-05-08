@@ -14,7 +14,7 @@ describe('userSchema - validações', () => {
   }
 
   describe('mascaramento de conta bancária', () => {
-    it('deve mascarar os últimos 4 dígitos de uma conta longa', () => {
+    it('deve mascarar os primeiros 4 dígitos de uma conta longa', () => {
       const data = {
         ...validUser,
         profile: { bankAccount: '12345678' },
@@ -23,7 +23,7 @@ describe('userSchema - validações', () => {
       const result = UserSchema.safeParse(data)
       expect(result.success)
       assert(result.data)
-      expect(result.data.profile?.bankAccount).toBe('1234****')
+      expect(result.data.profile?.bankAccount).toBe('****5678')
     })
 
     it('deve retornar **** se a conta tiver 4 ou menos caracteres', () => {

@@ -14,7 +14,7 @@ export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
     role: UserRole.COORDENADOR,
   },
   {
-    id: 'a1b2c3d4-e5f6-4g7h-8i9j-0k1l2m3n4o5p',
+    id: '48d413bc-0566-444e-9648-303506d50a61',
     email: 'admin@test.com',
     name: 'Administrador',
     role: UserRole.ADMIN,
