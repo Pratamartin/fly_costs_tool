@@ -117,3 +117,13 @@ model CostBreakdown {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 }
+
+model InviteCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  role      UserRole
+  usedById  String?
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
