@@ -62,6 +62,10 @@ export const remove = createRoute({
       createMessageObjectSchema('Convite não encontrado'),
       'Nenhum convite foi localizado com o ID informado.',
     ),
+    [codes.CONFLICT]: jsonContent(
+      createMessageObjectSchema('Regra de negócio violada'),
+      'O convite não pode ser revogado (ex: já foi usado ou está expirado).',
+    ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
   },

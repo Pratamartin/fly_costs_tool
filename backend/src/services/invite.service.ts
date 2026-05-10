@@ -4,7 +4,7 @@ import type { InviteCode, Prisma, UserRole } from '@/generated/prisma/client'
 import type { ListInvitesQuerySchema } from '@/schemas/admin.invite.schema'
 import crypto from 'node:crypto'
 import * as phrases from 'stoker/http-status-phrases'
-import { INVITE_EXPIRY, INVITE_STATUS } from '@/constants/invite.constant'
+import { INVITE_ERRORS, INVITE_EXPIRY, INVITE_STATUS } from '@/constants/invite.constant'
 import { dayjs } from '@/lib/date'
 import prisma from '@/lib/orm'
 
@@ -90,6 +90,14 @@ export async function revokeInvite(id: string): Promise<InviteCode | { error: st
   const invite = await prisma.inviteCode.findUnique({ where: { id } })
   if (!invite) {
     return { error: phrases.NOT_FOUND }
+  }
+
+  if (invite.usedById) {
+    return { error: INVITE_ERRORS.ALREADY_USED }
+  }
+
+  if (dayjs().isAfter(invite.expiresAt)) {
+    return { error: INVITE_ERRORS.ALREADY_EXPIRED }
   }
 
   return prisma.inviteCode.update({
