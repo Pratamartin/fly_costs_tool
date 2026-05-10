@@ -1,4 +1,5 @@
 import type { z } from '@hono/zod-openapi'
+import type { Prisma } from '@/generated/prisma/client'
 import type { ProfileCreateWithoutUserInput } from '@/generated/prisma/models'
 import type { RegisterSchema } from '@/schemas/auth.schema'
 import type { UpdateProfileSchema } from '@/schemas/user.schema'
@@ -12,7 +13,7 @@ const omit = { passwordHash: true }
 type CreateUserDTO = z.infer<typeof RegisterSchema>
 type UpdateUserDTO = z.infer<typeof UpdateProfileSchema>
 
-export async function createUser(data: CreateUserDTO, saltRounds: number) {
+export async function createUser(data: CreateUserDTO, saltRounds: number, tx: Prisma.TransactionClient = prisma) {
   const { name, email, role, password, inviteCode: _ } = data
 
   const salt = await bcrypt.genSalt(saltRounds)
@@ -32,7 +33,7 @@ export async function createUser(data: CreateUserDTO, saltRounds: number) {
       }
     : undefined
 
-  return prisma.user.create({
+  return tx.user.create({
     data: {
       name,
       email,

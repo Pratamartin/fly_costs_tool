@@ -1,13 +1,13 @@
-import type { z } from 'zod'
+import type { z } from '@hono/zod-openapi'
 import type { AppAuthPayload } from '@/lib/type'
 import type { LoginSchema } from '@/schemas/auth.schema'
 import { compare } from 'bcryptjs'
 import { sign } from 'hono/jwt'
+import { mockInviteCode } from '@/constants/invite.constant'
 import env from '@/env'
 import { getUserByEmail } from './user.service'
 
-export const mockInviteCode = 'CONVITE2026'
-
+/** @deprecated Use findActiveInvite from invite.service instead for real database validation */
 export function isInviteCodeValid(inviteCode: string): boolean {
   return inviteCode === mockInviteCode
 }
