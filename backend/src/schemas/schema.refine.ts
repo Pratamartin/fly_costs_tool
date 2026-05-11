@@ -104,8 +104,8 @@ export function minExpiryThresholdCheck() {
     const minExpiry = getInviteMinExpiry()
 
     if (value.expiresAt && !dayjs(value.expiresAt).isAfter(minExpiry)) {
-      const dataFormatada = dayjs(value.expiresAt).format('LLL')
-      const limiteFormatado = dayjs(minExpiry).format('LT')
+      const dataFormatada = dayjs.utc(value.expiresAt).format('LT')
+      const limiteFormatado = dayjs.utc(minExpiry).format('LT')
 
       ctx.addIssue({
         code: 'custom',

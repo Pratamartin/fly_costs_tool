@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
+import { INVITE_EXPIRY } from '@/constants/invite.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { requireAuth, requireRole } from '@/middlewares'
 
@@ -37,11 +38,15 @@ export const create = createRoute({
   middleware,
   security: [{ bearerAuth: [] }],
   summary: 'Create a new invite code',
-  description: 'Gera um novo código de convite aleatório para uma role específica.',
+  description: `Gera um novo código de convite aleatório para uma role específica. Se não informada, a expiração padrão é de ${INVITE_EXPIRY.DEFAULT_HOURS} horas. A data de expiração deve ser no mínimo ${INVITE_EXPIRY.MIN_MINUTES} minutos após o momento da criação e deve seguir o padrão UTC.`,
   tags,
   request: { body: jsonContentRequired(CreateInviteSchema, 'Dados do convite') },
   responses: {
     [codes.CREATED]: jsonContent(InviteResponseSchema, 'Convite criado com sucesso.'),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Dados inválidos'),
+      `Erro de validação (ex: data de expiração inferior ao mínimo de ${INVITE_EXPIRY.MIN_MINUTES} minutos).`,
+    ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
   },

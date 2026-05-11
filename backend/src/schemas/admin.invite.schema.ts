@@ -15,7 +15,10 @@ const BaseSchema = z.object({
     .openapi({ example: null })
     .default(null),
   expiresAt: z.coerce.date().default(getInviteDefaultExpiry())
-    .openapi({ example: getInviteExampleExpiry() }),
+    .openapi({
+      description: 'Data e hora de expiração do convite. Segue o padrão UTC (ISO 8601).',
+      example: getInviteExampleExpiry(),
+    }),
   status: z.enum([INVITE_STATUS.ACTIVE, INVITE_STATUS.USED, INVITE_STATUS.EXPIRED]).openapi({ example: INVITE_STATUS.ACTIVE }),
   createdAt: TimestampSchema.createdAt,
 })

@@ -13,7 +13,7 @@ export const INVITE_ERRORS = {
 
 export const INVITE_EXPIRY = {
   DEFAULT_HOURS: 24,
-  MIN_MINUTES: 10,
+  MIN_MINUTES: 30,
 } as const
 
 export const mockInviteCode = 'CONVITE2026'
