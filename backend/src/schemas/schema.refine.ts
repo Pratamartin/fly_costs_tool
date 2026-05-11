@@ -103,13 +103,13 @@ export function minExpiryThresholdCheck() {
   return (value: { expiresAt?: Date }, ctx: z.RefinementCtx) => {
     const minExpiry = getInviteMinExpiry()
 
-    if (value.expiresAt && !dayjs(value.expiresAt).isAfter(minExpiry)) {
+    if (value.expiresAt && dayjs(value.expiresAt).isBefore(minExpiry)) {
       const dataFormatada = dayjs.utc(value.expiresAt).format('LT')
       const limiteFormatado = dayjs.utc(minExpiry).format('LT')
 
       ctx.addIssue({
         code: 'custom',
-        message: `A data (${dataFormatada}) é inválida. O mínimo aceitável é às ${limiteFormatado}.`,
+        message: `A data ${dataFormatada} é inválida. O mínimo aceitável é às ${limiteFormatado}.`,
         path: ['expiresAt'],
       })
     }
