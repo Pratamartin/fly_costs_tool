@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 
 type AbaAtual = "PENDENTE" | "APROVADO" | "REJEITADO";
 
 interface CoordinatorSidebarProps {
-  active: AbaAtual;
+  active: AbaAtual | null;
   onTabChange: (tab: AbaAtual) => void;
   counts: { PENDENTE: number; APROVADO: number; REJEITADO: number };
   userName: string | null;
@@ -53,7 +54,10 @@ const NAV_ITEMS: {
 ];
 
 export default function CoordinatorSidebar({ active, onTabChange, counts, userName, onLogout }: CoordinatorSidebarProps) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const onProfile = router.pathname === "/dashboard/profile";
 
   return (
     <>
@@ -110,7 +114,7 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
             <span className="text-sm font-bold text-gray-800">SGDA</span>
           </div>
 
-          {/* Nav */}
+          {/* Tab Nav */}
           <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
             Portal do Coordenador
           </p>
@@ -136,6 +140,26 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
                 )}
               </button>
             ))}
+          </nav>
+
+          {/* Conta */}
+          <p className="mb-2 mt-6 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+            Conta
+          </p>
+          <nav>
+            <button
+              onClick={() => { router.push("/dashboard/profile"); setMobileOpen(false); }}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                onProfile
+                  ? "bg-[#1a5c38]/10 text-[#1a5c38] font-semibold"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
+              Meu Perfil
+            </button>
           </nav>
         </div>
 

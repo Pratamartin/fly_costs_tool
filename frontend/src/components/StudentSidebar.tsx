@@ -72,12 +72,29 @@ export default function StudentSidebar({ userName, onLogout }: StudentSidebarPro
           <nav className="space-y-1">
             <button
               onClick={() => { router.push("/dashboard/student"); setMobileOpen(false); }}
-              className="flex w-full items-center gap-2 rounded-lg bg-[#4F46E5]/10 px-3 py-2 text-sm font-semibold text-[#4F46E5]"
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                router.pathname === "/dashboard/student"
+                  ? "bg-[#4F46E5]/10 text-[#4F46E5]"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
               </svg>
               Minhas Solicitações
+            </button>
+            <button
+              onClick={() => { router.push("/dashboard/profile"); setMobileOpen(false); }}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                router.pathname === "/dashboard/profile"
+                  ? "bg-[#4F46E5]/10 text-[#4F46E5]"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
+              Meu Perfil
             </button>
           </nav>
         </div>
