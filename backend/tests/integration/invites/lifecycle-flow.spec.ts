@@ -1,6 +1,8 @@
+import { cpf } from 'cpf-cnpj-validator'
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { MOCK_PROFILE } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
@@ -72,11 +74,14 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
   it('[Passo 4] Novo usuário se registra e consome o código', async () => {
     const res = await authClient.auth.register.$post({
       json: {
+        ...MOCK_PROFILE,
+        cpf: cpf.generate(),
         name: 'New Student',
         email: 'new-student@test.com',
         password: 'Password123!',
         inviteCode: createdInviteCode,
         role: UserRole.ALUNO,
+        birthDate: new Date(MOCK_PROFILE.birthDate),
       },
     })
 
@@ -95,11 +100,14 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
   it('[Passo 5] Tentativa de usar o mesmo código novamente retorna 400', async () => {
     const res = await authClient.auth.register.$post({
       json: {
+        ...MOCK_PROFILE,
+        cpf: cpf.generate(),
         name: 'Another Student',
         email: 'another-student@test.com',
         password: 'Password123!',
         role: UserRole.ALUNO,
         inviteCode: createdInviteCode,
+        birthDate: new Date(MOCK_PROFILE.birthDate),
       },
     })
 
