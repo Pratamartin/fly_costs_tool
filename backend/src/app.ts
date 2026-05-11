@@ -1,6 +1,6 @@
 import { configureDocs, createApp } from './lib/config'
 import { createRouter, registerRoutes } from './lib/util'
-import { analytics, auth, expenses, health, me, projects } from './routes'
+import { admin, analytics, auth, expenses, health, me, projects } from './routes'
 
 const app = createApp()
 
@@ -13,6 +13,7 @@ registerRoutes(v1, [
   expenses,
   projects,
   analytics,
+  admin,
 ])
 
 app.route('/v1', v1)

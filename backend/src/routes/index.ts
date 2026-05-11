@@ -1,3 +1,4 @@
+export { default as admin } from './admin'
 export { default as analytics } from './analytics'
 export { default as auth } from './auth'
 export { default as expenses } from './expenses'

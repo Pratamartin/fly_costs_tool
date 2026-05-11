@@ -1,9 +1,13 @@
+import type { InviteStatus } from '@/constants/invite.constant'
 import type { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { z } from '@hono/zod-openapi'
 import countries from 'i18n-iso-countries'
 import iso31662 from 'iso-3166-2'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { INVITE_STATUS } from '@/constants/invite.constant'
+import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
+import { getInviteMinExpiry } from '@/services/invite.service'
 
 export const validStateCheck = z.refine<{ state: string }>(
   value => iso31662.subdivision(value.state) !== null,
@@ -95,3 +99,36 @@ export const validBankCode = z.string().superRefine((val, ctx) => {
     })
   }
 })
+export function minExpiryThresholdCheck() {
+  return (value: { expiresAt?: Date }, ctx: z.RefinementCtx) => {
+    const minExpiry = getInviteMinExpiry()
+
+    if (value.expiresAt && dayjs(value.expiresAt).isBefore(minExpiry)) {
+      const dataFormatada = dayjs.utc(value.expiresAt).format('LT')
+      const limiteFormatado = dayjs.utc(minExpiry).format('LT')
+
+      ctx.addIssue({
+        code: 'custom',
+        message: `A data ${dataFormatada} é inválida. O mínimo aceitável é às ${limiteFormatado}.`,
+        path: ['expiresAt'],
+      })
+    }
+  }
+}
+
+export const usedInviteFieldsRequired = z.refine<{
+  status: InviteStatus
+  usedById?: string | null
+  usedAt?: Date | null
+}>(
+  (value) => {
+    if (value.status !== INVITE_STATUS.USED)
+      return true
+
+    return !!value.usedById && !!value.usedAt
+  },
+  {
+    message: 'Dados de utilização (quem e quando) são obrigatórios para convites usados',
+    path: ['status'],
+  },
+)

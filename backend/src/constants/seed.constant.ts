@@ -23,7 +23,7 @@ const MOCK_USER = {
   name: 'João Silva',
   email: 'usuario@exemplo.com',
   password: 'P@ssw0rd123',
-  inviteCode: 'CONVITE2026',
+  inviteCode: 'aluno2026',
 } as const
 
 export {

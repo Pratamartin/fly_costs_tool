@@ -13,6 +13,7 @@
     "@prisma/client": "^7.6.0",
     "bcryptjs": "^3.0.3",
     "cpf-cnpj-validator": "^2.1.0",
+    "dayjs": "^1.11.20",
     "dotenv": "^17.4.0",
     "dotenv-expand": "^12.0.3",
     "hono": "^4.12.9",
