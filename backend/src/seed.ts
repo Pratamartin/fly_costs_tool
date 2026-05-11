@@ -1,8 +1,9 @@
 import prisma from './lib/orm'
-import { seedExpenseCategories, seedExpenses, seedProjects, seedUsers } from './seeds'
+import { seedExpenseCategories, seedExpenses, seedInviteCodes, seedProjects, seedUsers } from './seeds'
 
 async function main() {
   await seedExpenseCategories()
+  await seedInviteCodes()
   await seedProjects()
   await seedUsers()
   await seedExpenses()
