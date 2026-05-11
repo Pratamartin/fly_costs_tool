@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { register, login } from "@/services/auth";
 
@@ -98,6 +98,14 @@ export default function CadastroAluno() {
     codigoConvite: "",
   });
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    const code = router.query.code;
+    if (typeof code === "string" && code) {
+      setForm((prev) => ({ ...prev, codigoConvite: code }));
+    }
+  }, [router.isReady, router.query.code]);
+
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
@@ -126,6 +134,15 @@ export default function CadastroAluno() {
         password: form.senha,
         role: "ALUNO",
         inviteCode: form.codigoConvite,
+        cpf: form.cpf,
+        rgPassaporte: form.rgPassaporte,
+        birthDate: form.dataNascimento,
+        profession: form.profissao,
+        address: form.endereco,
+        bankCode: form.codigoBanco,
+        bankName: form.nomeBanco,
+        bankAgency: form.agenciaDigito,
+        bankAccount: form.contaDigito,
       });
 
       if (!result.ok) {
@@ -134,7 +151,7 @@ export default function CadastroAluno() {
         } else if (result.error === "INVALID_INVITE_CODE") {
           setErrors({ codigoConvite: "Código de convite inválido" });
         } else if (result.error === "VALIDATION_ERROR") {
-          setGlobalError("Dados inválidos. Verifique os campos e tente novamente.");
+          setGlobalError(result.message ?? "Dados inválidos. Verifique os campos e tente novamente.");
         } else {
           setGlobalError("Erro inesperado. Tente novamente mais tarde.");
         }

@@ -1,18 +1,37 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export type RegisterPayload = {
+export type StaffRegisterPayload = {
   name: string
   email: string
   password: string
-  role: "ALUNO" | "COORDENADOR" | "ADMIN"
+  role: "COORDENADOR" | "ADMIN"
   inviteCode: string
 }
+
+export type AlunoRegisterPayload = {
+  name: string
+  email: string
+  password: string
+  role: "ALUNO"
+  inviteCode: string
+  cpf: string
+  rgPassaporte: string
+  birthDate: string   // "YYYY-MM-DD"
+  profession: string
+  address: string
+  bankCode: string
+  bankName: string
+  bankAgency: string
+  bankAccount: string
+}
+
+export type RegisterPayload = AlunoRegisterPayload | StaffRegisterPayload
 
 export type RegisterError = "EMAIL_CONFLICT" | "INVALID_INVITE_CODE" | "VALIDATION_ERROR" | "UNKNOWN"
 
 export type RegisterResult =
   | { ok: true }
-  | { ok: false; error: RegisterError }
+  | { ok: false; error: RegisterError; message?: string }
 
 export type LoginPayload = {
   email: string
@@ -35,7 +54,10 @@ export async function register(payload: RegisterPayload): Promise<RegisterResult
   if (res.status === 201) return { ok: true }
   if (res.status === 409) return { ok: false, error: "EMAIL_CONFLICT" }
   if (res.status === 400) return { ok: false, error: "INVALID_INVITE_CODE" }
-  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  if (res.status === 422) {
+    const body = await res.json().catch(() => ({}))
+    return { ok: false, error: "VALIDATION_ERROR", message: body?.message }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 
