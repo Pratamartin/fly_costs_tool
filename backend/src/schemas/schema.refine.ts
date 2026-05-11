@@ -58,3 +58,40 @@ export function validPDFCheck(maxSizeInMB: number) {
     }
   }
 }
+
+export function maskBankAccountTransform(val: string | undefined): string | undefined {
+  if (!val)
+    return val
+  return val.length > 4 ? `****${val.slice(-4)}` : '****'
+}
+
+export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
+  const today = new Date()
+
+  const minDate = new Date(today.getFullYear() - 120, today.getMonth(), today.getDate())
+
+  const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
+
+  if (date > maxDate) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Você precisa ter pelo menos 18 anos para se cadastrar.',
+    })
+  }
+
+  if (date < minDate) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Data de nascimento inválida (limite de 120 anos).',
+    })
+  }
+})
+
+export const validBankCode = z.string().superRefine((val, ctx) => {
+  if (!/^\d{3}$/.test(val)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Código de banco inválido. Utilize um código COMPE de 3 dígitos (ex: 001).',
+    })
+  }
+})

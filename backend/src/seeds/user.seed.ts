@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import type { Prisma } from '@/generated/prisma/client'
 import { genSalt, hash } from 'bcryptjs'
-import { DEFAULT_USER_PASSWORD, ID_ALUNO } from '@/constants/seed.constant'
+import { DEFAULT_USER_PASSWORD, ID_ALUNO, MOCK_PROFILE } from '@/constants/seed.constant'
 import env from '@/env'
 import { UserRole } from '@/generated/prisma/client'
 import prisma from '@/lib/orm'
@@ -14,7 +14,7 @@ export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
     role: UserRole.COORDENADOR,
   },
   {
-    id: 'a1b2c3d4-e5f6-4g7h-8i9j-0k1l2m3n4o5p',
+    id: '48d413bc-0566-444e-9648-303506d50a61',
     email: 'admin@test.com',
     name: 'Administrador',
     role: UserRole.ADMIN,
@@ -24,6 +24,15 @@ export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
     email: 'aluno@test.com',
     name: 'Codibentinho',
     role: UserRole.ALUNO,
+    profile: {
+      connectOrCreate: {
+        where: { userId: ID_ALUNO },
+        create: {
+          ...MOCK_PROFILE,
+          birthDate: new Date(MOCK_PROFILE.birthDate),
+        },
+      },
+    },
   },
 ]
 

@@ -29,6 +29,7 @@
     "@scalar/hono-api-reference": "^0.10.5",
     "@types/iso-3166-2": "^1.0.4",
     "bcryptjs": "^3.0.3",
+    "cpf-cnpj-validator": "^2.1.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.0",
     "dotenv-expand": "^12.0.3",

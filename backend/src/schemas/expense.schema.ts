@@ -6,10 +6,10 @@ import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
 import ProjectSchema from './project.schema'
 import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validPDFCheck, validStateCheck } from './schema.refine'
 import { FileItemSchema, IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
-import { UserProfileSchema } from './user.schema'
+import { UserSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
-  student: UserProfileSchema.pick({
+  student: UserSchema.pick({
     id: true,
     name: true,
   }).optional(),

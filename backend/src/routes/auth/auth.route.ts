@@ -14,7 +14,7 @@ export const register = createRoute({
   path: '/register',
   method: 'post',
   summary: 'Register user',
-  description: 'Registrar um novo usuário no sistema.',
+  description: 'Registra um novo usuário no sistema. O payload exigido varia de acordo com o papel: Alunos devem enviar dados de perfil completos. Coordenadores e Admins exigem apenas credenciais básicas.',
   tags,
   request: { body: jsonContentRequired(RegisterSchema, 'User credentials') },
   responses: {
