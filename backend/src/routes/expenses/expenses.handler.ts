@@ -40,7 +40,15 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
     return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
   }
 
-  const parsed = ExpenseResponseSchema.parse(data)
+  const payload = {
+    ...data,
+    costBreakdowns: data.costBreakdowns?.map(cb => ({
+      ...cb,
+      subcategory: cb.expenseCategory,
+    })),
+  }
+
+  const parsed = ExpenseResponseSchema.parse(payload)
   return c.json(parsed, codes.OK)
 }
 

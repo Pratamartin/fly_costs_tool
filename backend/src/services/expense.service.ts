@@ -30,6 +30,7 @@ export const expenseInclude = {
   costBreakdowns: {
     select: {
       id: true,
+      expenseRequestId: true,
       amount: true,
       expenseCategory: {
         select: {
