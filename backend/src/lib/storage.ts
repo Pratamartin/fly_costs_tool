@@ -34,7 +34,9 @@ function getClient(): S3Client {
 export type UploadFileOptions = {
   file: File
   contentType: string
-  folder: 'memorandos' | 'admin-attachments'
+  folder: 'memorandos' | 'comprovantes'
+  subfolder?: string
+  prefix?: string
 }
 
 export type UploadFileResult = {
@@ -44,10 +46,13 @@ export type UploadFileResult = {
 }
 
 export async function uploadFile(options: UploadFileOptions): Promise<UploadFileResult> {
-  const { file, contentType, folder } = options
+  const { file, contentType, folder, subfolder, prefix } = options
   const uniqueId = crypto.randomUUID()
   const sanitizedFileName = file.name.replace(FILENAME_SANITIZE_REGEX, '_')
-  const fileKey = `${folder}/${uniqueId}-${sanitizedFileName}`
+
+  const path = subfolder ? `${folder}/${subfolder}` : folder
+  const fileName = prefix ? `${prefix}_${uniqueId}-${sanitizedFileName}` : `${uniqueId}-${sanitizedFileName}`
+  const fileKey = `${path}/${fileName}`
 
   const command = new PutObjectCommand({
     Bucket: env.R2_BUCKET_NAME!,

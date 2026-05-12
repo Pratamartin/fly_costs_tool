@@ -4,6 +4,7 @@ import { z } from '@hono/zod-openapi'
 import countries from 'i18n-iso-countries'
 import iso31662 from 'iso-3166-2'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { ALLOWED_RECEIPT_MIME_TYPES } from '@/constants/file.constant'
 import { INVITE_STATUS } from '@/constants/invite.constant'
 import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
@@ -133,3 +134,24 @@ export const usedInviteFieldsRequired = z.refine<{
     path: ['status'],
   },
 )
+
+export function validReceiptFileCheck(maxSizeInMB: number) {
+  const maxSizeBytes = maxSizeInMB * 1024 * 1024
+
+  return (value: File, ctx: z.RefinementCtx) => {
+    if (value.size > maxSizeBytes) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Arquivo excede o tamanho máximo de ${maxSizeInMB}MB`,
+      })
+      return
+    }
+
+    if (!(ALLOWED_RECEIPT_MIME_TYPES as readonly string[]).includes(value.type)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Formato de arquivo não suportado. Use PDF ou Imagens (JPG, PNG).',
+      })
+    }
+  }
+}

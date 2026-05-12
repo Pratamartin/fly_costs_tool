@@ -38,6 +38,7 @@ export const expenseInclude = {
           normalizedName: true,
         },
       },
+      attachmentKey: true,
     },
   },
 } satisfies Prisma.ExpenseRequestInclude
