@@ -17,7 +17,7 @@ const BaseSchema = z.object({
     .openapi({ example: 150.50 }),
   attachmentKey: z.string().nullable()
     .optional()
-    .openapi({ description: 'Chave do comprovante no armazenamento R2' }),
+    .openapi({ description: 'Chave do comprovante no armazenamento R2. Pode ser usado no cadastro para reaproveitar um arquivo já enviado anteriormente.' }),
 })
 
 export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true })
