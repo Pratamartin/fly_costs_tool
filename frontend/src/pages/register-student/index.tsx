@@ -30,6 +30,21 @@ function validateSenha(senha: string): string | null {
   return null;
 }
 
+function validateCpf(cpf: string): boolean {
+  const digits = cpf.replace(/\D/g, "");
+  if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(digits[i]) * (10 - i);
+  let r = (sum * 10) % 11;
+  if (r === 10 || r === 11) r = 0;
+  if (r !== Number(digits[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(digits[i]) * (11 - i);
+  r = (sum * 10) % 11;
+  if (r === 10 || r === 11) r = 0;
+  return r === Number(digits[10]);
+}
+
 function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
 
@@ -42,19 +57,26 @@ function validateForm(form: FormState): FormErrors {
 
   if (!form.cpf.trim()) {
     errors.cpf = "CPF obrigatório";
-  } else if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(form.cpf) && !/^\d{11}$/.test(form.cpf.replace(/\D/g, ""))) {
-    errors.cpf = "CPF inválido (formato: 000.000.000-00)";
+  } else if (!validateCpf(form.cpf)) {
+    errors.cpf = "CPF inválido";
   }
 
-  if (!form.dataNascimento) errors.dataNascimento = "Data de nascimento obrigatória";
-  else if (new Date(form.dataNascimento) > new Date()) errors.dataNascimento = "Data não pode ser futura";
+  if (!form.dataNascimento) {
+    errors.dataNascimento = "Data de nascimento obrigatória";
+  } else {
+    const date = new Date(form.dataNascimento);
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() - 18);
+    if (date > maxDate) errors.dataNascimento = "Você precisa ter pelo menos 18 anos";
+  }
 
   if (!form.profissao.trim()) errors.profissao = "Profissão obrigatória";
 
   if (!form.endereco.trim()) errors.endereco = "Endereço obrigatório";
+  else if (form.endereco.trim().length < 5) errors.endereco = "Endereço muito curto (mínimo 5 caracteres)";
 
   if (!form.codigoBanco.trim()) errors.codigoBanco = "Código do banco obrigatório";
-  else if (!/^\d+$/.test(form.codigoBanco.trim())) errors.codigoBanco = "Apenas números";
+  else if (!/^\d{3}$/.test(form.codigoBanco.trim())) errors.codigoBanco = "Código COMPE com 3 dígitos (ex: 001)";
 
   if (!form.nomeBanco.trim()) errors.nomeBanco = "Nome do banco obrigatório";
 
@@ -200,10 +222,10 @@ export default function CadastroAluno() {
             </svg>
           </div>
           <h1 className="mt-3 text-2xl font-bold text-gray-900">
-            Complete Your Student Registration
+            Complete seu Cadastro de Aluno
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Fill in your details to set up your academic expense account
+            Preencha seus dados para configurar sua conta de despesas acadêmicas
           </p>
         </div>
 
@@ -224,11 +246,11 @@ export default function CadastroAluno() {
                     <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
                   </svg>
                 </span>
-                Account Information
+                Informações da Conta
               </h2>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[#4F46E5]">
-                  Email Address
+                  Endereço de E-mail
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -248,7 +270,7 @@ export default function CadastroAluno() {
                 </div>
                 {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                 <p className="mt-1 text-xs text-gray-400">
-                  This email will be used to access your account
+                  Este e-mail será usado para acessar sua conta
                 </p>
               </div>
             </div>
@@ -264,14 +286,14 @@ export default function CadastroAluno() {
                     <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z" />
                   </svg>
                 </span>
-                Personal Information
+                Informações Pessoais
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Full Name */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Full Name <span className="text-red-500">*</span>
+                    Nome Completo <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -284,7 +306,7 @@ export default function CadastroAluno() {
                       name="nomeCompleto"
                       value={form.nomeCompleto}
                       onChange={handleChange}
-                      placeholder="Enter your full name"
+                      placeholder="Digite seu nome completo"
                       className={inputClass("nomeCompleto")}
                     />
                   </div>
@@ -294,7 +316,7 @@ export default function CadastroAluno() {
                 {/* ID/Passport */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    ID/Passport Number <span className="text-red-500">*</span>
+                    RG ou Passaporte <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -307,7 +329,7 @@ export default function CadastroAluno() {
                       name="rgPassaporte"
                       value={form.rgPassaporte}
                       onChange={handleChange}
-                      placeholder="ID or Passport number"
+                      placeholder="Número do RG ou Passaporte"
                       className={inputClass("rgPassaporte")}
                     />
                   </div>
@@ -340,14 +362,9 @@ export default function CadastroAluno() {
                 {/* Date of Birth */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Date of Birth <span className="text-red-500">*</span>
+                    Data de Nascimento <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                        <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clipRule="evenodd" />
-                      </svg>
-                    </span>
                     <input
                       type="date"
                       name="dataNascimento"
@@ -366,7 +383,7 @@ export default function CadastroAluno() {
                 {/* Profession */}
                 <div className="col-span-2">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Profession <span className="text-red-500">*</span>
+                    Profissão <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -380,7 +397,7 @@ export default function CadastroAluno() {
                       name="profissao"
                       value={form.profissao}
                       onChange={handleChange}
-                      placeholder="e.g., Computer Science Student"
+                      placeholder="ex: Estudante de Ciências da Computação"
                       className={inputClass("profissao")}
                     />
                   </div>
@@ -390,7 +407,7 @@ export default function CadastroAluno() {
                 {/* Address */}
                 <div className="col-span-2">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Address <span className="text-red-500">*</span>
+                    Endereço <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute top-3 left-3 text-gray-400">
@@ -402,7 +419,7 @@ export default function CadastroAluno() {
                       name="endereco"
                       value={form.endereco}
                       onChange={handleChange}
-                      placeholder="Enter your complete address"
+                      placeholder="Digite seu endereço completo"
                       rows={3}
                       className={textareaClass("endereco")}
                     />
@@ -422,14 +439,14 @@ export default function CadastroAluno() {
                     <path fillRule="evenodd" d="M8.5 1.709a1 1 0 0 0-1 0L1.63 5.384A1 1 0 0 0 2.13 7H3v5H2a.75.75 0 0 0 0 1.5h12A.75.75 0 0 0 14 12h-1V7h.87a1 1 0 0 0 .5-1.866L8.5 1.709ZM9.25 12V7h-2.5v5h2.5ZM5.25 7v5h-1V7h1Zm6.5 5V7h-1v5h1Z" clipRule="evenodd" />
                   </svg>
                 </span>
-                Bank Details
+                Dados Bancários
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Bank Code */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Bank Code <span className="text-red-500">*</span>
+                    Código do Banco <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -452,7 +469,7 @@ export default function CadastroAluno() {
                 {/* Bank Name */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Bank Name <span className="text-red-500">*</span>
+                    Nome do Banco <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -475,7 +492,7 @@ export default function CadastroAluno() {
                 {/* Agency */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Agency + Digit <span className="text-red-500">*</span>
+                    Agência + Dígito <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -498,7 +515,7 @@ export default function CadastroAluno() {
                 {/* Account */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Account Number + Digit <span className="text-red-500">*</span>
+                    Conta + Dígito <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -530,14 +547,14 @@ export default function CadastroAluno() {
                     <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
                   </svg>
                 </span>
-                Security
+                Segurança
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Password */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Password <span className="text-red-500">*</span>
+                    Senha <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -550,7 +567,7 @@ export default function CadastroAluno() {
                       name="senha"
                       value={form.senha}
                       onChange={handleChange}
-                      placeholder="Create a strong password"
+                      placeholder="Crie uma senha forte"
                       className={`w-full rounded-lg border py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
                         errors.senha
                           ? "border-red-400 focus:border-red-500 focus:ring-red-200"
@@ -577,14 +594,14 @@ export default function CadastroAluno() {
                   </div>
                   {errors.senha
                     ? <p className="mt-1 text-xs text-red-500">{errors.senha}</p>
-                    : <p className="mt-1 text-xs text-gray-400">Minimum 8 characters with letters and numbers</p>
+                    : <p className="mt-1 text-xs text-gray-400">Mínimo 8 caracteres com letras e números</p>
                   }
                 </div>
 
                 {/* Confirm Password */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Confirm Password <span className="text-red-500">*</span>
+                    Confirmar Senha <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -597,7 +614,7 @@ export default function CadastroAluno() {
                       name="confirmarSenha"
                       value={form.confirmarSenha}
                       onChange={handleChange}
-                      placeholder="Re-enter your password"
+                      placeholder="Digite sua senha novamente"
                       className={`w-full rounded-lg border py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
                         errors.confirmarSenha
                           ? "border-red-400 focus:border-red-500 focus:ring-red-200"
@@ -628,7 +645,7 @@ export default function CadastroAluno() {
                 {/* Invite Code */}
                 <div className="col-span-2">
                   <label className="mb-1 block text-xs font-medium text-gray-600">
-                    Invite Code <span className="text-red-500">*</span>
+                    Código de Convite <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -642,7 +659,7 @@ export default function CadastroAluno() {
                       name="codigoConvite"
                       value={form.codigoConvite}
                       onChange={handleChange}
-                      placeholder="Enter your invite code"
+                      placeholder="Digite seu código de convite"
                       className={inputClass("codigoConvite")}
                     />
                   </div>
@@ -662,31 +679,31 @@ export default function CadastroAluno() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Processing...
+                  Processando...
                 </>
               ) : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                   </svg>
-                  Complete Registration
+                  Concluir Cadastro
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-5 text-center text-xs text-gray-400">
-            By registering, you agree to our{" "}
-            <a href="#" className="text-[#4F46E5] hover:underline">Terms of Service</a>{" "}
-            and{" "}
-            <a href="#" className="text-[#4F46E5] hover:underline">Privacy Policy</a>
+            Ao se cadastrar, você concorda com nossos{" "}
+            <a href="#" className="text-[#4F46E5] hover:underline">Termos de Serviço</a>{" "}
+            e{" "}
+            <a href="#" className="text-[#4F46E5] hover:underline">Política de Privacidade</a>
           </p>
         </div>
 
         <p className="mt-5 text-center text-sm text-gray-500">
-          Already have an account?{" "}
+          Já tem uma conta?{" "}
           <a href="/login" className="font-medium text-[#4F46E5] hover:underline">
-            Sign in here
+            Entre aqui
           </a>
         </p>
       </div>
