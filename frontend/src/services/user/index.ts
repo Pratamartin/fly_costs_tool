@@ -5,27 +5,26 @@ export type UserProfile = {
   name: string
   email: string
   role: "ALUNO" | "COORDENADOR" | "ADMIN"
+  isActive: boolean
   createdAt: string
   updatedAt: string
-  // Extended fields — optional until backend supports them
-  recoveryEmail?: string
-  cpf?: string
-  passport?: string
-  dateOfBirth?: string
-  profession?: string
-  address?: string
-  bankCode?: string
-  bankName?: string
-  bankAgency?: string
-  bankAccount?: string
+  // flattened from profile (null for non-ALUNO roles)
+  cpf?: string | null
+  rgPassaporte?: string | null
+  birthDate?: string | null
+  profession?: string | null
+  address?: string | null
+  bankCode?: string | null
+  bankName?: string | null
+  bankAgency?: string | null
+  bankAccount?: string | null
 }
 
 export type UpdateProfileData = {
   name?: string
-  recoveryEmail?: string
   cpf?: string
-  passport?: string
-  dateOfBirth?: string
+  rgPassaporte?: string
+  birthDate?: string
   profession?: string
   address?: string
   bankCode?: string
@@ -39,7 +38,7 @@ export type GetMeResult =
   | { ok: true; data: UserProfile }
   | { ok: false; error: GetMeError }
 
-export type UpdateProfileError = "UNAUTHORIZED" | "VALIDATION_ERROR" | "UNKNOWN"
+export type UpdateProfileError = "UNAUTHORIZED" | "FORBIDDEN" | "CONFLICT" | "VALIDATION_ERROR" | "UNKNOWN"
 export type UpdateProfileResult =
   | { ok: true; data: UserProfile }
   | { ok: false; error: UpdateProfileError; fieldErrors?: Record<string, string> }
@@ -54,8 +53,8 @@ export async function getMe(token: string): Promise<GetMeResult> {
   })
 
   if (res.status === 200) {
-    const data = await res.json()
-    return { ok: true, data }
+    const { profile, ...rest } = await res.json()
+    return { ok: true, data: { ...rest, ...profile } }
   }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
@@ -73,10 +72,12 @@ export async function updateProfile(token: string, data: UpdateProfileData): Pro
   })
 
   if (res.status === 200) {
-    const body = await res.json()
-    return { ok: true, data: body }
+    const { profile, ...rest } = await res.json()
+    return { ok: true, data: { ...rest, ...profile } }
   }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
   if (res.status === 400 || res.status === 422) {
     try {
       const body = await res.json()

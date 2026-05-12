@@ -10,6 +10,7 @@ import {
   type InviteStatus,
   type InviteRole,
 } from "@/services/invites";
+import { getMe } from "@/services/user";
 
 const ROLE_LABEL: Record<InviteRole, string> = {
   ALUNO: "Aluno",
@@ -93,7 +94,16 @@ export default function AdminMembers() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") ?? "" : "";
-  const userName = typeof window !== "undefined" ? (localStorage.getItem("userName") ?? undefined) : undefined;
+  const [userName, setUserName] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const t = localStorage.getItem("accessToken");
+    if (!t) { router.push("/login"); return; }
+    getMe(t).then((r) => {
+      if (!r.ok) { localStorage.removeItem("accessToken"); router.push("/login"); }
+      else setUserName(r.data.name);
+    });
+  }, []);
 
   useEffect(() => {
     if (!token) { router.push("/login"); return; }

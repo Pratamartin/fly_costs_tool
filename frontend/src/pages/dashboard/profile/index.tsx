@@ -11,10 +11,9 @@ import { getMe, updateProfile, type UserProfile, type UpdateProfileData } from "
 
 interface PersonalForm {
   name: string;
-  recoveryEmail: string;
   cpf: string;
-  passport: string;
-  dateOfBirth: string;
+  rgPassaporte: string;
+  birthDate: string;
   profession: string;
   address: string;
 }
@@ -59,10 +58,9 @@ function roleAvatarClass(role: UserProfile["role"]) {
 function profileToPersonalForm(p: UserProfile): PersonalForm {
   return {
     name: p.name ?? "",
-    recoveryEmail: p.recoveryEmail ?? "",
     cpf: p.cpf ?? "",
-    passport: p.passport ?? "",
-    dateOfBirth: p.dateOfBirth ?? "",
+    rgPassaporte: p.rgPassaporte ?? "",
+    birthDate: p.birthDate ?? "",
     profession: p.profession ?? "",
     address: p.address ?? "",
   };
@@ -230,7 +228,7 @@ export default function ProfilePage() {
   const [carregando, setCarregando] = useState(true);
 
   // Personal section
-  const [personalForm, setPersonalForm] = useState<PersonalForm>({ name: "", recoveryEmail: "", cpf: "", passport: "", dateOfBirth: "", profession: "", address: "" });
+  const [personalForm, setPersonalForm] = useState<PersonalForm>({ name: "", cpf: "", rgPassaporte: "", birthDate: "", profession: "", address: "" });
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [personalErrors, setPersonalErrors] = useState<Partial<Record<keyof PersonalForm, string>>>({});
@@ -291,9 +289,6 @@ export default function ProfilePage() {
   async function savePersonal() {
     const errors: Partial<Record<keyof PersonalForm, string>> = {};
     if (!personalForm.name.trim()) errors.name = "Nome é obrigatório";
-    if (personalForm.recoveryEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalForm.recoveryEmail)) {
-      errors.recoveryEmail = "E-mail inválido";
-    }
     if (Object.keys(errors).length > 0) {
       setPersonalErrors(errors);
       return;
@@ -303,14 +298,16 @@ export default function ProfilePage() {
     if (!token) return;
 
     setSavingPersonal(true);
+    const isAluno = userProfile?.role === "ALUNO";
     const data: UpdateProfileData = {
       name: personalForm.name,
-      recoveryEmail: personalForm.recoveryEmail || undefined,
-      cpf: personalForm.cpf || undefined,
-      passport: personalForm.passport || undefined,
-      dateOfBirth: personalForm.dateOfBirth || undefined,
-      profession: personalForm.profession || undefined,
-      address: personalForm.address || undefined,
+      ...(isAluno && {
+        cpf: personalForm.cpf || undefined,
+        rgPassaporte: personalForm.rgPassaporte || undefined,
+        birthDate: personalForm.birthDate || undefined,
+        profession: personalForm.profession || undefined,
+        address: personalForm.address || undefined,
+      }),
     };
 
     const result = await updateProfile(token, data);
@@ -324,14 +321,17 @@ export default function ProfilePage() {
     } else if (result.error === "UNAUTHORIZED") {
       localStorage.removeItem("accessToken");
       router.push("/login");
+    } else if (result.error === "FORBIDDEN") {
+      showToast("Sem permissão para editar dados de perfil.", "error");
+      setEditingPersonal(false);
+    } else if (result.error === "CONFLICT") {
+      setPersonalErrors({ cpf: "Este CPF já está cadastrado por outro usuário." });
+      showToast("CPF já cadastrado.", "error");
     } else if (result.error === "VALIDATION_ERROR" && result.fieldErrors) {
       setPersonalErrors(result.fieldErrors as Partial<Record<keyof PersonalForm, string>>);
       showToast("Corrija os campos destacados", "error");
     } else {
-      // API not ready — update local state optimistically
-      setUserProfile((prev) => prev ? { ...prev, ...data } : prev);
-      setEditingPersonal(false);
-      showToast("Informações salvas localmente", "success");
+      showToast("Erro ao salvar. Tente novamente.", "error");
     }
   }
 
@@ -375,9 +375,7 @@ export default function ProfilePage() {
       setBankErrors(result.fieldErrors as Partial<Record<keyof BankForm, string>>);
       showToast("Corrija os campos destacados", "error");
     } else {
-      setUserProfile((prev) => prev ? { ...prev, ...data } : prev);
-      setEditingBank(false);
-      showToast("Dados bancários salvos localmente", "success");
+      showToast("Erro ao salvar dados bancários. Tente novamente.", "error");
     }
   }
 
@@ -497,27 +495,33 @@ export default function ProfilePage() {
                     <FormField label="Nome Completo *" value={personalForm.name} onChange={(v) => setPersonalField("name", v)} error={personalErrors.name} />
                   </div>
                   <FormField label="E-mail Principal" value={userProfile.email} onChange={() => {}} placeholder="Não editável" />
-                  <FormField label="E-mail de Recuperação" value={personalForm.recoveryEmail} onChange={(v) => setPersonalField("recoveryEmail", v)} type="email" placeholder="recuperacao@email.com" error={personalErrors.recoveryEmail} />
-                  <FormField label="CPF" value={personalForm.cpf} onChange={(v) => setPersonalField("cpf", v)} placeholder="000.000.000-00" error={personalErrors.cpf} />
-                  <FormField label="RG / Passaporte" value={personalForm.passport} onChange={(v) => setPersonalField("passport", v)} error={personalErrors.passport} />
-                  <FormField label="Data de Nascimento" value={personalForm.dateOfBirth} onChange={(v) => setPersonalField("dateOfBirth", v)} placeholder="DD/MM/AAAA" error={personalErrors.dateOfBirth} />
-                  <FormField label="Profissão" value={personalForm.profession} onChange={(v) => setPersonalField("profession", v)} error={personalErrors.profession} />
-                  <div className="col-span-1 sm:col-span-2">
-                    <FormField label="Endereço Completo" value={personalForm.address} onChange={(v) => setPersonalField("address", v)} error={personalErrors.address} />
-                  </div>
+                  {isAluno && (
+                    <>
+                      <FormField label="CPF" value={personalForm.cpf} onChange={(v) => setPersonalField("cpf", v)} placeholder="000.000.000-00" error={personalErrors.cpf} />
+                      <FormField label="RG / Passaporte" value={personalForm.rgPassaporte} onChange={(v) => setPersonalField("rgPassaporte", v)} error={personalErrors.rgPassaporte} />
+                      <FormField label="Data de Nascimento" value={personalForm.birthDate} onChange={(v) => setPersonalField("birthDate", v)} type="date" error={personalErrors.birthDate} />
+                      <FormField label="Profissão" value={personalForm.profession} onChange={(v) => setPersonalField("profession", v)} error={personalErrors.profession} />
+                      <div className="col-span-1 sm:col-span-2">
+                        <FormField label="Endereço Completo" value={personalForm.address} onChange={(v) => setPersonalField("address", v)} error={personalErrors.address} />
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-x-8 gap-y-5 px-6 py-5 sm:grid-cols-2">
                   <InfoField label="Nome Completo" value={userProfile.name} />
                   <InfoField label="E-mail Principal" value={userProfile.email} />
-                  <InfoField label="E-mail de Recuperação" value={userProfile.recoveryEmail ?? ""} />
-                  <InfoField label="CPF" value={userProfile.cpf ?? ""} />
-                  <InfoField label="RG / Passaporte" value={userProfile.passport ?? ""} />
-                  <InfoField label="Data de Nascimento" value={userProfile.dateOfBirth ?? ""} />
-                  <InfoField label="Profissão" value={userProfile.profession ?? ""} />
-                  <div className="col-span-1 sm:col-span-2">
-                    <InfoField label="Endereço" value={userProfile.address ?? ""} />
-                  </div>
+                  {isAluno && (
+                    <>
+                      <InfoField label="CPF" value={userProfile.cpf ?? ""} />
+                      <InfoField label="RG / Passaporte" value={userProfile.rgPassaporte ?? ""} />
+                      <InfoField label="Data de Nascimento" value={userProfile.birthDate ?? ""} />
+                      <InfoField label="Profissão" value={userProfile.profession ?? ""} />
+                      <div className="col-span-1 sm:col-span-2">
+                        <InfoField label="Endereço" value={userProfile.address ?? ""} />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </SectionCard>
