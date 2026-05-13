@@ -50,6 +50,7 @@ enum ExpenseRequestStatus {
   APROVADO
   REJEITADO
   EM_PROCESSAMENTO
+  EM_EDICAO
 }
 
 model ExpenseCategory {
@@ -85,6 +86,8 @@ model ExpenseRequest {
   project   Project? @relation(fields: [projectId], references: [id])
 
   rejectionReason String?
+  correctionReason String?
+
 
   /// Chave do objeto no bucket R2 (ex.: memorandos/uuid-nome.pdf)
   attachmentKey String?
