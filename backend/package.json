@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "prebuild": "prisma generate",
+    "typecheck": "prisma generate && tsc --noEmit",
     "build": "tsc && tsc-alias",
     "start": "node dist/src/index.js",
     "pretest": "cross-env NODE_ENV=test prisma generate",

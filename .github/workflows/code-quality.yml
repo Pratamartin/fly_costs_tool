@@ -1,0 +1,45 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  backend-code-quality:
+    name: Backend Code Quality
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development
+      DATABASE_URL: "dummy-url-just-to-generate-prisma-client"
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: 3. Install Dependencies
+        run: npm ci
+
+      - name: 4. Run Linter
+        run: npm run lint
+
+      - name: 5. Run Typecheck
+        run: npm run typecheck
+
+      - name: 6. Run Build
+        run: npm run build

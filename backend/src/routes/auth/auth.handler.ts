@@ -21,10 +21,7 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
       return { error: 'Código de convite inválido ou expirado' }
     }
 
-    const newUser = await createUser({
-      ...data,
-      role: invite.role,
-    }, env.SALT_ROUNDS, tx)
+    const newUser = await createUser(data, env.SALT_ROUNDS, tx)
 
     const consumeResult = await validateAndConsume(data.inviteCode, newUser.id, tx)
     if ('error' in consumeResult) {

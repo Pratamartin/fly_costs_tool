@@ -91,8 +91,9 @@ export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
   }
 })
 
+const bankCodeRegex = /^\d{3}$/
 export const validBankCode = z.string().superRefine((val, ctx) => {
-  if (!/^\d{3}$/.test(val)) {
+  if (!bankCodeRegex.test(val)) {
     ctx.addIssue({
       code: 'custom',
       message: 'Código de banco inválido. Utilize um código COMPE de 3 dígitos (ex: 001).',
