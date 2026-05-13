@@ -6,7 +6,7 @@ import { UserRole } from '@/generated/prisma/enums'
 import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole } from '@/middlewares'
 import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
-import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
+import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
 import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
@@ -14,6 +14,7 @@ const tags = ['Expenses']
 export type CreateRoute = typeof create
 export type IndexRoute = typeof index
 export type ReadRoute = typeof read
+export type UpdateRoute = typeof update
 export type UpdateStatusRoute = typeof updateStatus
 export type AssignProjectRoute = typeof assignProject
 export type UploadMemorandumRoute = typeof uploadMemorandum
@@ -77,6 +78,31 @@ export const read = createRoute({
   },
 })
 
+export const update = createRoute({
+  path: '/{id}',
+  method: 'patch',
+  middleware: [requireAuth, requireRole(ALLOWED_ROLES)],
+  security: [{ bearerAuth: [] }],
+  summary: 'Update expense',
+  description: `
+    Permite que o aluno atualize os dados de uma solicitação que está no status 'EM_EDICAO'.
+    Ao salvar, o status retorna para 'PENDENTE' e o motivo de correção é limpo.
+  `,
+  tags,
+  request: {
+    params: z.object({ id: IdSchema }),
+    body: jsonContentRequired(UpdateExpenseSchema, 'Dados atualizados da solicitação'),
+  },
+  responses: {
+    [codes.OK]: jsonContent(ExpenseResponseSchema, 'Solicitação atualizada com sucesso.'),
+    [codes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Despesa não encontrada'), 'ID inválido.'),
+    [codes.BAD_REQUEST]: jsonContent(createMessageObjectSchema('Dados inválidos'), 'Erro de validação ou lógica de negócio.'),
+    [codes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Sem permissão'), 'Somente o aluno dono pode editar.'),
+    [codes.CONFLICT]: jsonContent(createMessageObjectSchema('Estado inválido'), 'Só é possível editar solicitações em estado de edição.'),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+  },
+})
+
 const EVALUATOR_ROLES: UserRole[] = ['COORDENADOR', 'ADMIN']
 export const updateStatus = createRoute({
   path: '/{id}/status',
@@ -85,8 +111,9 @@ export const updateStatus = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'Update expense status',
   description: `
-    Permite atualizar o status de uma despesa existente.
-    Restrito a usuários com perfil: ${EVALUATOR_ROLES.join(', ')}.
+    Permite atualizar o status de uma despesa.
+    Fluxo: PENDENTE -> APROVADO/REJEITADO (Coordenador/Admin).
+    Após aprovado, o Admin pode transicionar para EM_EDICAO (devolvendo ao aluno).
   `,
   tags,
   request: {
@@ -102,9 +129,13 @@ export const updateStatus = createRoute({
       createMessageObjectSchema('Despesa não encontrada'),
       'Nenhuma solicitação encontrada com o ID fornecido.',
     ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Dados inválidos'),
+      'O motivo é obrigatório para o status selecionado.',
+    ),
     [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Solicitação já foi decidida'),
-      'A despesa não está mais pendente e não pode ter seu status alterado.',
+      createMessageObjectSchema('Transição inválida'),
+      'A transição de status solicitada não é permitida pelo fluxo de negócio.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
@@ -118,9 +149,9 @@ export const assignProject = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'Assign Project to Expense',
   description: `
-    Vincula um projeto específico a uma solicitação de despesa previamente aprovada. 
-    A operação valida se o projeto possui saldo disponível, associa o projeto à solicitação e transiciona o status da despesa para 'EM_PROCESSAMENTO'.
-    Acesso restrito ao perfil: ADMIN.
+    Vincula um projeto a uma solicitação APROVADA.
+    A transição altera o status para 'EM_PROCESSAMENTO'.
+    Acesso restrito ao ADMIN.
   `,
   tags,
   request: {
@@ -141,7 +172,7 @@ export const assignProject = createRoute({
     ),
     [codes.CONFLICT]: jsonContent(
       createMessageObjectSchema('Operação inválida'),
-      'A solicitação não está com status APROVADO, o projeto está arquivado ou o projeto não possui budget suficiente.',
+      'A solicitação não está com status APROVADO ou houve erro de saldo/arquivamento.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
