@@ -11,6 +11,7 @@ import {
   type Expense,
 } from "@/services/expenses";
 import { listProjects, type Project } from "@/services/projects";
+import { listCategories, type ExpenseCategory } from "@/services/categories";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -133,8 +134,12 @@ export default function ExpenseDetalhe() {
   const [vinculando, setVinculando] = useState(false);
   const [erroVincular, setErroVincular] = useState<string | null>(null);
 
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [carregandoCategorias, setCarregandoCategorias] = useState(false);
+
   const [cbSubcategoria, setCbSubcategoria] = useState("");
   const [cbValor, setCbValor] = useState("");
+  const [cbAnexo, setCbAnexo] = useState<File | null>(null);
   const [adicionandoCusto, setAdicionandoCusto] = useState(false);
   const [erroCusto, setErroCusto] = useState<string | null>(null);
   const [baixandoMemorandum, setBaixandoMemorandum] = useState(false);
@@ -174,6 +179,12 @@ export default function ExpenseDetalhe() {
       if (result.data.status === "APROVADO") {
         const projResult = await listProjects(token, { isActive: true });
         if (projResult.ok) setProjects(projResult.data);
+      }
+      if (result.data.status === "EM_PROCESSAMENTO") {
+        setCarregandoCategorias(true);
+        const catResult = await listCategories(undefined, token);
+        if (catResult.ok) setCategories(catResult.data);
+        setCarregandoCategorias(false);
       }
     } else if (result.error === "UNAUTHORIZED") {
       localStorage.removeItem("accessToken");
@@ -225,6 +236,10 @@ export default function ExpenseDetalhe() {
     setVinculando(false);
     if (result.ok) {
       setExpense(result.data);
+      setCarregandoCategorias(true);
+      const catResult = await listCategories(undefined, token);
+      if (catResult.ok) setCategories(catResult.data);
+      setCarregandoCategorias(false);
     } else if (result.error === "CONFLICT") {
       setErroVincular("Esta despesa já está vinculada a um projeto.");
     } else {
@@ -250,10 +265,11 @@ export default function ExpenseDetalhe() {
       if (updated.ok) setExpense(updated.data);
       setCbSubcategoria("");
       setCbValor("");
+      setCbAnexo(null);
     } else if (result.error === "BAD_REQUEST") {
-      setErroCusto("Rubrica inválida para este projeto.");
+      setErroCusto("Categoria inválida para este projeto.");
     } else if (result.error === "CONFLICT") {
-      setErroCusto("Esta rubrica já foi adicionada.");
+      setErroCusto("Este tipo de custo já foi adicionado.");
     } else {
       setErroCusto("Erro ao adicionar custo.");
     }
@@ -539,7 +555,7 @@ export default function ExpenseDetalhe() {
                     <h2 className="text-sm font-bold text-gray-800">Discriminação de Custos</h2>
                     {(expense.costBreakdowns ?? []).length > 0 && (
                       <span className="ml-auto rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                        {expense.costBreakdowns!.length} rubrica{expense.costBreakdowns!.length !== 1 ? "s" : ""}
+                        {expense.costBreakdowns!.length} custo{expense.costBreakdowns!.length !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
@@ -550,7 +566,7 @@ export default function ExpenseDetalhe() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-gray-100">
-                            <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Rubrica</th>
+                            <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Tipo de Custo</th>
                             <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Valor</th>
                           </tr>
                         </thead>
@@ -571,23 +587,30 @@ export default function ExpenseDetalhe() {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 mb-5">Nenhuma rubrica adicionada ainda.</p>
+                    <p className="text-sm text-gray-400 mb-5">Nenhum custo adicionado ainda.</p>
                   )}
 
                   {/* Add new breakdown */}
                   <div className="border-t border-gray-100 pt-5">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Adicionar Rubrica</p>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Adicionar Custo</p>
                     <form onSubmit={handleAdicionarCusto} className="space-y-3">
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <input
-                            type="text"
-                            placeholder="Nome da rubrica"
+                          <select
                             value={cbSubcategoria}
                             onChange={(e) => { setCbSubcategoria(e.target.value); setErroCusto(null); }}
-                            disabled={adicionandoCusto}
-                            className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
-                          />
+                            disabled={adicionandoCusto || carregandoCategorias}
+                            className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
+                          >
+                            <option value="">
+                              {carregandoCategorias ? "Carregando categorias..." : "Selecionar tipo de custo..."}
+                            </option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.name}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div className="w-36">
                           <div className="relative">
@@ -604,6 +627,37 @@ export default function ExpenseDetalhe() {
                             />
                           </div>
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                          Anexo
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400">
+                            <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
+                          </svg>
+                          <span className="flex-1 truncate text-sm text-gray-500">
+                            {cbAnexo ? cbAnexo.name : "Selecionar arquivo..."}
+                          </span>
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="sr-only"
+                            disabled={adicionandoCusto}
+                            onChange={(e) => setCbAnexo(e.target.files?.[0] ?? null)}
+                          />
+                        </label>
+                        {cbAnexo && (
+                          <button
+                            type="button"
+                            onClick={() => setCbAnexo(null)}
+                            className="mt-1 text-xs text-red-500 hover:underline"
+                          >
+                            Remover anexo
+                          </button>
+                        )}
+                        <p className="mt-1 text-xs text-gray-400">PDF, JPG ou PNG.</p>
                       </div>
 
                       {erroCusto && (
@@ -630,7 +684,7 @@ export default function ExpenseDetalhe() {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                               <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                             </svg>
-                            Adicionar Rubrica
+                            Adicionar Custo
                           </>
                         )}
                       </button>
