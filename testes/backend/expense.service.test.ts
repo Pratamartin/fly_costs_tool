@@ -174,6 +174,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     const result = await updateExpenseStatus(
       EXPENSE_ID,
       ExpenseRequestStatus.REJEITADO,
+      UserRole.COORDENADOR,
       'Falta documentação',
     )
 
@@ -187,7 +188,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
   it('rejeição sem motivo retorna REASON_REQUIRED', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
 
-    const result = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.REJEITADO, undefined)
+    const result = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.REJEITADO, UserRole.COORDENADOR, undefined)
 
     expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.REASON_REQUIRED)
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
@@ -207,6 +208,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     const result = await updateExpenseStatus(
       EXPENSE_ID,
       ExpenseRequestStatus.APROVADO,
+      UserRole.COORDENADOR,
       'motivo que deve ser ignorado',
     )
 
@@ -229,6 +231,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     const result = await updateExpenseStatus(
       EXPENSE_ID,
       ExpenseRequestStatus.REJEITADO,
+      UserRole.COORDENADOR,
       'Motivo X',
     )
 

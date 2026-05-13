@@ -40,6 +40,11 @@ const BaseSchema = z.object({
       description: 'Motivo registrado caso a solicitação tenha sido rejeitada.',
       example: 'O aluno solicitante excedeu o limite semestral de benefícios.',
     }),
+  correctionReason: z.string().nullable()
+    .openapi({
+      description: 'Motivo registrado caso a solicitação tenha sido devolvida para correção.',
+      example: 'Por favor, ajuste o título da despesa para condizer com o memorando.',
+    }),
 })
   .extend(LocationSchema.shape)
   .extend(TripPeriodSchema.shape)
@@ -47,6 +52,7 @@ const BaseSchema = z.object({
 export const CreateExpenseSchema = BaseSchema.omit({
   status: true,
   rejectionReason: true,
+  correctionReason: true,
 })
   .check(validStateCheck)
   .check(validCountryCheck)
@@ -77,6 +83,7 @@ export const ExpenseListItemSchema = z.object({
     title: true,
     status: true,
     rejectionReason: true,
+    correctionReason: true,
     city: true,
     state: true,
     country: true,
@@ -92,7 +99,7 @@ export const ExpenseListItemSchema = z.object({
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
 export const UpdateExpenseStatusSchema = z.object({
-  status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO]).openapi({
+  status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO, ExpenseRequestStatus.EM_EDICAO]).openapi({
     description: 'O novo status a ser atribuído à solicitação.',
     example: ExpenseRequestStatus.REJEITADO,
   }),
@@ -109,3 +116,19 @@ export const UploadMemorandumSchema = z.object({ file: FileItemSchema.superRefin
 export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
 
 export const AssignProjectResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) })
+
+export const UpdateExpenseSchema = BaseSchema
+  .pick({
+    title: true,
+    description: true,
+    city: true,
+    state: true,
+    country: true,
+    departureDate: true,
+    returnDate: true,
+  })
+  .partial()
+  .check(validStateCheck)
+  .check(validCountryCheck)
+  .check(stateBelongsToCountryCheck)
+  .check(returnDateAfterDepartureDateCheck)

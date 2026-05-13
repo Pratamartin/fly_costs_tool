@@ -1,11 +1,11 @@
-import type { AssignProjectRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
+import type { AssignProjectRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
-import { assignProjectToExpense, attachMemorandumToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpenseStatus } from '@/services/expense.service'
+import { assignProjectToExpense, attachMemorandumToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -55,8 +55,9 @@ export const read: AppRouteHandler<ReadRoute> = async (c) => {
 export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
   const { id } = c.req.valid('param')
   const { status, reason } = c.req.valid('json')
+  const { role } = c.get('jwtPayload')
 
-  const result = await updateExpenseStatus(id, status, reason)
+  const result = await updateExpenseStatus(id, status, role, reason)
 
   if ('error' in result) {
     switch (result.error) {
@@ -64,11 +65,66 @@ export const updateStatus: AppRouteHandler<UpdateStatusRoute> = async (c) => {
         return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
 
       case phrases.CONFLICT:
-        return c.json({ message: 'Solicitação já foi decidida' }, codes.CONFLICT)
+        return c.json({ message: 'Transição de status inválida ou dados ausentes' }, codes.CONFLICT)
+
+      case phrases.FORBIDDEN:
+        return c.json({ message: 'Ação não permitida para o seu perfil' }, codes.FORBIDDEN)
+
+      case EXPENSE_ERROR_CODES.REASON_REQUIRED:
+        return c.json({ message: 'O motivo é obrigatório para este status' }, codes.BAD_REQUEST)
+
+      default:
+        return c.json({ message: result.error }, codes.BAD_REQUEST)
     }
   }
 
-  const parsed = ExpenseResponseSchema.parse(result)
+  const payload = {
+    ...result,
+    costBreakdowns: result.costBreakdowns?.map(cb => ({
+      ...cb,
+      subcategory: cb.expenseCategory,
+    })),
+  }
+
+  const parsed = ExpenseResponseSchema.parse(payload)
+  return c.json(parsed, codes.OK)
+}
+
+export const update: AppRouteHandler<UpdateRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+  const { sub } = c.get('jwtPayload')
+
+  const result = await updateExpense(id, sub, data)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+
+      case phrases.FORBIDDEN:
+        return c.json({ message: 'Sem permissão para editar esta despesa' }, codes.FORBIDDEN)
+
+      case phrases.CONFLICT:
+        return c.json({ message: 'Apenas despesas em estado de edição podem ser alteradas' }, codes.CONFLICT)
+
+      case EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE:
+        return c.json({ message: 'A data de retorno não pode ser anterior à de partida' }, codes.BAD_REQUEST)
+
+      default:
+        return c.json({ message: result.error }, codes.BAD_REQUEST)
+    }
+  }
+
+  const payload = {
+    ...result,
+    costBreakdowns: result.costBreakdowns?.map(cb => ({
+      ...cb,
+      subcategory: cb.expenseCategory,
+    })),
+  }
+
+  const parsed = ExpenseResponseSchema.parse(payload)
   return c.json(parsed, codes.OK)
 }
 

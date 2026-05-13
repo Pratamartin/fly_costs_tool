@@ -5,8 +5,7 @@ import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { analytics } from '@/routes'
 import { seedExpenseCategories, seedUsers } from '@/seeds'
-import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
-import seedExpenses from '@/seeds/expense.seed'
+import seedExpenses, { dummyExpenses } from '@/seeds/expense.seed'
 import seedProjects, { dummyProjects } from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
 
@@ -50,11 +49,13 @@ describe('get /analytics/admin-dashboard', () => {
 
     const json = await res.json()
 
-    expect(json.totalRequests).toBe(dummyExpenseCategories.length)
+    expect(json.totalRequests).toBe(dummyExpenses.length)
     expect(json.byStatus).toEqual(expect.objectContaining({
       APROVADO: 1,
       REJEITADO: 1,
       PENDENTE: 1,
+      EM_PROCESSAMENTO: 1,
+      EM_EDICAO: 1,
     }))
 
     const expectedTotalValue = dummyProjects

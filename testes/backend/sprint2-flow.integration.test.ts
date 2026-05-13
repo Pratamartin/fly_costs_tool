@@ -110,7 +110,7 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     prismaMock.expenseRequest.update.mockResolvedValueOnce(
       baseExpense({ status: ExpenseRequestStatus.APROVADO }),
     )
-    const approved = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.APROVADO)
+    const approved = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.APROVADO, UserRole.COORDENADOR)
     expect('error' in approved).toBe(false)
 
     prismaMock.expenseRequest.findUnique.mockResolvedValueOnce(

@@ -10,26 +10,34 @@ import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
 import { getInviteMinExpiry } from '@/services/invite.service'
 
-export const validStateCheck = z.refine<{ state: string }>(
-  value => iso31662.subdivision(value.state) !== null,
+export const validStateCheck = z.refine<{ state?: string }>(
+  value => !value.state || iso31662.subdivision(value.state) !== null,
   { message: 'Código de estado/província inexistente. Utilize um código válido (ex: \'BR-SP\').' },
 )
 
-export const validCountryCheck = z.refine<{ country: string }>(
-  value => countries.isValid(value.country),
+export const validCountryCheck = z.refine<{ country?: string }>(
+  value => !value.country || countries.isValid(value.country),
   { message: 'Código de país inexistente. Utilize uma sigla ISO válida (ex: \'BR\').' },
 )
 
-export const stateBelongsToCountryCheck = z.refine<{ state: string, country: string }>(
-  value => value.state.startsWith(`${value.country}-`),
+export const stateBelongsToCountryCheck = z.refine<{ state?: string, country?: string }>(
+  (value) => {
+    if (!value.state || !value.country)
+      return true
+    return value.state.startsWith(`${value.country}-`)
+  },
   {
     message: 'O estado informado não pertence ao país selecionado.',
     path: ['state'],
   },
 )
 
-export const returnDateAfterDepartureDateCheck = z.refine<{ returnDate: Date, departureDate: Date }>(
-  value => value.returnDate >= value.departureDate,
+export const returnDateAfterDepartureDateCheck = z.refine<{ returnDate?: Date, departureDate?: Date }>(
+  (value) => {
+    if (!value.returnDate || !value.departureDate)
+      return true
+    return value.returnDate >= value.departureDate
+  },
   {
     message: 'A data de retorno não pode ser anterior à data de partida',
     path: ['returnDate'],

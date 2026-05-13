@@ -1,8 +1,8 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
-import type { CreateExpenseSchema, ExpenseListQuerySchema } from '@/schemas/expense.schema'
+import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
 import * as phrases from 'stoker/http-status-phrases'
-import { EXPENSE_ERROR_CODES, STATUSES_ALLOWED_TO_ASSIGN_PROJECT, STATUSES_FOR_COORDINATOR_ANALYSIS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { EXPENSE_ERROR_CODES, EXPENSE_STATUS_TRANSITIONS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
@@ -12,6 +12,7 @@ import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, vali
 import { getProjectBudgetMetrics } from './budget.service'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
+type UpdateExpenseDTO = z.infer<typeof UpdateExpenseSchema>
 
 export const expenseInclude = {
   student: {
@@ -102,14 +103,24 @@ export async function getExpenseById(
   return result
 }
 
-export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestStatus, reason?: string | null): Promise<ExpenseWithRelations | { error: string }> {
+export async function updateExpenseStatus(
+  id: string,
+  newStatus: ExpenseRequestStatus,
+  userRole: UserRole,
+  reason?: string | null,
+): Promise<ExpenseWithRelations | { error: string }> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
     return { error: phrases.NOT_FOUND }
   }
 
-  if (!STATUSES_FOR_COORDINATOR_ANALYSIS.includes(existingRequest.status)) {
+  if (newStatus === ExpenseRequestStatus.EM_EDICAO && userRole !== UserRole.ADMIN) {
+    return { error: phrases.FORBIDDEN }
+  }
+
+  const allowedStatuses = EXPENSE_STATUS_TRANSITIONS[existingRequest.status]
+  if (!allowedStatuses.includes(newStatus)) {
     return { error: phrases.CONFLICT }
   }
 
@@ -123,9 +134,12 @@ export async function updateExpenseStatus(id: string, newStatus: ExpenseRequestS
     case ExpenseRequestStatus.REJEITADO:
       updateData.rejectionReason = reason
       break
-
+    case ExpenseRequestStatus.EM_EDICAO:
+      updateData.correctionReason = reason
+      break
     case ExpenseRequestStatus.APROVADO:
       updateData.rejectionReason = null
+      updateData.correctionReason = null
       break
   }
 
@@ -144,7 +158,8 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
     return { error: phrases.NOT_FOUND }
   }
 
-  if (!STATUSES_ALLOWED_TO_ASSIGN_PROJECT.includes(expense.status)) {
+  const allowedNext = EXPENSE_STATUS_TRANSITIONS[expense.status]
+  if (!allowedNext.includes(ExpenseRequestStatus.EM_PROCESSAMENTO)) {
     return { error: phrases.CONFLICT }
   }
 
@@ -254,4 +269,36 @@ export async function getMemorandumDownloadUrl(
     url,
     expiresIn: MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS,
   }
+}
+
+export async function updateExpense(
+  id: string,
+  studentId: string,
+  data: UpdateExpenseDTO,
+): Promise<ExpenseWithRelations | { error: string }> {
+  const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
+
+  if (!existingRequest) {
+    return { error: phrases.NOT_FOUND }
+  }
+
+  if (existingRequest.studentId !== studentId) {
+    return { error: phrases.FORBIDDEN }
+  }
+
+  if (existingRequest.status !== ExpenseRequestStatus.EM_EDICAO) {
+    return { error: phrases.CONFLICT }
+  }
+
+  const updatedRequest = await prisma.expenseRequest.update({
+    where: { id },
+    data: {
+      ...data,
+      status: ExpenseRequestStatus.PENDENTE,
+      correctionReason: null,
+    },
+    include: expenseInclude,
+  })
+
+  return updatedRequest
 }
