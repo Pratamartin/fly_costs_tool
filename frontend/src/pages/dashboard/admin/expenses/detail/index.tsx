@@ -7,6 +7,8 @@ import {
   updateExpenseStatus,
   assignProject,
   createCostBreakdown,
+  uploadCostBreakdownReceipt,
+  getCostBreakdownReceiptDownloadUrl,
   getMemorandumDownloadUrl,
   type Expense,
 } from "@/services/expenses";
@@ -142,6 +144,7 @@ export default function ExpenseDetalhe() {
   const [cbAnexo, setCbAnexo] = useState<File | null>(null);
   const [adicionandoCusto, setAdicionandoCusto] = useState(false);
   const [erroCusto, setErroCusto] = useState<string | null>(null);
+  const [baixandoComprovante, setBaixandoComprovante] = useState<string | null>(null);
   const [baixandoMemorandum, setBaixandoMemorandum] = useState(false);
   const [erroMemorandum, setErroMemorandum] = useState<string | null>(null);
 
@@ -259,19 +262,35 @@ export default function ExpenseDetalhe() {
       subcategoryName: cbSubcategoria.trim(),
       amount,
     });
+    if (!result.ok) {
+      setAdicionandoCusto(false);
+      if (result.error === "BAD_REQUEST") setErroCusto("Categoria inválida para este projeto.");
+      else if (result.error === "CONFLICT") setErroCusto("Este tipo de custo já foi adicionado.");
+      else setErroCusto("Erro ao adicionar custo.");
+      return;
+    }
+    if (cbAnexo) {
+      const receiptResult = await uploadCostBreakdownReceipt(token, expense.id, result.data.id, cbAnexo);
+      if (!receiptResult.ok) {
+        setErroCusto("Custo adicionado, mas falha ao enviar comprovante. Tente fazer o upload novamente.");
+      }
+    }
+    const updated = await getExpenseById(token, expense.id);
+    if (updated.ok) setExpense(updated.data);
+    setCbSubcategoria("");
+    setCbValor("");
+    setCbAnexo(null);
     setAdicionandoCusto(false);
+  }
+
+  async function handleBaixarComprovante(breakdownId: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !expense) return;
+    setBaixandoComprovante(breakdownId);
+    const result = await getCostBreakdownReceiptDownloadUrl(token, expense.id, breakdownId);
+    setBaixandoComprovante(null);
     if (result.ok) {
-      const updated = await getExpenseById(token, expense.id);
-      if (updated.ok) setExpense(updated.data);
-      setCbSubcategoria("");
-      setCbValor("");
-      setCbAnexo(null);
-    } else if (result.error === "BAD_REQUEST") {
-      setErroCusto("Categoria inválida para este projeto.");
-    } else if (result.error === "CONFLICT") {
-      setErroCusto("Este tipo de custo já foi adicionado.");
-    } else {
-      setErroCusto("Erro ao adicionar custo.");
+      window.open(result.url, "_blank");
     }
   }
 
@@ -568,6 +587,7 @@ export default function ExpenseDetalhe() {
                           <tr className="border-b border-gray-100">
                             <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Tipo de Custo</th>
                             <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Valor</th>
+                            <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Comprovante</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -575,6 +595,30 @@ export default function ExpenseDetalhe() {
                             <tr key={cb.id}>
                               <td className="py-2.5 font-medium text-gray-700">{cb.subcategory.name}</td>
                               <td className="py-2.5 text-right font-semibold text-gray-900">{fmtCurrency(cb.amount)}</td>
+                              <td className="py-2.5 text-right">
+                                {cb.attachmentKey ? (
+                                  <button
+                                    onClick={() => handleBaixarComprovante(cb.id)}
+                                    disabled={baixandoComprovante === cb.id}
+                                    className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition"
+                                  >
+                                    {baixandoComprovante === cb.id ? (
+                                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                      </svg>
+                                    ) : (
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                                        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                                        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                                      </svg>
+                                    )}
+                                    Baixar
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -582,6 +626,7 @@ export default function ExpenseDetalhe() {
                           <tr className="border-t-2 border-gray-200">
                             <td className="pt-3 text-sm font-bold text-gray-700">Total</td>
                             <td className="pt-3 text-right text-sm font-bold text-gray-900">{fmtCurrency(totalCusto)}</td>
+                            <td />
                           </tr>
                         </tfoot>
                       </table>

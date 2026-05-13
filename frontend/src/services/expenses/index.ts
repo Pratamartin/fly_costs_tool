@@ -17,6 +17,7 @@ export type CostBreakdown = {
   id: string
   expenseRequestId: string
   amount: number
+  attachmentKey?: string | null
   subcategory: {
     id: string
     name: string
@@ -51,6 +52,9 @@ export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
 export type AssignProjectError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
 export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "UNKNOWN"
+export type UploadReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
+export type DeleteReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_GATEWAY" | "UNKNOWN"
+export type GetReceiptDownloadError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
 export type UploadMemorandumError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
 
 export type UploadMemorandumResult =
@@ -96,12 +100,25 @@ export type CostBreakdownResponse = {
   id: string
   expenseRequestId: string
   amount: number
+  attachmentKey?: string | null
   subcategory: { id: string; name: string; normalizedName: string }
 }
 
 export type CreateCostBreakdownResult =
   | { ok: true; data: CostBreakdownResponse }
   | { ok: false; error: CreateCostBreakdownError }
+
+export type UploadReceiptResult =
+  | { ok: true; data: CostBreakdownResponse }
+  | { ok: false; error: UploadReceiptError }
+
+export type DeleteReceiptResult =
+  | { ok: true }
+  | { ok: false; error: DeleteReceiptError }
+
+export type GetReceiptDownloadResult =
+  | { ok: true; url: string; expiresIn: number }
+  | { ok: false; error: GetReceiptDownloadError }
 
 export async function listExpenses(
   token: string,
@@ -212,7 +229,7 @@ export async function createCostBreakdown(
   expenseId: string,
   payload: CostBreakdownPayload
 ): Promise<CreateCostBreakdownResult> {
-  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdown`, {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -227,6 +244,74 @@ export async function createCostBreakdown(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function uploadCostBreakdownReceipt(
+  token: string,
+  expenseId: string,
+  breakdownId: string,
+  file: File
+): Promise<UploadReceiptResult> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}/receipt`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 400) return { ok: false, error: "BAD_REQUEST" }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  if (res.status === 502) return { ok: false, error: "BAD_GATEWAY" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function deleteCostBreakdownReceipt(
+  token: string,
+  expenseId: string,
+  breakdownId: string
+): Promise<DeleteReceiptResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}/receipt`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (res.status === 204) return { ok: true }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 502) return { ok: false, error: "BAD_GATEWAY" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function getCostBreakdownReceiptDownloadUrl(
+  token: string,
+  expenseId: string,
+  breakdownId: string
+): Promise<GetReceiptDownloadResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}/receipt/download`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (res.status === 200) {
+    const data = await res.json()
+    return { ok: true, url: data.url, expiresIn: data.expiresIn }
+  }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  if (res.status === 502) return { ok: false, error: "BAD_GATEWAY" }
   return { ok: false, error: "UNKNOWN" }
 }
 
