@@ -2,15 +2,24 @@ import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 
 export const STATUSES_WHERE_REASON_REQUIRED: ExpenseRequestStatus[] = [
   ExpenseRequestStatus.REJEITADO,
+  ExpenseRequestStatus.EM_EDICAO,
 ] as const
 
-export const STATUSES_FOR_COORDINATOR_ANALYSIS: ExpenseRequestStatus[] = [
-  ExpenseRequestStatus.PENDENTE,
-] as const
-
-export const STATUSES_ALLOWED_TO_ASSIGN_PROJECT: ExpenseRequestStatus[] = [
-  ExpenseRequestStatus.APROVADO,
-] as const
+export const EXPENSE_STATUS_TRANSITIONS: Record<ExpenseRequestStatus, ExpenseRequestStatus[]> = {
+  [ExpenseRequestStatus.PENDENTE]: [
+    ExpenseRequestStatus.APROVADO,
+    ExpenseRequestStatus.REJEITADO,
+  ],
+  [ExpenseRequestStatus.APROVADO]: [
+    ExpenseRequestStatus.EM_EDICAO,
+    ExpenseRequestStatus.EM_PROCESSAMENTO,
+  ],
+  [ExpenseRequestStatus.EM_EDICAO]: [
+    ExpenseRequestStatus.PENDENTE,
+  ],
+  [ExpenseRequestStatus.REJEITADO]: [],
+  [ExpenseRequestStatus.EM_PROCESSAMENTO]: [],
+} as const
 
 export const EXPENSE_ERROR_CODES = {
   REASON_REQUIRED: 'REASON_REQUIRED',
