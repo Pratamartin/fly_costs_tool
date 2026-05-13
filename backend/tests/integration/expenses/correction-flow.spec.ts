@@ -61,9 +61,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     const res = await endpoint(
       {
         param: { id: createdExpenseId },
-        json: {
-          status: ExpenseRequestStatus.APROVADO,
-        },
+        json: { status: ExpenseRequestStatus.APROVADO },
       },
       { headers: coordenadorHeaders },
     )
@@ -110,9 +108,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
   })
 
   it('[Step 4] Aluno tenta editar a despesa com dados válidos', async () => {
-    const updateData = {
-      title: 'Título Corrigido - SBSC 2026',
-    }
+    const updateData = { title: 'Título Corrigido - SBSC 2026' }
 
     const endpoint = client.expenses[':id'].$patch
     const res = await endpoint(
@@ -132,9 +128,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
   })
 
   it('[Step 5] Aluno tenta editar a despesa novamente (deve falhar - status é PENDENTE)', async () => {
-    const updateData = {
-      title: 'Tentativa de Segunda Edição',
-    }
+    const updateData = { title: 'Tentativa de Segunda Edição' }
 
     const endpoint = client.expenses[':id'].$patch
     const res = await endpoint(

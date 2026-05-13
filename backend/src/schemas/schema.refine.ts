@@ -21,7 +21,7 @@ export const validCountryCheck = z.refine<{ country?: string }>(
 )
 
 export const stateBelongsToCountryCheck = z.refine<{ state?: string, country?: string }>(
-  value => {
+  (value) => {
     if (!value.state || !value.country)
       return true
     return value.state.startsWith(`${value.country}-`)
@@ -33,7 +33,7 @@ export const stateBelongsToCountryCheck = z.refine<{ state?: string, country?: s
 )
 
 export const returnDateAfterDepartureDateCheck = z.refine<{ returnDate?: Date, departureDate?: Date }>(
-  value => {
+  (value) => {
     if (!value.returnDate || !value.departureDate)
       return true
     return value.returnDate >= value.departureDate
