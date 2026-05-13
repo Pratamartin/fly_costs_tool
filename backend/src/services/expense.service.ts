@@ -30,6 +30,7 @@ export const expenseInclude = {
   costBreakdowns: {
     select: {
       id: true,
+      expenseRequestId: true,
       amount: true,
       expenseCategory: {
         select: {
@@ -38,6 +39,7 @@ export const expenseInclude = {
           normalizedName: true,
         },
       },
+      attachmentKey: true,
     },
   },
 } satisfies Prisma.ExpenseRequestInclude

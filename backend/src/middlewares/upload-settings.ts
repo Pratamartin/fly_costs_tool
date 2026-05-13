@@ -1,6 +1,7 @@
 import { bodyLimit } from 'hono/body-limit'
 import { createMiddleware } from 'hono/factory'
 import * as codes from 'stoker/http-status-codes'
+import { ALLOWED_RECEIPT_MIME_TYPES, RECEIPT_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 
 export type UploadOptions = {
   maxFileSizeMB: number
@@ -49,5 +50,11 @@ export default function uploadSettings(options: UploadOptions) {
 export const uploadMemorandumSettings = uploadSettings({
   maxFileSizeMB: 5,
   allowedMimeFileTypes: ['application/pdf'],
+  fieldName: 'file',
+})
+
+export const uploadReceiptSettings = uploadSettings({
+  maxFileSizeMB: RECEIPT_UPLOAD_MAX_SIZE_MB,
+  allowedMimeFileTypes: ALLOWED_RECEIPT_MIME_TYPES,
   fieldName: 'file',
 })

@@ -6,7 +6,6 @@ import { UserRole } from '@/generated/prisma/enums'
 import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole } from '@/middlewares'
 import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
-import { CostBreakdownResponseSchema, CreateCostBreakdownSchema } from '@/schemas/cost-breakdown.schema'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
 import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
 
@@ -17,7 +16,6 @@ export type IndexRoute = typeof index
 export type ReadRoute = typeof read
 export type UpdateStatusRoute = typeof updateStatus
 export type AssignProjectRoute = typeof assignProject
-export type CreateCostBreakdownRoute = typeof createCostBreakdown
 export type UploadMemorandumRoute = typeof uploadMemorandum
 export type GetMemorandumDownloadRoute = typeof getMemorandumDownload
 
@@ -144,40 +142,6 @@ export const assignProject = createRoute({
     [codes.CONFLICT]: jsonContent(
       createMessageObjectSchema('Operação inválida'),
       'A solicitação não está com status APROVADO, o projeto está arquivado ou o projeto não possui budget suficiente.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
-  },
-})
-
-export const createCostBreakdown = createRoute({
-  path: '/{id}/cost-breakdown',
-  method: 'post',
-  middleware: [requireAuth, requireRole([UserRole.ADMIN])],
-  security: [{ bearerAuth: [] }],
-  summary: 'Add cost breakdown to expense',
-  description: 'Adiciona uma discriminação de custo a uma solicitação de despesa. Restrito a ADMIN.',
-  tags,
-  request: {
-    params: z.object({ id: IdSchema }),
-    body: jsonContentRequired(CreateCostBreakdownSchema, 'Detalhes da discriminação de custo'),
-  },
-  responses: {
-    [codes.CREATED]: jsonContent(
-      CostBreakdownResponseSchema,
-      'Discriminação salva com sucesso.',
-    ),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Erro de validação'),
-      'Erro de regra de negócio (ex: Budget insuficiente, Categoria inválida).',
-    ),
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Operação inválida'),
-      'O projeto está arquivado ou não pode receber discriminação de custo.',
-    ),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Despesa não encontrada'),
-      'A despesa não existe ou não possui projeto vinculado.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,

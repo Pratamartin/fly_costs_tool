@@ -98,7 +98,7 @@ model Project {
   id                String            @id @default(uuid())
   name              String
   code              String            @unique
-  budget            Decimal          @db.Decimal(10, 2) 
+    budget            Decimal          @db.Decimal(10, 2) 
   usedBudget        Decimal          @default(0) @db.Decimal(10, 2)
   expenseCategories ExpenseCategory[]
   expenseRequests   ExpenseRequest[]
@@ -116,6 +116,8 @@ model CostBreakdown {
   expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+
+  attachmentKey String?
 }
 
 model InviteCode {

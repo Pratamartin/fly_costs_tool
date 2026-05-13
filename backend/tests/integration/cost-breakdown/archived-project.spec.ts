@@ -53,14 +53,16 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
   })
 
   it('não permite criar cost breakdown para projeto arquivado', async () => {
-    const endpoint = client.expenses[':id']['cost-breakdown'].$post
+    const endpoint = client.expenses[':id']['cost-breakdowns'].$post
     const res = await endpoint(
       {
         param: { id: expenseId },
         json: {
           amount: 100,
           subcategoryName: dummyExpenseCategories[0]!.normalizedName,
+          attachmentKey: 'key/abc.pdf',
         },
+
       },
       { headers: adminHeaders },
     )
