@@ -300,3 +300,42 @@ export async function updateExpense(
 
   return updatedRequest
 }
+
+export async function concludeExpenseRequest(
+  id: string,
+  userRole: UserRole,
+): Promise<ExpenseWithRelations | { error: string }> {
+  const expense = await prisma.expenseRequest.findUnique({
+    where: { id },
+    include: { costBreakdowns: true },
+  })
+
+  if (!expense) {
+    return { error: phrases.NOT_FOUND }
+  }
+
+  if (userRole !== UserRole.ADMIN) {
+    return { error: phrases.FORBIDDEN }
+  }
+
+  if (expense.status !== ExpenseRequestStatus.EM_PROCESSAMENTO) {
+    return { error: phrases.CONFLICT }
+  }
+
+  if (expense.costBreakdowns.length === 0) {
+    return { error: EXPENSE_ERROR_CODES.MISSING_BREAKDOWNS }
+  }
+
+  const missingReceipts = expense.costBreakdowns.some(cb => !cb.attachmentKey)
+  if (missingReceipts) {
+    return { error: EXPENSE_ERROR_CODES.MISSING_RECEIPTS }
+  }
+
+  const updatedExpense = await prisma.expenseRequest.update({
+    where: { id },
+    data: { status: ExpenseRequestStatus.CONCLUIDO },
+    include: expenseInclude,
+  })
+
+  return updatedExpense
+}
