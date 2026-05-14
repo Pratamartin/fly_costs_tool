@@ -158,6 +158,69 @@ function StatusBanner({ expense }: { expense: Expense }) {
   );
 }
 
+function ModalEnviarAluno({ nomeAluno, onClose, onConfirmar }: { nomeAluno?: string; onClose: () => void; onConfirmar: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-600">
+                <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Enviar documentos ao aluno?</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {nomeAluno ? `Para: ${nomeAluno}` : "Aluno da solicitação"}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-600">
+            Confirma o envio da passagem aérea e demais documentos para{" "}
+            <strong>{nomeAluno ?? "o aluno"}</strong>?
+          </p>
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-500 mt-0.5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <p className="text-xs text-amber-700">
+              Esta ação ainda não está integrada ao backend.{" "}
+              <span className="font-semibold">Implementar na próxima sprint.</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirmar}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+            </svg>
+            Confirmar envio
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ExpenseDetalhe() {
   const router = useRouter();
   const { id } = router.query;
@@ -189,6 +252,9 @@ export default function ExpenseDetalhe() {
   const [baixandoComprovante, setBaixandoComprovante] = useState<string | null>(null);
   const [baixandoMemorandum, setBaixandoMemorandum] = useState(false);
   const [erroMemorandum, setErroMemorandum] = useState<string | null>(null);
+
+  const [showModalEnviar, setShowModalEnviar] = useState(false);
+  const [enviadoMock, setEnviadoMock] = useState(false);
 
   async function handleDownloadMemorandum() {
     const token = localStorage.getItem("accessToken");
@@ -1022,9 +1088,61 @@ export default function ExpenseDetalhe() {
                 </div>
               )}
             </div>
+
+              {/* Enviar Documentos ao Aluno — only when EM_PROCESSAMENTO */}
+              {expense.status === "EM_PROCESSAMENTO" && (
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
+                      <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                    </svg>
+                    <h2 className="text-sm font-bold text-gray-800">Enviar Documentos ao Aluno</h2>
+                    <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                      Implementar próxima sprint
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-500 mb-4">
+                    Após registrar todos os custos, envie a passagem aérea ou outros documentos ao aluno.
+                  </p>
+
+                  {enviadoMock ? (
+                    <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">Documentos enviados ao aluno</p>
+                        <p className="text-xs text-green-600">Integração pendente — registrado localmente.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowModalEnviar(true)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                      </svg>
+                      Enviar Passagem / Documentos
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
         </main>
       </div>
+
+      {showModalEnviar && (
+        <ModalEnviarAluno
+          nomeAluno={expense.student?.name}
+          onClose={() => setShowModalEnviar(false)}
+          onConfirmar={() => {
+            setEnviadoMock(true);
+            setShowModalEnviar(false);
+          }}
+        />
+      )}
 
       {showModalRejeitar && (
         <ModalRejeitar
