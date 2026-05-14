@@ -15,5 +15,6 @@ const router = createRouter().basePath('/expenses')
   .openapi(routes.getMemorandumDownload, handlers.getMemorandumDownload)
   .openapi(routes.updateStatus, handlers.updateStatus)
   .openapi(routes.assignProject, handlers.assignProject)
+  .openapi(routes.conclude, handlers.conclude)
 
 export default router

@@ -1,11 +1,11 @@
-import type { AssignProjectRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
+import type { AssignProjectRoute, ConcludeRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import * as phrases from 'stoker/http-status-phrases'
 import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
-import { assignProjectToExpense, attachMemorandumToExpense, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
+import { assignProjectToExpense, attachMemorandumToExpense, concludeExpenseRequest, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -216,4 +216,37 @@ export const getMemorandumDownload: AppRouteHandler<GetMemorandumDownloadRoute> 
     downloadUrl: result.url,
     expiresIn: result.expiresIn,
   }, codes.OK)
+}
+
+export const conclude: AppRouteHandler<ConcludeRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const { role } = c.get('jwtPayload')
+
+  const result = await concludeExpenseRequest(id, role)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case phrases.NOT_FOUND:
+        return c.json({ message: 'Despesa não encontrada' }, codes.NOT_FOUND)
+      case phrases.CONFLICT:
+        return c.json({ message: 'A solicitação não está no estado adequado para ser concluída' }, codes.CONFLICT)
+      case EXPENSE_ERROR_CODES.MISSING_BREAKDOWNS:
+        return c.json({ message: 'A solicitação não possui custos registrados' }, codes.BAD_REQUEST)
+      case EXPENSE_ERROR_CODES.MISSING_RECEIPTS:
+        return c.json({ message: 'Existem custos sem comprovantes anexados' }, codes.BAD_REQUEST)
+      default:
+        return c.json({ message: result.error }, codes.BAD_REQUEST)
+    }
+  }
+
+  const payload = {
+    ...result,
+    costBreakdowns: result.costBreakdowns?.map(cb => ({
+      ...cb,
+      subcategory: cb.expenseCategory,
+    })),
+  }
+
+  const parsed = ExpenseResponseSchema.parse(payload)
+  return c.json(parsed, codes.OK)
 }

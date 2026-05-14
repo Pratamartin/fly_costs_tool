@@ -19,6 +19,7 @@ export type UpdateStatusRoute = typeof updateStatus
 export type AssignProjectRoute = typeof assignProject
 export type UploadMemorandumRoute = typeof uploadMemorandum
 export type GetMemorandumDownloadRoute = typeof getMemorandumDownload
+export type ConcludeRoute = typeof conclude
 
 const ALLOWED_ROLES: UserRole[] = ['ALUNO']
 
@@ -256,5 +257,40 @@ export const getMemorandumDownload = createRoute({
       'Variáveis R2 não configuradas.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
+  },
+})
+
+export const conclude = createRoute({
+  path: '/{id}/conclude',
+  method: 'post',
+  middleware: [requireAuth, requireRole([UserRole.ADMIN])],
+  security: [{ bearerAuth: [] }],
+  summary: 'Conclude expense request',
+  description: `
+    Finaliza a solicitação de despesa, enviando formalmente os documentos ao aluno.
+    Exige que a despesa esteja 'EM_PROCESSAMENTO', tenha pelo menos um custo registrado e que TODOS os custos tenham comprovantes anexados.
+    Acesso restrito ao ADMIN.
+  `,
+  tags,
+  request: { params: z.object({ id: IdSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(
+      ExpenseResponseSchema,
+      'Solicitação concluída com sucesso.',
+    ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Pendências encontradas'),
+      'A solicitação não possui custos registrados ou existem custos sem comprovantes.',
+    ),
+    [codes.CONFLICT]: jsonContent(
+      createMessageObjectSchema('Estado inválido'),
+      'A solicitação não está no estado adequado para ser concluída.',
+    ),
+    [codes.NOT_FOUND]: jsonContent(
+      createMessageObjectSchema('Despesa não encontrada'),
+      'ID inválido.',
+    ),
+    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    [codes.FORBIDDEN]: ForbiddenResponse,
   },
 })
