@@ -86,7 +86,7 @@ export const update = createRoute({
   summary: 'Update expense',
   description: `
     Permite que o aluno atualize os dados de uma solicitação que está no status 'EM_EDICAO'.
-    Ao salvar, o status retorna para 'PENDENTE' e o motivo de correção é limpo.
+    Ao salvar, o status retorna para 'APROVADO' e o motivo de correção é limpo.
   `,
   tags,
   request: {
@@ -113,7 +113,7 @@ export const updateStatus = createRoute({
   description: `
     Permite atualizar o status de uma despesa.
     Fluxo: PENDENTE -> APROVADO/REJEITADO (Coordenador/Admin).
-    Após aprovado, o Admin pode transicionar para EM_EDICAO (devolvendo ao aluno).
+    Admin pode transicionar APROVADO para EM_EDICAO (devolvendo ao aluno).
   `,
   tags,
   request: {

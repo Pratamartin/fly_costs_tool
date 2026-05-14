@@ -11,17 +11,22 @@ import { getAuthHeaders } from '../../util'
 
 const client = testClient(createTestApp(expenses))
 
-describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDENTE', () => {
+describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVADO → EM_PROCESSAMENTO', () => {
   let alunoHeaders: { Authorization: string }
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
   let createdExpenseId: string
+  let projectId: string
   const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o memorando.'
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
     await seedProjects()
+
+    const project = await prisma.project.findFirst()
+    assert(project)
+    projectId = project.id
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -56,7 +61,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     createdExpenseId = json.id
   })
 
-  it('[Step 2] Coordenador aprova a solicitação (necessário para posterior devolução)', async () => {
+  it('[Step 2] Coordenador aprova a solicitação', async () => {
     const endpoint = client.expenses[':id'].status.$patch
     const res = await endpoint(
       {
@@ -71,7 +76,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     expect(json.status).toBe(ExpenseRequestStatus.APROVADO)
   })
 
-  it('[Step 3] Coordenador tenta mover para EM_EDICAO (deve falhar - apenas ADMIN)', async () => {
+  it('[Step 2.1] Coordenador tenta mover para EM_EDICAO (deve falhar - apenas ADMIN)', async () => {
     const endpoint = client.expenses[':id'].status.$patch
     const res = await endpoint(
       {
@@ -87,7 +92,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     expect(res.status).toBe(status.FORBIDDEN)
   })
 
-  it('[Step 4] Admin move para EM_EDICAO com motivo', async () => {
+  it('[Step 3] Admin move para EM_EDICAO com motivo', async () => {
     const endpoint = client.expenses[':id'].status.$patch
     const res = await endpoint(
       {
@@ -107,7 +112,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     expect(json.correctionReason).toBe(correctionReason)
   })
 
-  it('[Step 4] Aluno tenta editar a despesa com dados válidos', async () => {
+  it('[Step 4] Aluno edita a despesa (status volta para APROVADO)', async () => {
     const updateData = { title: 'Título Corrigido - SBSC 2026' }
 
     const endpoint = client.expenses[':id'].$patch
@@ -122,23 +127,25 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → PENDEN
     assert(res.status === status.OK)
     const json = await res.json()
 
-    expect(json.status).toBe(ExpenseRequestStatus.PENDENTE)
+    expect(json.status).toBe(ExpenseRequestStatus.APROVADO)
     expect(json.title).toBe(updateData.title)
     expect(json.correctionReason).toBeNull()
   })
 
-  it('[Step 5] Aluno tenta editar a despesa novamente (deve falhar - status é PENDENTE)', async () => {
-    const updateData = { title: 'Tentativa de Segunda Edição' }
-
-    const endpoint = client.expenses[':id'].$patch
+  it('[Step 5] Admin move para EM_PROCESSAMENTO (vínculo de projeto)', async () => {
+    const endpoint = client.expenses[':id']['assign-project'].$patch
     const res = await endpoint(
       {
         param: { id: createdExpenseId },
-        json: updateData,
+        json: { projectId },
       },
-      { headers: alunoHeaders },
+      { headers: adminHeaders },
     )
 
-    expect(res.status).toBe(status.CONFLICT)
+    assert(res.status === status.OK)
+    const json = await res.json()
+
+    expect(json.status).toBe(ExpenseRequestStatus.EM_PROCESSAMENTO)
+    expect(json.project?.id).toBe(projectId)
   })
 })
