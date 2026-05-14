@@ -44,13 +44,13 @@ enum UserRole {
   COORDENADOR
   ADMIN
 }
-
 enum ExpenseRequestStatus {
   PENDENTE
   APROVADO
   REJEITADO
   EM_PROCESSAMENTO
   EM_EDICAO
+  CONCLUIDO
 }
 
 model ExpenseCategory {
