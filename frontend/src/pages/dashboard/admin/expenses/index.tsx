@@ -29,6 +29,7 @@ function StatusBadge({ status }: { status: ExpenseStatus }) {
     APROVADO:         { bg: "bg-green-50",  ring: "ring-green-200",  text: "text-green-700",  dot: "bg-green-500",   label: "Aprovado" },
     REJEITADO:        { bg: "bg-red-50",    ring: "ring-red-200",    text: "text-red-700",    dot: "bg-red-500",     label: "Rejeitado" },
     EM_PROCESSAMENTO: { bg: "bg-blue-50",   ring: "ring-blue-200",   text: "text-blue-700",   dot: "bg-blue-500",    label: "Em Processamento" },
+    EM_EDICAO:        { bg: "bg-amber-50",  ring: "ring-amber-200",  text: "text-amber-700",  dot: "bg-amber-500",   label: "Em Edição" },
   };
   const c = config[status];
   return (
@@ -135,6 +136,7 @@ export default function AdminExpenses() {
   const pendingCount = expenses.filter((e) => e.status === "PENDENTE").length;
   const approvedCount = expenses.filter((e) => e.status === "APROVADO").length;
   const rejectedCount = expenses.filter((e) => e.status === "REJEITADO").length;
+  const emEdicaoCount = expenses.filter((e) => e.status === "EM_EDICAO").length;
 
   if (carregando) {
     return (
@@ -253,6 +255,19 @@ export default function AdminExpenses() {
               <p className="mt-3 text-2xl font-bold text-gray-900">{rejectedCount}</p>
               <p className="text-sm text-gray-500">Rejeitadas</p>
             </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-amber-500">
+                    <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-amber-500">Edição</span>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-gray-900">{emEdicaoCount}</p>
+              <p className="text-sm text-gray-500">Em Edição</p>
+            </div>
           </div>
 
           {/* Filter & view toggle */}
@@ -270,6 +285,7 @@ export default function AdminExpenses() {
                   <option value="APROVADO">Aprovado</option>
                   <option value="REJEITADO">Rejeitado</option>
                   <option value="EM_PROCESSAMENTO">Em Processamento</option>
+                  <option value="EM_EDICAO">Em Edição</option>
                 </select>
               </div>
               <div>

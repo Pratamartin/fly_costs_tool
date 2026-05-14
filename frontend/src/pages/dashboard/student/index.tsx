@@ -5,7 +5,7 @@ import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
 
-type Status = "Pendente" | "Aprovado" | "Rejeitado";
+type Status = "Pendente" | "Aprovado" | "Rejeitado" | "Correção Solicitada";
 type Filtro = "Todos" | Status;
 
 interface Despesa {
@@ -25,6 +25,7 @@ function statusBackendToFrontend(status: string): Status {
     case "PENDENTE": return "Pendente";
     case "APROVADO": return "Aprovado";
     case "REJEITADO": return "Rejeitado";
+    case "EM_EDICAO": return "Correção Solicitada";
     default: return "Pendente";
   }
 }
@@ -97,6 +98,15 @@ function BadgeStatus({ status }: { status: Status }) {
         Aprovado
       </span>
     );
+  if (status === "Correção Solicitada")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+          <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+        </svg>
+        Correção Solicitada
+      </span>
+    );
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-red-200">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
@@ -118,6 +128,7 @@ export default function DashboardAluno() {
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [criandoDespesa, setCriandoDespesa] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   async function carregarDespesas(token: string) {
     const expensesResult = await listExpenses(token);
@@ -130,6 +141,15 @@ export default function DashboardAluno() {
       setErro("Erro ao carregar despesas");
     }
   }
+
+  useEffect(() => {
+    if (router.query.toast === "correctionSubmitted") {
+      setToastMsg("Correção enviada com sucesso! A despesa voltou para revisão.");
+      router.replace("/dashboard/student", undefined, { shallow: true });
+      const t = setTimeout(() => setToastMsg(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [router.query.toast]);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -224,7 +244,7 @@ export default function DashboardAluno() {
     return matchFiltro && matchBusca;
   });
 
-  const filtros: Filtro[] = ["Todos", "Pendente", "Aprovado", "Rejeitado"];
+  const filtros: Filtro[] = ["Todos", "Pendente", "Aprovado", "Rejeitado", "Correção Solicitada"];
 
   if (carregando) {
     return (
@@ -251,6 +271,20 @@ export default function DashboardAluno() {
           carregando={criandoDespesa}
           erro={erro}
         />
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-5 py-3 shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm font-medium text-green-800">{toastMsg}</p>
+          <button onClick={() => setToastMsg(null)} className="ml-2 text-green-500 hover:text-green-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
+        </div>
       )}
 
       <StudentSidebar userName={userProfile?.name ?? null} onLogout={handleLogout} />
@@ -393,7 +427,11 @@ export default function DashboardAluno() {
                   </tr>
                 ) : (
                   despesasFiltradas.map((d) => (
-                    <tr key={d.id} className="hover:bg-gray-50">
+                    <tr
+                      key={d.id}
+                      onClick={d.status === "Correção Solicitada" ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`) : undefined}
+                      className={`hover:bg-gray-50 ${d.status === "Correção Solicitada" ? "cursor-pointer" : ""}`}
+                    >
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{d.data}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -424,7 +462,11 @@ export default function DashboardAluno() {
               ) : (
                 <div className="divide-y divide-gray-100">
                   {despesasFiltradas.map((d) => (
-                    <div key={d.id} className="px-4 py-4 hover:bg-gray-50">
+                    <div
+                      key={d.id}
+                      onClick={d.status === "Correção Solicitada" ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`) : undefined}
+                      className={`px-4 py-4 hover:bg-gray-50 ${d.status === "Correção Solicitada" ? "cursor-pointer" : ""}`}
+                    >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <IconeDespesa tipo={d.icone} />

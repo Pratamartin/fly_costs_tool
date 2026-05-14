@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSAMENTO"
+export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSAMENTO" | "EM_EDICAO"
 
 export type StudentInfo = {
   id: string
@@ -31,6 +31,7 @@ export type Expense = {
   description: string | null
   status: ExpenseStatus
   rejectionReason: string | null
+  correctionNote: string | null
   city: string
   state: string
   country: string
@@ -48,6 +49,7 @@ export type Expense = {
 
 export type ListExpensesError = "UNAUTHORIZED" | "UNKNOWN"
 export type UpdateExpenseStatusError = "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION_ERROR" | "UNKNOWN"
 export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
 export type AssignProjectError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
@@ -68,6 +70,20 @@ export type ListExpensesResult =
 export type UpdateExpenseStatusResult =
   | { ok: true; data: Expense }
   | { ok: false; error: UpdateExpenseStatusError }
+
+export type UpdateExpensePayload = {
+  title?: string
+  description?: string
+  city?: string
+  state?: string
+  country?: string
+  departureDate?: string
+  returnDate?: string
+}
+
+export type UpdateExpenseResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: UpdateExpenseError }
 
 export type GetExpenseResult =
   | { ok: true; data: Expense }
@@ -145,16 +161,19 @@ export async function listExpenses(
 export async function updateExpenseStatus(
   token: string,
   expenseId: string,
-  status: "APROVADO" | "REJEITADO",
+  status: "APROVADO" | "REJEITADO" | "EM_EDICAO",
   reason?: string
 ): Promise<UpdateExpenseStatusResult> {
+  const body: Record<string, string> = { status }
+  if (reason) body.reason = reason
+
   const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/status`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
+    body: JSON.stringify(body),
   })
 
   if (res.status === 200) return { ok: true, data: await res.json() }
@@ -346,6 +365,28 @@ export type GetMemorandumUrlError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" |
 export type GetMemorandumUrlResult =
   | { ok: true; downloadUrl: string; expiresIn: number }
   | { ok: false; error: GetMemorandumUrlError }
+
+export async function updateExpense(
+  token: string,
+  expenseId: string,
+  payload: UpdateExpensePayload
+): Promise<UpdateExpenseResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  return { ok: false, error: "UNKNOWN" }
+}
 
 export async function getMemorandumDownloadUrl(
   token: string,

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
+import ModalSolicitarCorrecao from "@/components/ModalSolicitarCorrecao";
 import {
   getExpenseById,
   updateExpenseStatus,
@@ -50,22 +51,32 @@ function StatusBanner({ expense }: { expense: Expense }) {
 
   if (expense.status === "APROVADO") {
     return (
-      <div className="flex items-center justify-between rounded-xl border-l-4 border-green-500 bg-green-50 px-6 py-4 mb-5">
-        <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-500">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+      <div className="rounded-xl border-l-4 border-green-500 bg-green-50 px-6 py-4 mb-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-bold text-green-700">Aprovado pelo Coordenador</p>
+              <p className="text-sm text-green-600">Memorando recebido e aprovado. Analise os dados do aluno e prossiga com a vinculação de projeto.</p>
+            </div>
+          </div>
+          <div className="text-right hidden sm:block shrink-0 ml-4">
+            <p className="text-xs font-semibold text-green-500">Enviado em</p>
+            <p className="text-sm font-bold text-green-800">{date}</p>
+          </div>
+        </div>
+        {expense.attachmentKey && (
+          <div className="mt-3 ml-15 pl-[60px] flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-green-600 shrink-0">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
             </svg>
+            <span className="text-xs font-semibold text-green-700">Memorando PDF anexado</span>
           </div>
-          <div>
-            <p className="font-bold text-green-700">Aprovado</p>
-            <p className="text-sm text-green-600">Despesa aprovada. Vincule um projeto para prosseguir.</p>
-          </div>
-        </div>
-        <div className="text-right hidden sm:block">
-          <p className="text-xs font-semibold text-green-500">Enviado em</p>
-          <p className="text-sm font-bold text-green-800">{date}</p>
-        </div>
+        )}
       </div>
     );
   }
@@ -87,6 +98,34 @@ function StatusBanner({ expense }: { expense: Expense }) {
         <div className="text-right hidden sm:block">
           <p className="text-xs font-semibold text-blue-500">Enviado em</p>
           <p className="text-sm font-bold text-blue-800">{date}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (expense.status === "EM_EDICAO") {
+    return (
+      <div className="flex items-start justify-between rounded-xl border-l-4 border-amber-400 bg-amber-50 px-6 py-4 mb-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-400 mt-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-bold text-amber-700">Aguardando Correção do Aluno</p>
+            {expense.correctionNote ? (
+              <p className="text-sm text-amber-600 mt-0.5 max-w-prose">
+                <span className="font-semibold">Instrução: </span>{expense.correctionNote}
+              </p>
+            ) : (
+              <p className="text-sm text-amber-600">Correção solicitada. Aguardando o aluno editar a despesa.</p>
+            )}
+          </div>
+        </div>
+        <div className="text-right hidden sm:block shrink-0 ml-4">
+          <p className="text-xs font-semibold text-amber-500">Enviado em</p>
+          <p className="text-sm font-bold text-amber-800">{date}</p>
         </div>
       </div>
     );
@@ -128,8 +167,11 @@ export default function ExpenseDetalhe() {
   const [erro, setErro] = useState<string | null>(null);
 
   const [showModalRejeitar, setShowModalRejeitar] = useState(false);
+  const [showModalCorrecao, setShowModalCorrecao] = useState(false);
   const [aprovando, setAprovando] = useState(false);
   const [rejeitando, setRejeitando] = useState(false);
+  const [solicitandoCorrecao, setSolicitandoCorrecao] = useState(false);
+  const [dadosConfirmados, setDadosConfirmados] = useState(false);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
@@ -213,6 +255,20 @@ export default function ExpenseDetalhe() {
       if (projResult.ok) setProjects(projResult.data);
     } else {
       setErro("Erro ao aprovar despesa.");
+    }
+  }
+
+  async function handleSolicitarCorrecao(note: string) {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !expense) return;
+    setSolicitandoCorrecao(true);
+    const result = await updateExpenseStatus(token, expense.id, "EM_EDICAO", note);
+    setSolicitandoCorrecao(false);
+    if (result.ok) {
+      setExpense(result.data);
+      setShowModalCorrecao(false);
+    } else {
+      setErro("Erro ao solicitar correção.");
     }
   }
 
@@ -364,6 +420,15 @@ export default function ExpenseDetalhe() {
             {expense.status === "PENDENTE" && (
               <>
                 <button
+                  onClick={() => setShowModalCorrecao(true)}
+                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition sm:px-4"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                  </svg>
+                  Solicitar Correção
+                </button>
+                <button
                   onClick={handleAprovar}
                   disabled={aprovando}
                   className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 transition disabled:opacity-60 sm:px-4"
@@ -498,8 +563,131 @@ export default function ExpenseDetalhe() {
                 )}
               </div>
 
-              {/* Vincular Projeto — only when APROVADO */}
+              {/* Review Gate — only when APROVADO */}
               {expense.status === "APROVADO" && (
+                dadosConfirmados ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-5 py-3 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm font-semibold text-green-800">Dados confirmados — prossiga para vincular o projeto.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-5">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v4.25H7a.75.75 0 000 1.5h3.25v4.25a.75.75 0 001.5 0v-4.25H15a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
+                      </svg>
+                      <h2 className="text-sm font-bold text-gray-800">Revisão de Dados pelo Admin</h2>
+                      <span className="ml-auto text-xs font-semibold text-orange-500 bg-orange-50 rounded-full px-2 py-0.5 ring-1 ring-orange-200">Ação necessária</span>
+                    </div>
+
+                    <p className="text-sm text-gray-500 mb-5">
+                      Confirme se os dados da solicitação estão corretos antes de vincular o projeto. Caso algum dado esteja incorreto, solicite correção ao aluno.
+                    </p>
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Despesa</p>
+                          <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                          {expense.description && (
+                            <p className="text-xs text-gray-500 mt-0.5">{expense.description}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                          <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.452-.23.773-.417.635-.374 1.52-.965 2.396-1.763C15.281 15.523 17 13.687 17 11a7 7 0 10-14 0c0 2.687 1.719 4.523 3.216 5.855a19.032 19.032 0 002.396 1.763 11.46 11.46 0 00.773.417 5.75 5.75 0 00.281.14l.018.008.006.003zM10 13a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Destino & Período</p>
+                          <p className="text-sm font-semibold text-gray-800">
+                            {expense.city}, {expense.state}
+                            {expense.country && expense.country !== "BR" && ` — ${expense.country}`}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {fmtDate(expense.departureDate)} → {fmtDate(expense.returnDate)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                          <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Solicitante</p>
+                          <p className="text-sm font-semibold text-gray-800">{expense.student?.name ?? "—"}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Aluno</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Memorando</p>
+                          {expense.attachmentKey ? (
+                            <div className="flex items-center gap-1.5">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm font-semibold text-green-700">PDF recebido</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-orange-400">
+                                <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm font-semibold text-orange-600">Sem memorando</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3 opacity-60">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                          <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Dados Bancários</p>
+                          <p className="text-sm text-gray-400 italic">Disponível na próxima versão — consultar perfil do aluno</p>
+                        </div>
+                      </div> */}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+                      <button
+                        onClick={() => setShowModalCorrecao(true)}
+                        className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                        </svg>
+                        Solicitar Correção
+                      </button>
+                      <button
+                        onClick={() => setDadosConfirmados(true)}
+                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                        </svg>
+                        Confirmar Dados
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* Vincular Projeto — only when APROVADO e dados confirmados */}
+              {expense.status === "APROVADO" && dadosConfirmados && (
                 <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
@@ -848,6 +1036,19 @@ export default function ExpenseDetalhe() {
           }}
           onClose={() => setShowModalRejeitar(false)}
           onConfirmar={handleRejeitar}
+        />
+      )}
+
+      {showModalCorrecao && (
+        <ModalSolicitarCorrecao
+          solicitacao={{
+            reqId: displayId,
+            descricao: expense.title,
+            aluno: expense.student?.name,
+          }}
+          onClose={() => setShowModalCorrecao(false)}
+          onConfirmar={handleSolicitarCorrecao}
+          confirmando={solicitandoCorrecao}
         />
       )}
     </div>
