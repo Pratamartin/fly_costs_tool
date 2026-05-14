@@ -2,7 +2,7 @@ import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
 import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
 import * as phrases from 'stoker/http-status-phrases'
-import { EXPENSE_ERROR_CODES, EXPENSE_STATUS_TRANSITIONS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { EXPENSE_ERROR_CODES, EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
@@ -70,18 +70,15 @@ export async function getAllExpenseRequests(
   role: UserRole,
   filters: z.infer<typeof ExpenseListQuerySchema>,
 ) {
-  const where: Prisma.ExpenseRequestWhereInput = filters
+  const visibility: Prisma.ExpenseRequestWhereInput
+    = role === UserRole.ALUNO
+      ? { studentId: userId }
+      : { status: { in: EXPENSE_VISIBILITY_BY_ROLE[role] } }
 
-  if (role === UserRole.ALUNO) {
-    where.studentId = userId
-  }
-
-  const result = await prisma.expenseRequest.findMany({
-    where,
+  return prisma.expenseRequest.findMany({
+    where: { AND: [filters, visibility] },
     orderBy: { createdAt: 'desc' },
   })
-
-  return result
 }
 
 export async function getExpenseById(
@@ -94,13 +91,14 @@ export async function getExpenseById(
   if (role === UserRole.ALUNO) {
     where.studentId = userId
   }
+  else {
+    where.status = { in: EXPENSE_VISIBILITY_BY_ROLE[role] }
+  }
 
-  const result = await prisma.expenseRequest.findFirst({
+  return prisma.expenseRequest.findFirst({
     where,
     include: expenseInclude,
   })
-
-  return result
 }
 
 export async function updateExpenseStatus(
@@ -294,7 +292,7 @@ export async function updateExpense(
     where: { id },
     data: {
       ...data,
-      status: ExpenseRequestStatus.PENDENTE,
+      status: ExpenseRequestStatus.APROVADO,
       correctionReason: null,
     },
     include: expenseInclude,
