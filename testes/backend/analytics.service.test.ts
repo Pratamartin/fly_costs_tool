@@ -75,7 +75,7 @@ describe('analytics.service', () => {
       expenseRequests: {
         some: {
           status: {
-            in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO],
+            in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO, ExpenseRequestStatus.CONCLUIDO],
           },
         },
       },
