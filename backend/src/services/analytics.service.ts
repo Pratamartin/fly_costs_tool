@@ -20,7 +20,7 @@ export async function getAdminDashboardStats() {
   })
 
   const budgetCommitted = await prisma.project.aggregate({
-    where: { expenseRequests: { some: { status: { in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO] } } } },
+    where: { expenseRequests: { some: { status: { in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO, ExpenseRequestStatus.CONCLUIDO] } } } },
     _sum: { usedBudget: true },
   })
 
@@ -41,7 +41,7 @@ export async function getTopProjects(limit?: number) {
   const take = limit || DEFAULT_TOP_PROJECTS_COUNT
 
   const projects = await prisma.project.findMany({
-    where: { expenseRequests: { some: { status: { in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO] } } } },
+    where: { expenseRequests: { some: { status: { in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO, ExpenseRequestStatus.CONCLUIDO] } } } },
     select: {
       id: true,
       name: true,
