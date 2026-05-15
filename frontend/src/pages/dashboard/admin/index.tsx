@@ -27,6 +27,7 @@ function StatusBadge({ status }: { status: ExpenseStatus }) {
     REJEITADO:        { bg: "bg-red-50",    ring: "ring-red-200",    text: "text-red-700",    label: "Rejeitado" },
     EM_PROCESSAMENTO: { bg: "bg-blue-50",   ring: "ring-blue-200",   text: "text-blue-700",   label: "Em Proc." },
     EM_EDICAO:        { bg: "bg-amber-50",  ring: "ring-amber-200",  text: "text-amber-700",  label: "Em Edição" },
+    CONCLUIDO:        { bg: "bg-violet-50", ring: "ring-violet-200", text: "text-violet-700", label: "Concluído" },
   };
   const c = config[status];
   return (

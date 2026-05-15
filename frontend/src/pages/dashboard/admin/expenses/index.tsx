@@ -30,6 +30,7 @@ function StatusBadge({ status }: { status: ExpenseStatus }) {
     REJEITADO:        { bg: "bg-red-50",    ring: "ring-red-200",    text: "text-red-700",    dot: "bg-red-500",     label: "Rejeitado" },
     EM_PROCESSAMENTO: { bg: "bg-blue-50",   ring: "ring-blue-200",   text: "text-blue-700",   dot: "bg-blue-500",    label: "Em Processamento" },
     EM_EDICAO:        { bg: "bg-amber-50",  ring: "ring-amber-200",  text: "text-amber-700",  dot: "bg-amber-500",   label: "Em Edição" },
+    CONCLUIDO:        { bg: "bg-violet-50", ring: "ring-violet-200", text: "text-violet-700", dot: "bg-violet-500",  label: "Concluído" },
   };
   const c = config[status];
   return (
@@ -137,6 +138,7 @@ export default function AdminExpenses() {
   const approvedCount = expenses.filter((e) => e.status === "APROVADO").length;
   const rejectedCount = expenses.filter((e) => e.status === "REJEITADO").length;
   const emEdicaoCount = expenses.filter((e) => e.status === "EM_EDICAO").length;
+  const concluidoCount = expenses.filter((e) => e.status === "CONCLUIDO").length;
 
   if (carregando) {
     return (
@@ -268,6 +270,19 @@ export default function AdminExpenses() {
               <p className="mt-3 text-2xl font-bold text-gray-900">{emEdicaoCount}</p>
               <p className="text-sm text-gray-500">Em Edição</p>
             </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-violet-500">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-violet-500">Total</span>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-gray-900">{concluidoCount}</p>
+              <p className="text-sm text-gray-500">Concluídas</p>
+            </div>
           </div>
 
           {/* Filter & view toggle */}
@@ -286,6 +301,7 @@ export default function AdminExpenses() {
                   <option value="REJEITADO">Rejeitado</option>
                   <option value="EM_PROCESSAMENTO">Em Processamento</option>
                   <option value="EM_EDICAO">Em Edição</option>
+                  <option value="CONCLUIDO">Concluído</option>
                 </select>
               </div>
               <div>

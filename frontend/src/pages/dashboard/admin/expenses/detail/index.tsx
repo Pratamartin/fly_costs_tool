@@ -11,6 +11,7 @@ import {
   uploadCostBreakdownReceipt,
   getCostBreakdownReceiptDownloadUrl,
   getMemorandumDownloadUrl,
+  concludeExpense,
   type Expense,
 } from "@/services/expenses";
 import { listProjects, type Project } from "@/services/projects";
@@ -103,6 +104,28 @@ function StatusBanner({ expense }: { expense: Expense }) {
     );
   }
 
+  if (expense.status === "CONCLUIDO") {
+    return (
+      <div className="flex items-center justify-between rounded-xl border-l-4 border-violet-500 bg-violet-50 px-6 py-4 mb-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-500">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-bold text-violet-700">Solicitação Concluída</p>
+            <p className="text-sm text-violet-600">Fluxo encerrado — todos os documentos foram processados.</p>
+          </div>
+        </div>
+        <div className="text-right hidden sm:block">
+          <p className="text-xs font-semibold text-violet-500">Enviado em</p>
+          <p className="text-sm font-bold text-violet-800">{date}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (expense.status === "EM_EDICAO") {
     return (
       <div className="flex items-start justify-between rounded-xl border-l-4 border-amber-400 bg-amber-50 px-6 py-4 mb-5">
@@ -158,25 +181,32 @@ function StatusBanner({ expense }: { expense: Expense }) {
   );
 }
 
-function ModalEnviarAluno({ nomeAluno, onClose, onConfirmar }: { nomeAluno?: string; onClose: () => void; onConfirmar: () => void }) {
+function ModalConcluir({ nomeAluno, totalCustos, numCustos, onClose, onConfirmar, concluindo }: {
+  nomeAluno?: string;
+  totalCustos: number;
+  numCustos: number;
+  onClose: () => void;
+  onConfirmar: () => void;
+  concluindo: boolean;
+}) {
+  const [enviarParaAluno, setEnviarParaAluno] = useState(true);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-600">
-                <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-violet-600">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Enviar documentos ao aluno?</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {nomeAluno ? `Para: ${nomeAluno}` : "Aluno da solicitação"}
-              </p>
+              <h2 className="text-base font-bold text-gray-900">Concluir esta despesa?</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Esta ação é irreversível</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition">
+          <button onClick={onClose} disabled={concluindo} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition disabled:opacity-50">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
@@ -184,36 +214,81 @@ function ModalEnviarAluno({ nomeAluno, onClose, onConfirmar }: { nomeAluno?: str
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          <p className="text-sm text-gray-600">
-            Confirma o envio da passagem aérea e demais documentos para{" "}
-            <strong>{nomeAluno ?? "o aluno"}</strong>?
-          </p>
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-500 mt-0.5">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            <p className="text-xs text-amber-700">
-              Esta ação ainda não está integrada ao backend.{" "}
-              <span className="font-semibold">Implementar na próxima sprint.</span>
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Aluno</p>
+              <p className="mt-0.5 text-sm font-semibold text-gray-800">{nomeAluno ?? "—"}</p>
+            </div>
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Custos</p>
+              <p className="mt-0.5 text-sm font-semibold text-gray-800">{numCustos} item{numCustos !== 1 ? "s" : ""}</p>
+            </div>
+            <div className="col-span-2 rounded-lg bg-violet-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-violet-500">Total</p>
+              <p className="mt-0.5 text-lg font-bold text-violet-800">
+                {totalCustos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </p>
+            </div>
           </div>
+
+          {/* Enviar para o aluno */}
+          <div className="rounded-lg border border-gray-200 px-4 py-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enviarParaAluno}
+                onChange={(e) => setEnviarParaAluno(e.target.checked)}
+                disabled={concluindo}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium text-gray-800">Enviar passagem / documentos ao aluno</p>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                    Próxima sprint
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Notifica {nomeAluno ?? "o aluno"} com os documentos do processo.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Ao confirmar, a despesa passa para <strong>Concluída</strong> e não poderá mais ser editada.
+          </p>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+            disabled={concluindo}
+            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirmar}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+            disabled={concluindo}
+            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 transition disabled:opacity-50"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-            </svg>
-            Confirmar envio
+            {concluindo ? (
+              <>
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Concluindo...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+                Concluir Despesa
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -253,8 +328,8 @@ export default function ExpenseDetalhe() {
   const [baixandoMemorandum, setBaixandoMemorandum] = useState(false);
   const [erroMemorandum, setErroMemorandum] = useState<string | null>(null);
 
-  const [showModalEnviar, setShowModalEnviar] = useState(false);
-  const [enviadoMock, setEnviadoMock] = useState(false);
+  const [showModalConcluir, setShowModalConcluir] = useState(false);
+  const [concluindo, setConcluindo] = useState(false);
 
   async function handleDownloadMemorandum() {
     const token = localStorage.getItem("accessToken");
@@ -403,6 +478,28 @@ export default function ExpenseDetalhe() {
     setCbValor("");
     setCbAnexo(null);
     setAdicionandoCusto(false);
+  }
+
+  async function handleConcluir() {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !expense) return;
+    setConcluindo(true);
+    setErro(null);
+    const result = await concludeExpense(token, expense.id);
+    setConcluindo(false);
+    if (result.ok) {
+      setExpense(result.data);
+      setShowModalConcluir(false);
+    } else if (result.error === "UNAUTHORIZED") {
+      localStorage.removeItem("accessToken");
+      router.push("/login");
+    } else if (result.error === "UNPROCESSABLE") {
+      setErro("Verifique se todos os custos possuem comprovantes anexados.");
+      setShowModalConcluir(false);
+    } else {
+      setErro("Erro ao concluir despesa.");
+      setShowModalConcluir(false);
+    }
   }
 
   async function handleBaixarComprovante(breakdownId: string) {
@@ -993,6 +1090,107 @@ export default function ExpenseDetalhe() {
               )}
             </div>
 
+              {/* Portfólio de Arquivos — only when CONCLUIDO */}
+              {expense.status === "CONCLUIDO" && (
+                <div className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-violet-500">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                    <h2 className="text-sm font-bold text-gray-800">Portfólio de Arquivos</h2>
+                    <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                      Concluído
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Memorando */}
+                    {expense.attachmentKey && (
+                      <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-600">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900">Memorando</p>
+                            <p className="text-xs text-gray-400 truncate">{expense.attachmentKey.split("/").pop()}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleDownloadMemorandum}
+                          disabled={baixandoMemorandum}
+                          className="ml-3 flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+                        >
+                          {baixandoMemorandum ? (
+                            <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                              <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                              <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                            </svg>
+                          )}
+                          Baixar
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Cost breakdowns */}
+                    {(expense.costBreakdowns ?? []).map((cb) => (
+                      <div key={cb.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-600">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{cb.subcategory.name}</p>
+                            <p className="text-xs font-semibold text-gray-500">
+                              {cb.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </p>
+                          </div>
+                        </div>
+                        {cb.attachmentKey ? (
+                          <button
+                            onClick={() => handleBaixarComprovante(cb.id)}
+                            disabled={baixandoComprovante === cb.id}
+                            className="ml-3 flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition"
+                          >
+                            {baixandoComprovante === cb.id ? (
+                              <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                                <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                              </svg>
+                            )}
+                            Baixar
+                          </button>
+                        ) : (
+                          <span className="ml-3 text-xs text-gray-300 shrink-0">Sem comprovante</span>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Total */}
+                    <div className="flex items-center justify-between rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
+                      <p className="text-sm font-bold text-violet-700">Total</p>
+                      <p className="text-lg font-bold text-violet-800">
+                        {totalCusto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             {/* Right sidebar */}
             <div className="space-y-5">
 
@@ -1089,58 +1287,79 @@ export default function ExpenseDetalhe() {
               )}
             </div>
 
-              {/* Enviar Documentos ao Aluno — only when EM_PROCESSAMENTO */}
-              {expense.status === "EM_PROCESSAMENTO" && (
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
-                      <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-                    </svg>
-                    <h2 className="text-sm font-bold text-gray-800">Enviar Documentos ao Aluno</h2>
-                    <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
-                      Implementar próxima sprint
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-gray-500 mb-4">
-                    Após registrar todos os custos, envie a passagem aérea ou outros documentos ao aluno.
-                  </p>
-
-                  {enviadoMock ? (
-                    <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
+              {/* Concluir Despesa — only when EM_PROCESSAMENTO */}
+              {expense.status === "EM_PROCESSAMENTO" && (() => {
+                const breakdowns = expense.costBreakdowns ?? [];
+                const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey);
+                const podeConcluir = breakdowns.length > 0 && semComprovante.length === 0;
+                return (
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-violet-500">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                       </svg>
-                      <div>
-                        <p className="text-sm font-semibold text-green-800">Documentos enviados ao aluno</p>
-                        <p className="text-xs text-green-600">Integração pendente — registrado localmente.</p>
-                      </div>
+                      <h2 className="text-sm font-bold text-gray-800">Concluir Despesa</h2>
                     </div>
-                  ) : (
+
+                    <ul className="mb-4 space-y-1.5">
+                      <li className="flex items-center gap-2 text-sm">
+                        {breakdowns.length > 0 ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-green-500">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-red-400">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        <span className={breakdowns.length > 0 ? "text-gray-700" : "text-red-600"}>
+                          {breakdowns.length > 0 ? `${breakdowns.length} custo${breakdowns.length !== 1 ? "s" : ""} registrado${breakdowns.length !== 1 ? "s" : ""}` : "Nenhum custo registrado"}
+                        </span>
+                      </li>
+                      {breakdowns.length > 0 && semComprovante.length === 0 && (
+                        <li className="flex items-center gap-2 text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-green-500">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-gray-700">Todos os comprovantes anexados</span>
+                        </li>
+                      )}
+                      {semComprovante.map((cb) => (
+                        <li key={cb.id} className="flex items-center gap-2 text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-400">
+                            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-amber-700">{cb.subcategory.name} — sem comprovante</span>
+                        </li>
+                      ))}
+                    </ul>
+
                     <button
-                      onClick={() => setShowModalEnviar(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+                      onClick={() => setShowModalConcluir(true)}
+                      disabled={!podeConcluir}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                        <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                       </svg>
-                      Enviar Passagem / Documentos
+                      Concluir Despesa
                     </button>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
+
           </div>
         </main>
       </div>
 
-      {showModalEnviar && (
-        <ModalEnviarAluno
+      {showModalConcluir && (
+        <ModalConcluir
           nomeAluno={expense.student?.name}
-          onClose={() => setShowModalEnviar(false)}
-          onConfirmar={() => {
-            setEnviadoMock(true);
-            setShowModalEnviar(false);
-          }}
+          totalCustos={totalCusto}
+          numCustos={(expense.costBreakdowns ?? []).length}
+          onClose={() => setShowModalConcluir(false)}
+          onConfirmar={handleConcluir}
+          concluindo={concluindo}
         />
       )}
 

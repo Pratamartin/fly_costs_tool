@@ -5,7 +5,7 @@ import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
 
-type Status = "Pendente" | "Aprovado" | "Rejeitado" | "Correção Solicitada";
+type Status = "Pendente" | "Aprovado" | "Em Processamento" | "Rejeitado" | "Correção Solicitada" | "Concluído";
 type Filtro = "Todos" | Status;
 
 interface Despesa {
@@ -24,8 +24,10 @@ function statusBackendToFrontend(status: string): Status {
   switch (status) {
     case "PENDENTE": return "Pendente";
     case "APROVADO": return "Aprovado";
+    case "EM_PROCESSAMENTO": return "Em Processamento";
     case "REJEITADO": return "Rejeitado";
     case "EM_EDICAO": return "Correção Solicitada";
+    case "CONCLUIDO": return "Concluído";
     default: return "Pendente";
   }
 }
@@ -98,6 +100,15 @@ function BadgeStatus({ status }: { status: Status }) {
         Aprovado
       </span>
     );
+  if (status === "Em Processamento")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+          <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+        </svg>
+        Em Processamento
+      </span>
+    );
   if (status === "Correção Solicitada")
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
@@ -105,6 +116,15 @@ function BadgeStatus({ status }: { status: Status }) {
           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
         </svg>
         Correção Solicitada
+      </span>
+    );
+  if (status === "Concluído")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-200">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+        </svg>
+        Concluído
       </span>
     );
   return (
@@ -244,7 +264,7 @@ export default function DashboardAluno() {
     return matchFiltro && matchBusca;
   });
 
-  const filtros: Filtro[] = ["Todos", "Pendente", "Aprovado", "Rejeitado", "Correção Solicitada"];
+  const filtros: Filtro[] = ["Todos", "Pendente", "Em Processamento", "Aprovado", "Correção Solicitada", "Rejeitado", "Concluído"];
 
   if (carregando) {
     return (
@@ -429,8 +449,14 @@ export default function DashboardAluno() {
                   despesasFiltradas.map((d) => (
                     <tr
                       key={d.id}
-                      onClick={d.status === "Correção Solicitada" ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`) : undefined}
-                      className={`hover:bg-gray-50 ${d.status === "Correção Solicitada" ? "cursor-pointer" : ""}`}
+                      onClick={
+                        d.status === "Correção Solicitada"
+                          ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
+                          : d.status === "Concluído"
+                          ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
+                          : undefined
+                      }
+                      className={`hover:bg-gray-50 ${d.status === "Correção Solicitada" || d.status === "Concluído" ? "cursor-pointer" : ""}`}
                     >
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{d.data}</td>
                       <td className="px-6 py-4">
@@ -464,8 +490,14 @@ export default function DashboardAluno() {
                   {despesasFiltradas.map((d) => (
                     <div
                       key={d.id}
-                      onClick={d.status === "Correção Solicitada" ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`) : undefined}
-                      className={`px-4 py-4 hover:bg-gray-50 ${d.status === "Correção Solicitada" ? "cursor-pointer" : ""}`}
+                      onClick={
+                        d.status === "Correção Solicitada"
+                          ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
+                          : d.status === "Concluído"
+                          ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
+                          : undefined
+                      }
+                      className={`px-4 py-4 hover:bg-gray-50 ${d.status === "Correção Solicitada" || d.status === "Concluído" ? "cursor-pointer" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">

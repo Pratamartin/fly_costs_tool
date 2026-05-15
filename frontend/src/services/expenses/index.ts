@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSAMENTO" | "EM_EDICAO"
+export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSAMENTO" | "EM_EDICAO" | "CONCLUIDO"
 
 export type StudentInfo = {
   id: string
@@ -357,6 +357,33 @@ export async function uploadMemorandum(
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
   if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"
+
+export type ConcludeExpenseResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: ConcludeExpenseError }
+
+export async function concludeExpense(
+  token: string,
+  expenseId: string
+): Promise<ConcludeExpenseResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/conclude`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 422) return { ok: false, error: "UNPROCESSABLE" }
   return { ok: false, error: "UNKNOWN" }
 }
 
