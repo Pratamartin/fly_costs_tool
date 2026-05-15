@@ -242,12 +242,7 @@ function ModalConcluir({ nomeAluno, totalCustos, numCustos, onClose, onConfirmar
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-gray-800">Enviar passagem / documentos ao aluno</p>
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
-                    Próxima sprint
-                  </span>
-                </div>
+                <p className="text-sm font-medium text-gray-800">Enviar passagem / documentos ao aluno</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Notifica {nomeAluno ?? "o aluno"} com os documentos do processo.
                 </p>
