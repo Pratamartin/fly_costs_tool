@@ -447,7 +447,7 @@ export default function ExpenseDetalhe() {
     const token = localStorage.getItem("accessToken");
     if (!token || !expense) return;
     const amount = parseFloat(cbValor);
-    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0) return;
+    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0 || !cbAnexo) return;
     setAdicionandoCusto(true);
     setErroCusto(null);
     const result = await createCostBreakdown(token, expense.id, {
@@ -1022,7 +1022,7 @@ export default function ExpenseDetalhe() {
 
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Anexo
+                          Anexo <span className="text-red-500">*</span>
                         </label>
                         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400">
@@ -1059,7 +1059,7 @@ export default function ExpenseDetalhe() {
 
                       <button
                         type="submit"
-                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor}
+                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor || !cbAnexo}
                         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                       >
                         {adicionandoCusto ? (
