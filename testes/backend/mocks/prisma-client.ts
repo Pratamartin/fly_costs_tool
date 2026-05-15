@@ -29,7 +29,9 @@ export const ExpenseRequestStatus = {
   PENDENTE: 'PENDENTE',
   APROVADO: 'APROVADO',
   REJEITADO: 'REJEITADO',
+  EM_EDICAO: 'EM_EDICAO',
   EM_PROCESSAMENTO: 'EM_PROCESSAMENTO',
+  CONCLUIDO: 'CONCLUIDO',
 }
 
 export class PrismaClient {}
