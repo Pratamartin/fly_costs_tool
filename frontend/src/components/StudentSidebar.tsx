@@ -37,7 +37,7 @@ export default function StudentSidebar({ userName, onLogout }: StudentSidebarPro
           fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col justify-between
           bg-white border-r border-gray-200 py-6 px-4
           transition-transform duration-300 ease-in-out
-          md:relative md:inset-auto md:z-auto md:w-56 md:translate-x-0
+          md:relative md:inset-auto md:z-auto md:w-56 md:translate-x-0 md:min-h-full
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >

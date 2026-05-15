@@ -112,7 +112,7 @@ export default function AdminSidebar({ active, userName }: AdminSidebarProps) {
         className={`
           fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col justify-between bg-[#1e2d3d] py-6 px-4
           transition-transform duration-300 ease-in-out
-          md:relative md:inset-auto md:z-auto md:w-56 md:translate-x-0
+          md:relative md:inset-auto md:z-auto md:w-56 md:translate-x-0 md:min-h-full
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
