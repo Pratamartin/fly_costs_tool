@@ -32,6 +32,7 @@ import {
   expenseInclude,
   getAllExpenseRequests,
   getExpenseById,
+  updateExpense,
   updateExpenseStatus,
 } from '@/services/expense.service'
 
@@ -52,6 +53,7 @@ function expenseRow(overrides: Record<string, unknown> = {}) {
     returnDate: new Date('2026-07-05T12:00:00.000Z'),
     status: ExpenseRequestStatus.PENDENTE,
     rejectionReason: null,
+    correctionReason: null as string | null,
     projectId: null,
     attachmentKey: null as string | null,
     createdAt: new Date(),
@@ -239,5 +241,143 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     if ('error' in result)
       return
     expect(result.rejectionReason).toBe('Motivo X')
+  })
+
+  // ── T3.4.1 — transições com EM_EDICAO ──────────────────────────────────────
+
+  it('T3.4.1 — transição PENDENTE → EM_EDICAO é inválida (não está nas transições permitidas)', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ status: ExpenseRequestStatus.PENDENTE }),
+    )
+
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.EM_EDICAO,
+      UserRole.ADMIN,
+      'motivo',
+    )
+
+    expect('error' in result && result.error).toBeDefined()
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
+
+  it('T3.4.1 — transição APROVADO → EM_EDICAO é válida quando role é ADMIN com motivo', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ status: ExpenseRequestStatus.APROVADO }),
+    )
+    prismaMock.expenseRequest.update.mockImplementation(async ({ data }: { data: { status: string, correctionReason?: string } }) =>
+      expenseRow({ status: data.status, correctionReason: data.correctionReason ?? null }),
+    )
+
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.EM_EDICAO,
+      UserRole.ADMIN,
+      'Corrigir valor da passagem',
+    )
+
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.status).toBe(ExpenseRequestStatus.EM_EDICAO)
+    expect((result as { correctionReason?: string | null }).correctionReason).toBe('Corrigir valor da passagem')
+  })
+
+  it('T3.4.1 — APROVADO → EM_EDICAO sem motivo retorna REASON_REQUIRED', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ status: ExpenseRequestStatus.APROVADO }),
+    )
+
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.EM_EDICAO,
+      UserRole.ADMIN,
+      undefined,
+    )
+
+    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.REASON_REQUIRED)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
+
+  it('T3.4.1 — somente ADMIN pode mover para EM_EDICAO (COORDENADOR recebe FORBIDDEN)', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ status: ExpenseRequestStatus.APROVADO }),
+    )
+
+    const result = await updateExpenseStatus(
+      EXPENSE_ID,
+      ExpenseRequestStatus.EM_EDICAO,
+      UserRole.COORDENADOR,
+      'motivo',
+    )
+
+    expect('error' in result).toBe(true)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
+})
+
+// ─── T3.4.1 — updateExpense (edição pelo aluno em EM_EDICAO) ─────────────────
+
+describe('updateExpense — T3.4.1 (unit)', () => {
+  beforeEach(() => {
+    prismaMock.expenseRequest.update.mockReset()
+    prismaMock.expenseRequest.findUnique.mockReset()
+  })
+
+  it('muda status para APROVADO e limpa correctionReason após edição do aluno', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({
+        status: ExpenseRequestStatus.EM_EDICAO,
+        correctionReason: 'Corrigir valor',
+        studentId: STUDENT_ID,
+      }),
+    )
+    prismaMock.expenseRequest.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
+      expenseRow({
+        ...data,
+        status: ExpenseRequestStatus.APROVADO,
+        correctionReason: null,
+      }),
+    )
+
+    const result = await updateExpense(EXPENSE_ID, STUDENT_ID, { title: 'Congresso Atualizado' })
+
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.status).toBe(ExpenseRequestStatus.APROVADO)
+    expect((result as { correctionReason?: string | null }).correctionReason).toBeNull()
+  })
+
+  it('aluno sem ownership recebe FORBIDDEN', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({
+        status: ExpenseRequestStatus.EM_EDICAO,
+        studentId: 'outro-aluno-id',
+      }),
+    )
+
+    const result = await updateExpense(EXPENSE_ID, STUDENT_ID, { title: 'Tentativa' })
+
+    expect('error' in result).toBe(true)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
+
+  it('status diferente de EM_EDICAO retorna CONFLICT', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
+      expenseRow({ status: ExpenseRequestStatus.PENDENTE, studentId: STUDENT_ID }),
+    )
+
+    const result = await updateExpense(EXPENSE_ID, STUDENT_ID, { title: 'Tentativa' })
+
+    expect('error' in result).toBe(true)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
+  })
+
+  it('despesa inexistente retorna NOT_FOUND', async () => {
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(null)
+
+    const result = await updateExpense('nao-existe', STUDENT_ID, { title: 'X' })
+
+    expect('error' in result).toBe(true)
+    expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 })
