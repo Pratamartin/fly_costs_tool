@@ -1,5 +1,5 @@
-/* eslint-disable no-console */
 import type { Prisma } from '@/generated/prisma/client'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 
 export const dummyExpenseCategories: Prisma.ExpenseCategoryCreateInput[] = [
@@ -21,7 +21,7 @@ export const dummyExpenseCategories: Prisma.ExpenseCategoryCreateInput[] = [
 ]
 
 async function seedExpenseCategories() {
-  console.log('💰 Seeding Dummy Expense Categories...')
+  logger.info('💰 Seeding Dummy Expense Categories...')
 
   for (const category of dummyExpenseCategories) {
     await prisma.expenseCategory.upsert({

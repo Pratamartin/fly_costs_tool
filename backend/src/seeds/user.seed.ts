@@ -1,9 +1,9 @@
-/* eslint-disable no-console */
 import type { Prisma } from '@/generated/prisma/client'
 import { genSalt, hash } from 'bcryptjs'
 import { DEFAULT_USER_PASSWORD, ID_ALUNO, MOCK_PROFILE } from '@/constants/seed.constant'
 import env from '@/env'
 import { UserRole } from '@/generated/prisma/client'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 
 export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
@@ -37,7 +37,7 @@ export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
 ]
 
 async function seedUsers() {
-  console.log('🙍🏻‍♂️ Seeding Dummy Users...')
+  logger.info('🙍🏻‍♂️ Seeding Dummy Users...')
 
   const salt = await genSalt(Number(env.SALT_ROUNDS) || 10)
   const hashed = await hash(DEFAULT_USER_PASSWORD, salt)
