@@ -7,9 +7,10 @@ import { logger } from '@/lib/logger'
 
 export class EmailService {
   private generateIdempotencyKey(input: SendEmailInput): string {
+    const payload = input.html || JSON.stringify(input.template || {})
     return crypto
       .createHash('sha256')
-      .update(`${input.to}:${input.subject}:${input.html}`)
+      .update(`${input.to}:${input.subject}:${payload}`)
       .digest('hex')
   }
 
