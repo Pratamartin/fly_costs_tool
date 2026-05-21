@@ -15,11 +15,17 @@ services:
     networks:
       - fly-costs-network
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
-    image: postgres
+    image: postgres:18-alpine
     container_name: fly-costs-db
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "flycostsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: user
@@ -28,6 +34,21 @@ services:
       - fly-costs-db-data:/var/lib/postgresql
     ports:
       - "5432:5432"
+    networks:
+      - fly-costs-network
+
+  pgboss-dashboard:
+    image: node:24-alpine
+    container_name: fly-costs-pgboss-dashboard
+    command: sh -c "npm install -g @pg-boss/dashboard && pg-boss-dashboard"
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+      - PORT=5001
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - fly-costs-network
 
