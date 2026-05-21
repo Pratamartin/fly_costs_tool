@@ -12,6 +12,7 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+      - REDIS_URL=redis://redis:6379
     networks:
       - fly-costs-network
     depends_on:
@@ -28,6 +29,14 @@ services:
       - fly-costs-db-data:/var/lib/postgresql
     ports:
       - "5432:5432"
+    networks:
+      - fly-costs-network
+
+  redis:
+    image: redis:alpine
+    container_name: fly-costs-redis
+    ports:
+      - "6379:6379"
     networks:
       - fly-costs-network
 
