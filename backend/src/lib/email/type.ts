@@ -1,7 +1,26 @@
+import type { ExpenseRequestStatus } from '@/generated/prisma/client'
+
+export type StatusChangeTemplateData = {
+  type: 'status-change'
+  props: {
+    studentName: string
+    expenseDescription: string
+    newStatus: ExpenseRequestStatus
+    date: string
+    detailPage: string
+    reason?: string | null
+    projectName?: string | null
+    hasMemorandum?: boolean
+  }
+}
+
+export type TemplateData = StatusChangeTemplateData
+
 export type SendEmailInput = {
   to: string
   subject: string
-  html: string
+  html?: string
+  template?: TemplateData
   text?: string
 }
 
@@ -22,5 +41,5 @@ export type SendEmailResult
   }
 
 export type EmailProvider = {
-  send: (input: SendEmailInput) => Promise<SendEmailResult>
+  send: (input: Required<Pick<SendEmailInput, 'to' | 'subject' | 'html'>> & Pick<SendEmailInput, 'text'>) => Promise<SendEmailResult>
 }
