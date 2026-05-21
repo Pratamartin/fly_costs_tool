@@ -1,9 +1,9 @@
 import pino from 'pino'
-import env from '@/env'
 
+/* eslint-disable node/no-process-env */
 export const logger = pino({
-  level: env.LOG_LEVEL,
-  transport: env.NODE_ENV !== 'production'
+  level: process.env.LOG_LEVEL || 'info',
+  transport: process.env.NODE_ENV !== 'production'
     ? {
         target: 'pino-pretty',
         options: {
