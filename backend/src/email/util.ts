@@ -21,3 +21,7 @@ export function redactEmail(email: string) {
 
   return `${name[0]}***@${domain}`
 }
+
+export function renderEmailHtml(template: HtmlEscapedString | string): string {
+  return `<!DOCTYPE html>\n${template.toString()}`
+}
