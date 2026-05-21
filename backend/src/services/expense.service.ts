@@ -10,6 +10,7 @@ import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import { getProjectBudgetMetrics } from './budget.service'
+import { notifyStatusChange } from './notifications'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
 type UpdateExpenseDTO = z.infer<typeof UpdateExpenseSchema>
@@ -147,6 +148,12 @@ export async function updateExpenseStatus(
     include: expenseInclude,
   })
 
+  notifyStatusChange(
+    updatedRequest.studentId,
+    updatedRequest,
+    updatedRequest.status,
+  )
+
   return updatedRequest
 }
 
@@ -182,6 +189,12 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
       projectId,
     },
   })
+
+  notifyStatusChange(
+    updatedExpense.studentId,
+    updatedExpense,
+    updatedExpense.status,
+  )
 
   return updatedExpense
 }
@@ -336,6 +349,12 @@ export async function concludeExpenseRequest(
     data: { status: ExpenseRequestStatus.CONCLUIDO },
     include: expenseInclude,
   })
+
+  notifyStatusChange(
+    updatedExpense.studentId,
+    updatedExpense,
+    updatedExpense.status,
+  )
 
   return updatedExpense
 }
