@@ -1,5 +1,5 @@
+import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
-import type { z } from 'zod'
 import type { NotificationQuerySchema } from '@/schemas/notification.schema'
 import prisma from '@/lib/orm'
 
