@@ -1,6 +1,6 @@
-/* eslint-disable no-console */
 import type { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { getRelativeDate } from '@/lib/util'
 import { ID_ALUNO, ID_PROJ_DATA_SCIENCE, ID_PROJ_IA } from '../constants/seed.constant'
@@ -78,7 +78,7 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
 ]
 
 async function seedExpenses() {
-  console.log('💰 Seeding Dummy Expenses...')
+  logger.info('💰 Seeding Dummy Expenses...')
 
   for (const { id, ...data } of dummyExpenses) {
     await prisma.expenseRequest.upsert({

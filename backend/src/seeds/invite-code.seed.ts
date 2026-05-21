@@ -1,6 +1,6 @@
-/* eslint-disable no-console */
 import type { Prisma } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/client'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { getInviteDefaultExpiry } from '@/services/invite.service'
 
@@ -23,7 +23,7 @@ export const dummyInviteCodes = [
 ] satisfies Prisma.InviteCodeCreateInput[]
 
 async function seedInviteCodes() {
-  console.log('🎫 Seeding Invite Codes...')
+  logger.info('🎫 Seeding Invite Codes...')
 
   for (const data of dummyInviteCodes) {
     const expiresAt = getInviteDefaultExpiry()

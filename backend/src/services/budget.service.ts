@@ -5,6 +5,7 @@ import { COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/
 import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { Prisma } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile } from '@/lib/storage'
 
@@ -140,7 +141,7 @@ export async function uploadCostBreakdownReceipt(
       await deleteFile(breakdown.attachmentKey)
     }
     catch (error) {
-      console.error('Failed to delete previous file from R2:', error)
+      logger.error(error, 'Failed to delete previous file from R2:')
       return { error: phrases.BAD_GATEWAY }
     }
   }
@@ -163,7 +164,7 @@ export async function uploadCostBreakdownReceipt(
     return updatedBreakdown
   }
   catch (error) {
-    console.error('R2 Upload error:', error)
+    logger.error(error, 'R2 Upload error:')
     return { error: phrases.BAD_GATEWAY }
   }
 }
@@ -194,7 +195,7 @@ export async function deleteCostBreakdownReceipt(
     return { success: true }
   }
   catch (error) {
-    console.error('R2 Delete error:', error)
+    logger.error(error, 'R2 Delete error:')
     return { error: phrases.BAD_GATEWAY }
   }
 }
@@ -230,7 +231,7 @@ export async function getCostBreakdownReceiptUrl(
     }
   }
   catch (error) {
-    console.error('R2 Pre-sign error:', error)
+    logger.error(error, 'R2 Pre-sign error:')
     return { error: phrases.BAD_GATEWAY }
   }
 }
