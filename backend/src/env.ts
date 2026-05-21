@@ -17,11 +17,43 @@ const EnvSchema = z.object({
     .pipe(z.array(z.url()))
     .default(['http://localhost:3000']),
   DATABASE_URL: z.url(),
+  FRONTEND_URL: z.url()
+    .default('http://localhost:3000'),
   /** Cloudflare R2 (S3-compatible). Opcional em testes; obrigatório para upload/download de memorando. */
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_ENDPOINT: z.url().optional(),
   R2_BUCKET_NAME: z.string().optional(),
+
+  /** Email Service. Opcional em testes; obrigatório para envio de notificações por email */
+  GOOGLE_EMAIL: z.email()
+    .optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REFRESH_TOKEN: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.url().optional(),
+}).superRefine((input, ctx) => {
+  if (input.NODE_ENV === 'production') {
+    const emailFields = [
+      'GOOGLE_EMAIL',
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'GOOGLE_REFRESH_TOKEN',
+      'GOOGLE_REDIRECT_URI',
+    ] as const
+
+    emailFields.forEach((field) => {
+      if (!input[field]) {
+        ctx.addIssue({
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: [field],
+          message: `Deve estar presente quando NODE_ENV é 'production'`,
+        })
+      }
+    })
+  }
 })
 
 export type Env = z.infer<typeof EnvSchema>
