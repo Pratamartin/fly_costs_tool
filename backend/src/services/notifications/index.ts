@@ -11,21 +11,12 @@ export async function notifyStatusChange(
   expense: Pick<ExpenseRequest, 'id' | 'title' | 'rejectionReason' | 'correctionReason' | 'updatedAt' | 'attachmentKey'> & { project?: Pick<Project, 'name'> | null },
   newStatus: ExpenseRequestStatus,
   extra?: string | null,
-  tx?: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient = prisma,
 ) {
-  const execute = async (transaction: Prisma.TransactionClient) => {
-    await createInAppNotification({
-      userId,
-      expenseRequestId: expense.id,
-    }, transaction)
+  await createInAppNotification({
+    userId,
+    expenseRequestId: expense.id,
+  }, tx)
 
-    await sendStatusChangeEmail(userId, expense, newStatus, extra, transaction)
-  }
-
-  if (tx) {
-    await execute(tx)
-  }
-  else {
-    await prisma.$transaction(execute)
-  }
+  await sendStatusChangeEmail(userId, expense, newStatus, extra, tx)
 }
