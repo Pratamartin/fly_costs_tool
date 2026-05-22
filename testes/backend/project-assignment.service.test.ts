@@ -18,6 +18,9 @@ const prismaMock = vi.hoisted(() => ({
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  notification: {
+    create: vi.fn(),
+  },
 }))
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
