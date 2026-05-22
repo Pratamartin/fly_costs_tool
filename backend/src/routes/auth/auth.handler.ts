@@ -71,9 +71,7 @@ export const forgotPassword: AppRouteHandler<ForgotPasswordRoute> = async (c) =>
         type: 'password-recovery',
         props: { resetToken: plainToken },
       },
-    }, {
-      singletonKey: `password_recovery_${email}`,
-    })
+    }, { singletonKey: `password_recovery_${email}` })
   }
 
   return c.json({ message: 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.' }, codes.OK)

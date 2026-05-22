@@ -28,7 +28,7 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
   let alunoHeaders: { Authorization: string }
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
-  let projectId: string
+  let _projectId: string
 
   beforeAll(async () => {
     await seedUsers()
@@ -37,7 +37,7 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
 
     const project = await prisma.project.findFirst()
     assert(project)
-    projectId = project.id
+    _projectId = project.id
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
