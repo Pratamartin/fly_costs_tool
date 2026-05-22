@@ -50,3 +50,13 @@ export const LoginSuccessSchema = z.object({
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   }),
 })
+
+export const ForgotPasswordSchema = z.object({
+  email: z.email()
+    .openapi({ example: MOCK_USER.email }),
+})
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().openapi({ example: 'plain-token-here' }),
+  newPassword: RegisterBaseSchema.shape.password,
+})
