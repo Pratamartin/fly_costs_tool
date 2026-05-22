@@ -6,9 +6,6 @@ import { emailService } from '@/lib/email/service'
 import { logger } from '@/lib/logger'
 import { getUserById } from '../user.service'
 
-/**
- * Gets the reason for a status change based on the status and extra info.
- */
 function getStatusChangeReason(status: ExpenseRequestStatus, expense: Pick<ExpenseRequest, 'rejectionReason' | 'correctionReason'>, extra?: string | null) {
   if (extra)
     return extra
@@ -19,9 +16,6 @@ function getStatusChangeReason(status: ExpenseRequestStatus, expense: Pick<Expen
   return null
 }
 
-/**
- * Constructs the frontend URL for the expense detail/edit page.
- */
 function getExpenseDetailUrl(expenseId: string, status: ExpenseRequestStatus) {
   const baseUrl = `${env.FRONTEND_URL}/dashboard/student/expenses`
   if (status === ExpenseRequestStatus.EM_EDICAO) {
@@ -64,7 +58,10 @@ export async function sendStatusChangeEmail(
           hasMemorandum: Boolean(expense.attachmentKey),
         },
       },
-    }, tx)
+    }, {
+      tx,
+      singletonKey: `status_change_${expense.id}_${newStatus}`,
+    })
 
     if (!result.success) {
       logger.error({

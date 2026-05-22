@@ -14,7 +14,15 @@ export type StatusChangeTemplateData = {
   }
 }
 
-export type TemplateData = StatusChangeTemplateData
+export type PasswordRecoveryTemplateData = {
+  type: 'password-recovery'
+  props: {
+    resetToken: string
+    expiryTime?: string
+  }
+}
+
+export type TemplateData = StatusChangeTemplateData | PasswordRecoveryTemplateData
 
 export type SendEmailInput = {
   to: string

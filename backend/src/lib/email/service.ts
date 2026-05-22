@@ -14,13 +14,16 @@ export class EmailService {
       .digest('hex')
   }
 
-  async send(input: SendEmailInput, tx?: Prisma.TransactionClient): Promise<SendEmailResult> {
+  async send(
+    input: SendEmailInput,
+    options?: { tx?: Prisma.TransactionClient, singletonKey?: string },
+  ): Promise<SendEmailResult> {
     try {
-      const jobId = this.generateIdempotencyKey(input)
+      const jobId = options?.singletonKey || this.generateIdempotencyKey(input)
 
       await jobManager.emit('send-email', input, {
         singletonKey: jobId,
-        tx,
+        tx: options?.tx,
       })
 
       return {
@@ -33,7 +36,9 @@ export class EmailService {
       const message = error instanceof Error ? error.message : 'Unknown error queueing email'
       logger.error({
         error: message,
-        input,
+        to: input.to,
+        subject: input.subject,
+        templateType: input.template?.type,
       }, 'Failed to queue email')
 
       return {
