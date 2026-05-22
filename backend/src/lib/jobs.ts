@@ -3,7 +3,10 @@ import type { Prisma } from '@/generated/prisma/client'
 import { fromPrisma, PgBoss } from 'pg-boss'
 import env from '@/env'
 
-export const boss = new PgBoss(env.DATABASE_URL)
+export const boss = new PgBoss({
+  connectionString: env.DATABASE_URL,
+  __test__enableSpies: env.NODE_ENV === 'test',
+})
 
 export type EmitOptions = SendOptions & { tx?: Prisma.TransactionClient }
 
@@ -41,7 +44,7 @@ export abstract class BaseJob<T extends object = object> {
 export class JobManager<TMapping extends Record<string, any> = Record<string, never>> {
   private jobsMap = new Map<string, BaseJob<any>>()
 
-  constructor(private boss: PgBoss) {}
+  constructor(public readonly boss: PgBoss) {}
 
   register<TType extends string, TData extends object>(
     job: BaseJob<TData> & { type: TType },

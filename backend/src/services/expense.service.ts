@@ -148,7 +148,7 @@ export async function updateExpenseStatus(
     include: expenseInclude,
   })
 
-  notifyStatusChange(
+  await notifyStatusChange(
     updatedRequest.studentId,
     updatedRequest,
     updatedRequest.status,
@@ -190,7 +190,7 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
     },
   })
 
-  notifyStatusChange(
+  await notifyStatusChange(
     updatedExpense.studentId,
     updatedExpense,
     updatedExpense.status,
@@ -350,7 +350,7 @@ export async function concludeExpenseRequest(
     include: expenseInclude,
   })
 
-  notifyStatusChange(
+  await notifyStatusChange(
     updatedExpense.studentId,
     updatedExpense,
     updatedExpense.status,
