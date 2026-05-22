@@ -1,7 +1,8 @@
 import type { Job } from 'pg-boss'
 import type { SendEmailInput } from '@/lib/email/type'
+import { EMAIL_ERROR_CODES } from '@/constants/email.constant'
 import { createEmailProvider } from '@/lib/email/providers'
-import { StatusChangeEmail } from '@/lib/email/templates'
+import { PasswordRecoveryEmail, StatusChangeEmail } from '@/lib/email/templates'
 import { renderEmailHtml } from '@/lib/email/util'
 import { BaseJob } from '@/lib/jobs'
 import { logger } from '@/lib/logger'
@@ -19,17 +20,56 @@ export class SendEmailJob extends BaseJob<EmailJobData> {
     retryBackoff: true,
   }
 
-  private async renderTemplate(template: NonNullable<SendEmailInput['template']>): Promise<string> {
-    switch (template.type) {
-      case 'status-change': {
-        const component = await StatusChangeEmail(template.props)
-        if (!component) {
-          throw new Error('Failed to render status-change email component')
+  override readonly workOptions = {
+    localConcurrency: 2,
+    batchSize: 1,
+  }
+
+  private async renderTemplate(template: NonNullable<SendEmailInput['template']>): Promise<{ success: true, html: string } | { success: false, error: string }> {
+    try {
+      switch (template.type) {
+        case 'status-change': {
+          const component = await StatusChangeEmail(template.props)
+          if (!component) {
+            return {
+              success: false,
+              error: EMAIL_ERROR_CODES.FAILED_TO_RENDER_TEMPLATE,
+            }
+          }
+          return {
+            success: true,
+            html: renderEmailHtml(component.toString()),
+          }
         }
-        return renderEmailHtml(component.toString())
+        case 'password-recovery': {
+          const component = await PasswordRecoveryEmail(template.props)
+          if (!component) {
+            return {
+              success: false,
+              error: EMAIL_ERROR_CODES.FAILED_TO_RENDER_TEMPLATE,
+            }
+          }
+          return {
+            success: true,
+            html: renderEmailHtml(component.toString()),
+          }
+        }
+        default:
+          return {
+            success: false,
+            error: EMAIL_ERROR_CODES.INVALID_PAYLOAD,
+          }
       }
-      default:
-        throw new Error(`Unknown template type: ${(template as any).type}`)
+    }
+    catch (err) {
+      logger.error({
+        err,
+        templateType: template.type,
+      }, 'Error rendering email template')
+      return {
+        success: false,
+        error: EMAIL_ERROR_CODES.FAILED_TO_RENDER_TEMPLATE,
+      }
     }
   }
 
@@ -39,12 +79,21 @@ export class SendEmailJob extends BaseJob<EmailJobData> {
     logger.info({
       jobId: job.id,
       to: job.data.to,
+      requestId: job.data.requestId,
     }, 'Processing email job')
 
-    const html = job.data.html || (job.data.template ? await this.renderTemplate(job.data.template) : undefined)
+    let html = job.data.html
+
+    if (!html && job.data.template) {
+      const renderResult = await this.renderTemplate(job.data.template)
+      if (!renderResult.success) {
+        throw new Error(renderResult.error)
+      }
+      html = renderResult.html
+    }
 
     if (!html) {
-      throw new Error('No HTML content or template provided for email job')
+      throw new Error(EMAIL_ERROR_CODES.INVALID_PAYLOAD)
     }
 
     const result = await provider.send({

@@ -1,11 +1,22 @@
-import type { Job, SendOptions } from 'pg-boss'
+import type { Job, SendOptions, WorkOptions } from 'pg-boss'
 import type { Prisma } from '@/generated/prisma/client'
 import { fromPrisma, PgBoss } from 'pg-boss'
 import env from '@/env'
+import { logger } from './logger'
 
 export const boss = new PgBoss({
   connectionString: env.DATABASE_URL,
   __test__enableSpies: env.NODE_ENV === 'test',
+  persistWarnings: true,
+  warningRetentionDays: 7,
+})
+
+boss.on('error', (error) => {
+  logger.error({ error }, 'pg-boss internal error')
+})
+
+boss.on('warning', (warning) => {
+  logger.warn({ warning }, 'pg-boss warning')
 })
 
 export type EmitOptions = SendOptions & { tx?: Prisma.TransactionClient }
@@ -18,11 +29,14 @@ export abstract class BaseJob<T extends object = object> {
     retryDelay: 1000,
   }
 
+  readonly workOptions?: WorkOptions
+
   constructor(protected boss: PgBoss) {}
 
   async start(): Promise<void> {
-    await this.boss.work(this.type, async (jobs) => {
-      for (const job of jobs) {
+    await this.boss.work(this.type, this.workOptions ?? {}, async (jobs) => {
+      const jobArray = Array.isArray(jobs) ? jobs : [jobs]
+      for (const job of jobArray) {
         await this.work(job as Job<T>)
       }
     })
