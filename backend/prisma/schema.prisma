@@ -12,6 +12,8 @@ model User {
   name            String
   email           String           @unique
   passwordHash    String
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
   role            UserRole         @default(ALUNO)
   expenseRequests ExpenseRequest[]
   notifications   Notification[]
