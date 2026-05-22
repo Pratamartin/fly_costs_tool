@@ -1,7 +1,8 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
-import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
@@ -31,6 +32,8 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
     coordenadorHeaders = await getAuthHeaders('coordenador@test.com', 'COORDENADOR')
+
+    vi.spyOn(jobManager, 'emit').mockResolvedValue(undefined)
   })
 
   afterAll(async () => {
