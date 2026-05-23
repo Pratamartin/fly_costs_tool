@@ -32,4 +32,4 @@ COPY --from=builder --chown=hono:nodejs /app/package.json /app/package.json
 USER hono
 EXPOSE 3001
 
-ENTRYPOINT ["node", "src/index.js"]
+CMD ["node", "src/index.js"]
