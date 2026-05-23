@@ -3,8 +3,11 @@ import { useRouter } from "next/router";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import ModalDetalhe from "@/components/ModalDetalhe";
+import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, updateExpenseStatus, getExpenseById, type Expense } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, getExpenseById, exportExpensesReport, type Expense, type ReportFilters } from "@/services/expenses";
+import { listProjects } from "@/services/projects";
+import NotificationsPanel from "@/components/NotificationsPanel";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -105,18 +108,23 @@ export default function DashboardCoordenador() {
   const [detalheAberto, setDetalheAberto] = useState<Expense | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const carregarDados = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) { router.push("/login"); return; }
       try {
-        const [meResult, pendingResult, approvedResult, rejectedResult] = await Promise.all([
+        const [meResult, pendingResult, approvedResult, rejectedResult, projectsResult] = await Promise.all([
           getMe(token),
           listExpenses(token, "PENDENTE"),
           listExpenses(token, "APROVADO"),
           listExpenses(token, "REJEITADO"),
+          listProjects(token),
         ]);
+        if (projectsResult.ok) setProjects(projectsResult.data.map((p) => ({ id: p.id, name: p.name })));
         if (!meResult.ok) {
           if (meResult.error === "UNAUTHORIZED") { localStorage.removeItem("accessToken"); router.push("/login"); }
           else setErro("Erro ao carregar perfil");
@@ -145,6 +153,22 @@ export default function DashboardCoordenador() {
     };
     carregarDados();
   }, [router]);
+
+  async function handleExport(filters: ReportFilters) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setExporting(true);
+    const result = await exportExpensesReport(token, filters);
+    setExporting(false);
+    if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
+    setShowReportModal(false);
+    const url = URL.createObjectURL(result.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = result.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleLogout() {
     localStorage.removeItem("accessToken");
@@ -255,6 +279,14 @@ export default function DashboardCoordenador() {
           onClose={() => setDetalheAberto(null)}
         />
       )}
+      {showReportModal && (
+        <ModalFiltroRelatorio
+          onClose={() => setShowReportModal(false)}
+          onExportar={handleExport}
+          exporting={exporting}
+          projects={projects}
+        />
+      )}
 
       <CoordinatorSidebar
         active={abaAtual}
@@ -292,14 +324,16 @@ export default function DashboardCoordenador() {
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38] sm:w-56"
               />
             </div>
-            <button className="relative shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-                <path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.73-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" />
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex shrink-0 items-center gap-2 rounded-lg bg-[#1a5c38] px-3 py-2 text-sm font-semibold text-white hover:bg-[#14472b] transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 6.75a.75.75 0 011.5 0v2.546l.943-1.048a.75.75 0 111.114 1.004l-2.25 2.5a.75.75 0 01-1.114 0l-2.25-2.5a.75.75 0 111.114-1.004l.943 1.048V8.75z" clipRule="evenodd" />
               </svg>
-              {despesas.PENDENTE.length > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-              )}
+              <span className="hidden sm:inline">Exportar PDF</span>
             </button>
+            <NotificationsPanel role="coordinator" />
           </div>
         </header>
 

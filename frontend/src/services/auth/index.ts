@@ -76,3 +76,23 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
   if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
   return { ok: false, error: "UNKNOWN" }
 }
+
+export type ForgotPasswordResult =
+  | { ok: true }
+  | { ok: false; error: "VALIDATION_ERROR" | "UNKNOWN" }
+
+export type ResetPasswordError = "TOKEN_EXPIRED" | "TOKEN_INVALID" | "VALIDATION_ERROR" | "UNKNOWN"
+
+export type ResetPasswordResult =
+  | { ok: true }
+  | { ok: false; error: ResetPasswordError }
+
+// MOCK: POST /v1/auth/forgot-password — backend não implementado ainda
+export async function forgotPassword(_email: string): Promise<ForgotPasswordResult> {
+  return new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 900))
+}
+
+// MOCK: POST /v1/auth/reset-password — backend não implementado ainda
+export async function resetPassword(_token: string, _newPassword: string): Promise<ResetPasswordResult> {
+  return new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 900))
+}

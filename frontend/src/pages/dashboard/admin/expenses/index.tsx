@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
-import { listExpenses, updateExpenseStatus, type Expense, type ExpenseStatus } from "@/services/expenses";
+import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
+import { listExpenses, updateExpenseStatus, exportExpensesReport, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
+import { listProjects } from "@/services/projects";
 
 type StatusFilter = "all" | ExpenseStatus;
 type ViewMode = "table" | "grid";
@@ -58,11 +60,17 @@ export default function AdminExpenses() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 8;
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token) { router.push("/login"); return; }
     carregarDespesas(token);
+    listProjects(token).then((r) => {
+      if (r.ok) setProjects(r.data.map((p) => ({ id: p.id, name: p.name })));
+    });
   }, [router]);
 
   async function carregarDespesas(token: string) {
@@ -100,6 +108,22 @@ export default function AdminExpenses() {
     } else {
       setErro("Erro ao rejeitar despesa");
     }
+  }
+
+  async function handleExport(filters: ReportFilters) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setExporting(true);
+    const result = await exportExpensesReport(token, filters);
+    setExporting(false);
+    if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
+    setShowReportModal(false);
+    const url = URL.createObjectURL(result.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = result.filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function handleSelectAll(checked: boolean) {
@@ -172,6 +196,14 @@ export default function AdminExpenses() {
           onConfirmar={(motivo) => handleReject(rejeitando.id, motivo)}
         />
       )}
+      {showReportModal && (
+        <ModalFiltroRelatorio
+          onClose={() => setShowReportModal(false)}
+          onExportar={handleExport}
+          exporting={exporting}
+          projects={projects}
+        />
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
@@ -200,6 +232,15 @@ export default function AdminExpenses() {
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56"
               />
             </div>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex shrink-0 items-center gap-2 rounded-lg bg-[#1e2d3d] px-3 py-2 text-sm font-semibold text-white hover:bg-[#2d3f52] transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 6.75a.75.75 0 011.5 0v2.546l.943-1.048a.75.75 0 111.114 1.004l-2.25 2.5a.75.75 0 01-1.114 0l-2.25-2.5a.75.75 0 111.114-1.004l.943 1.048V8.75z" clipRule="evenodd" />
+              </svg>
+              <span className="hidden sm:inline">Exportar PDF</span>
+            </button>
           </div>
         </header>
 

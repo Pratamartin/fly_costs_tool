@@ -360,6 +360,55 @@ export async function uploadMemorandum(
   return { ok: false, error: "UNKNOWN" }
 }
 
+export type ReportFilters = {
+  startDate?: string
+  endDate?: string
+  status?: ExpenseStatus | "all"
+  projectId?: string
+  studentName?: string
+}
+
+export type ExportReportError = "UNAUTHORIZED" | "NOT_IMPLEMENTED" | "UNKNOWN"
+
+export type ExportReportResult =
+  | { ok: true; blob: Blob; filename: string }
+  | { ok: false; error: ExportReportError }
+
+const MOCK_REPORT = true
+
+export async function exportExpensesReport(
+  token: string,
+  filters: ReportFilters
+): Promise<ExportReportResult> {
+  if (MOCK_REPORT) {
+    const { generateMockReportPdf } = await import("@/lib/mockReportPdf")
+    const blob = await generateMockReportPdf(token, filters)
+    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
+    return { ok: true, blob, filename }
+  }
+
+  const params = new URLSearchParams()
+  if (filters.startDate) params.append("startDate", filters.startDate)
+  if (filters.endDate) params.append("endDate", filters.endDate)
+  if (filters.status && filters.status !== "all") params.append("status", filters.status)
+  if (filters.projectId) params.append("projectId", filters.projectId)
+  if (filters.studentName) params.append("studentName", filters.studentName)
+
+  const res = await fetch(`${API_URL}/v1/expenses/report?${params.toString()}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (res.status === 200) {
+    const blob = await res.blob()
+    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
+    return { ok: true, blob, filename }
+  }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 404 || res.status === 501) return { ok: false, error: "NOT_IMPLEMENTED" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"
 
 export type ConcludeExpenseResult =
