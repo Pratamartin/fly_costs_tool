@@ -222,7 +222,7 @@ export default function Login() {
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <label className="text-sm font-medium text-gray-700">Senha</label>
-                    <a href="#" className="text-xs font-medium text-[#2563EB] hover:underline">
+                    <a href="/forgot-password" className="text-xs font-medium text-[#2563EB] hover:underline">
                       Esqueceu a senha?
                     </a>
                   </div>
