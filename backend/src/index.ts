@@ -1,26 +1,30 @@
 import { serve } from '@hono/node-server'
 import app from './app'
 import env from './env'
+import { jobManager } from './jobs'
+import { logger } from './lib/logger'
 
-const server = serve({
-  fetch: app.fetch,
-  port: env.PORT,
-}, (info) => {
-  // eslint-disable-next-line no-console
-  console.log(`Server is running on ${info.address}:${info.port}`)
-})
+try {
+  await jobManager.start()
 
-// graceful shutdown
-process.on('SIGINT', () => {
-  server.close()
-  process.exit(0)
-})
-process.on('SIGTERM', () => {
-  server.close((err) => {
-    if (err) {
-      console.error(err)
-      process.exit(1)
-    }
-    process.exit(0)
+  const server = serve({
+    fetch: app.fetch,
+    port: env.PORT,
+  }, (info) => {
+    logger.info(`Server is running on ${info.address}:${info.port}`)
   })
-})
+
+  const shutdown = async () => {
+    logger.info('Shutting down server...')
+    server.close()
+    await jobManager.stop()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
+}
+catch (error) {
+  logger.fatal(error, 'Failed to bootstrap application')
+  process.exit(1)
+}

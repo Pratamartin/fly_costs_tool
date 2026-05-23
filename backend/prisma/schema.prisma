@@ -12,8 +12,11 @@ model User {
   name            String
   email           String           @unique
   passwordHash    String
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
   role            UserRole         @default(ALUNO)
   expenseRequests ExpenseRequest[]
+  notifications   Notification[]
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -88,7 +91,7 @@ model ExpenseRequest {
   rejectionReason String?
   correctionReason String?
 
-
+  notifications  Notification[]
   /// Chave do objeto no bucket R2 (ex.: memorandos/uuid-nome.pdf)
   attachmentKey String?
 
@@ -131,4 +134,18 @@ model InviteCode {
   usedAt    DateTime?
   expiresAt DateTime
   createdAt DateTime  @default(now())
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  userId String?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expenseRequestId String?
+  expenseRequest   ExpenseRequest? @relation(fields: [expenseRequestId], references: [id], onDelete: Cascade)
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }

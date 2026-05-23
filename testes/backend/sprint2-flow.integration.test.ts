@@ -30,6 +30,12 @@ const prismaMock = vi.hoisted(() => ({
   project: {
     findUnique: vi.fn(),
   },
+  notification: {
+    create: vi.fn(),
+  },
+  user: {
+    findUnique: vi.fn(),
+  },
   $transaction: vi.fn(),
 }))
 
@@ -47,6 +53,8 @@ const txMock = {
   expenseRequest: { findUnique: vi.fn() },
   costBreakdown: { create: vi.fn() },
   project: { update: vi.fn() },
+  notification: { create: vi.fn() },
+  user: { findUnique: vi.fn() },
 }
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
