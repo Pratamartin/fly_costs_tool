@@ -5,6 +5,7 @@ import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import ModalDetalhe from "@/components/ModalDetalhe";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, updateExpenseStatus, getExpenseById, type Expense } from "@/services/expenses";
+import NotificationsPanel from "@/components/NotificationsPanel";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -292,14 +293,7 @@ export default function DashboardCoordenador() {
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38] sm:w-56"
               />
             </div>
-            <button className="relative shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-                <path d="M4.214 3.227a.75.75 0 00-1.156-.956 8.97 8.97 0 00-1.856 3.826.75.75 0 001.466.316 7.47 7.47 0 011.546-3.186zm11.73-.956a.75.75 0 00-1.156.956 7.47 7.47 0 011.547 3.186.75.75 0 001.466-.316 8.97 8.97 0 00-1.857-3.826zM10 2a6 6 0 00-6 6v1.076l-1.647 2.74A.75.75 0 003 13h14a.75.75 0 00.647-1.184L16 9.076V8a6 6 0 00-6-6zM9 17.5a1.5 1.5 0 003 0H9z" />
-              </svg>
-              {despesas.PENDENTE.length > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-              )}
-            </button>
+            <NotificationsPanel role="coordinator" />
           </div>
         </header>
 

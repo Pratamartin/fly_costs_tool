@@ -5,6 +5,7 @@ import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProj
 import { getAdminDashboard, getTopProjects, type AdminDashboard, type TopProject } from "@/services/analytics";
 import { listExpenses, type Expense, type ExpenseStatus } from "@/services/expenses";
 import { createProject } from "@/services/projects";
+import NotificationsPanel from "@/components/NotificationsPanel";
 
 const AVATAR_COLORS: Record<string, string> = {
   A: "bg-pink-500", B: "bg-indigo-500", C: "bg-sky-500", D: "bg-violet-500",
@@ -128,6 +129,7 @@ export default function DashboardAdmin() {
               </span>
               <input type="text" placeholder="Pesquisar projetos, despesas..." className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56" />
             </div>
+            <NotificationsPanel role="admin" />
             <button
               onClick={() => { setErroCriar(null); setShowModalCriar(true); }}
               className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4ed8] transition sm:px-4"

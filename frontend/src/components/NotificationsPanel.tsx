@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/router";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { Notification, NotificationType } from "@/services/notifications";
@@ -7,6 +8,8 @@ interface NotificationsPanelProps {
   role: "admin" | "coordinator" | "student";
   dark?: boolean;
 }
+
+const DROPDOWN_WIDTH = 320;
 
 function formatRelative(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -125,11 +128,15 @@ function NotifItem({
 export default function NotificationsPanel({ role, dark = false }: NotificationsPanelProps) {
   const { notifications, unreadCount, handleMarkAsRead, handleMarkAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Close on outside click — checks both the button and the portal dropdown
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (!buttonRef.current?.contains(target) && !dropdownRef.current?.contains(target)) {
         setOpen(false);
       }
     }
@@ -137,14 +144,83 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [open]);
 
+  function handleBellClick() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // Keep dropdown within viewport horizontally
+      const left = Math.min(rect.left, window.innerWidth - DROPDOWN_WIDTH - 8);
+      setDropdownPos({ top: rect.bottom + 8, left });
+    }
+    setOpen((v) => !v);
+  }
+
   const bellClass = dark
     ? "relative rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition"
     : "relative rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition";
 
+  // Rendered via portal so it escapes the sidebar's stacking context (created by transform)
+  const dropdown =
+    open && dropdownPos
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: DROPDOWN_WIDTH }}
+            className="z-[9999] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-800">Notificações</span>
+                {unreadCount > 0 && (
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-600">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                  Marcar todas
+                </button>
+              )}
+            </div>
+
+            {/* List */}
+            <div className="max-h-96 divide-y divide-gray-100 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8 text-gray-200">
+                    <path fillRule="evenodd" d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-xs text-gray-400">Nenhuma notificação</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <NotifItem
+                    key={n.id}
+                    notif={n}
+                    role={role}
+                    onMarkAsRead={handleMarkAsRead}
+                    onClose={() => setOpen(false)}
+                  />
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
-    <div ref={containerRef} className="relative">
+    <>
       <button
-        onClick={() => setOpen((v) => !v)}
+        ref={buttonRef}
+        onClick={handleBellClick}
         className={bellClass}
         aria-label="Notificações"
       >
@@ -157,55 +233,7 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
           </span>
         )}
       </button>
-
-      {open && (
-        <div className="absolute left-0 top-full z-[200] mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-800">Notificações</span>
-              {unreadCount > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-600">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllAsRead}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                </svg>
-                Marcar todas
-              </button>
-            )}
-          </div>
-
-          {/* List */}
-          <div className="max-h-96 divide-y divide-gray-100 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8 text-gray-200">
-                  <path fillRule="evenodd" d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" clipRule="evenodd" />
-                </svg>
-                <p className="text-xs text-gray-400">Nenhuma notificação</p>
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <NotifItem
-                  key={n.id}
-                  notif={n}
-                  role={role}
-                  onMarkAsRead={handleMarkAsRead}
-                  onClose={() => setOpen(false)}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+      {dropdown}
+    </>
   );
 }
