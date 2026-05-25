@@ -1,8 +1,14 @@
-import type { AnySchema } from 'ajv'
+import type { AnySchema, ValidateFunction } from 'ajv'
 import type { Prisma } from '@/generated/prisma/client'
 import { PREFERENCE_SURVEY_ERROR_CODES } from '@/constants/preference-survey.constant'
 import ajv from '@/lib/json-schema-validator'
 import prisma from '@/lib/orm'
+
+/**
+ * Cache para validadores AJV compilados para evitar recompilação JIT repetitiva.
+ * Chave: preferenceSurvey.id
+ */
+const validatorCache = new Map<string, ValidateFunction>()
 
 export async function getActiveSurveys() {
   return prisma.preferenceSurvey.findMany({
@@ -28,19 +34,34 @@ export async function getActiveSurveyByCategoryId(categoryId: string) {
   })
 }
 
-export async function validateAnswers(answers: { expenseCategoryId: string, data: any }[]) {
+export async function validateAnswers(answers: { expenseCategoryId: string, data: Record<string, unknown> }[]) {
   if (!answers || !Array.isArray(answers)) {
     return PREFERENCE_SURVEY_ERROR_CODES.INVALID_SURVEY_DATA
   }
 
+  // Otimização: Busca em lote para evitar N+1 queries
+  const categoryIds = answers.map(a => a.expenseCategoryId)
+  const surveys = await prisma.preferenceSurvey.findMany({
+    where: {
+      expenseCategoryId: { in: categoryIds },
+      isActive: true,
+    },
+  })
+
   for (const answer of answers) {
-    const survey = await getActiveSurveyByCategoryId(answer.expenseCategoryId)
+    const survey = surveys.find(s => s.expenseCategoryId === answer.expenseCategoryId)
 
     if (!survey) {
       return PREFERENCE_SURVEY_ERROR_CODES.SURVEY_NOT_FOUND
     }
 
-    const validate = ajv.compile(survey.schema as AnySchema)
+    // Otimização: Uso de cache para o validador compilado
+    let validate = validatorCache.get(survey.id)
+    if (!validate) {
+      validate = ajv.compile(survey.schema as AnySchema)
+      validatorCache.set(survey.id, validate)
+    }
+
     const valid = validate(answer.data)
 
     if (!valid) {
@@ -55,7 +76,7 @@ export async function createSurveyAnswer(
   tx: Prisma.TransactionClient,
   expenseRequestId: string,
   categoryId: string,
-  data: any,
+  data: Record<string, unknown>,
 ) {
   const survey = await getActiveSurveyByCategoryId(categoryId)
 

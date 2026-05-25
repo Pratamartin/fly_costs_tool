@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import schema from '@/json/preference-survey.schema.json'
 import ajv from '@/lib/json-schema-validator'
-import schema from '@/schemas/preference-survey.schema.json'
 
 describe('preference Survey Schema Validation', () => {
   describe('hospedagem', () => {
