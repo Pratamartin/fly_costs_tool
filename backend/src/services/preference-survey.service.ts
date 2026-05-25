@@ -29,6 +29,10 @@ export async function getActiveSurveyByCategoryId(categoryId: string) {
 }
 
 export async function validateAnswers(answers: { expenseCategoryId: string, data: any }[]) {
+  if (!answers || !Array.isArray(answers)) {
+    return PREFERENCE_SURVEY_ERROR_CODES.INVALID_SURVEY_DATA
+  }
+
   for (const answer of answers) {
     const survey = await getActiveSurveyByCategoryId(answer.expenseCategoryId)
 
