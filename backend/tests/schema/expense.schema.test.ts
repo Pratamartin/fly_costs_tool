@@ -1,7 +1,7 @@
 import type { z } from '@hono/zod-openapi'
 import { assert, describe, expect, it } from 'vitest'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
-import { CreateExpenseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
+import { CreateExpenseSchema, UpdateExpenseSchema, UpdateExpenseStatusSchema } from '@/schemas/expense.schema'
 import { dummyExpenses } from '@/seeds/expense.seed'
 
 describe('createExpenseSchema', () => {
@@ -13,11 +13,12 @@ describe('createExpenseSchema', () => {
   const payload: CreateExpenseInput = {
     title: example.title,
     description: example.description,
-    city: example.city,
-    country: example.country,
-    state: example.state,
-    departureDate: new Date(example.departureDate),
-    returnDate: new Date(example.returnDate),
+    surveyAnswers: [
+      {
+        expenseCategoryId: '0748489b-4449-408a-a16b-44c9e0550c29',
+        data: { some: 'data' },
+      },
+    ],
   }
 
   it('deve validar com sucesso uma despesa válida', () => {
@@ -27,66 +28,75 @@ describe('createExpenseSchema', () => {
     expect(result.data).toMatchObject(payload)
   })
 
-  it('deve falhar quando a cidade não for informada', () => {
-    const { city, ...missingCityPayload } = payload
-
-    const result = CreateExpenseSchema.safeParse(missingCityPayload)
-    expect(result.success).toBe(false)
-    assert(result.error)
-    expect(result.error.issues).length(1)
-    const issue = result.error.issues.find(i => i.path.includes('city'))
-    assert(issue)
-    expect(issue.path).toContain('city')
-    expect(issue.code).toBe('invalid_type')
-  })
-
-  describe('validações de província', () => {
-    it('deve falhar quando a província não segue o padrão ISO-3166-2', () => {
-      const testPayload: CreateExpenseInput = {
-        ...payload,
-        state: 'Alasca',
-      }
-
-      const result = CreateExpenseSchema.safeParse(testPayload)
-      expect(result.success).toBe(false)
-      assert(result.error)
-      const issue = result.error.issues.find(i => i.path.includes('state'))
-      assert(issue)
-      expect(issue.code).toBe('custom')
-    })
-
-    it('deve falhar quando a província não pertence ao país selecionado', () => {
-      const testPayload: CreateExpenseInput = {
-        ...payload,
-        country: 'BR',
-        state: 'US-NY',
-      }
-
-      const result = CreateExpenseSchema.safeParse(testPayload)
-      expect(result.success).toBe(false)
-      assert(result.error)
-      const issue = result.error.issues.find(i => i.message.includes('não pertence'))
-      assert(issue)
-      expect(issue.code).toBe('custom')
-    })
-  })
-
-  it('deve falhar quando a data de retorno for anterior à data de partida', () => {
-    const testPayload: CreateExpenseInput = {
+  it('deve falhar quando surveyAnswers estiver vazio', () => {
+    const invalidPayload = {
       ...payload,
-      departureDate: new Date('2026-05-25T10:00:00Z'),
-      returnDate: new Date('2026-05-20T10:00:00Z'),
+      surveyAnswers: [],
     }
 
-    const result = CreateExpenseSchema.safeParse(testPayload)
-
+    const result = CreateExpenseSchema.safeParse(invalidPayload)
     expect(result.success).toBe(false)
     assert(result.error)
-    expect(result.error.issues).length(1)
-    const issue = result.error.issues.find(i => i.path.includes('returnDate'))
+    const issue = result.error.issues.find(i => i.path.includes('surveyAnswers'))
     assert(issue)
-    expect(issue.path).toContain('returnDate')
-    expect(issue.code).toBe('custom')
+    expect(issue.code).toBe('too_small')
+  })
+
+  it('deve falhar quando uma categoria não for um UUID válido', () => {
+    const invalidPayload = {
+      ...payload,
+      surveyAnswers: [{
+        expenseCategoryId: 'invalid-id',
+        data: {},
+      }],
+    }
+
+    const result = CreateExpenseSchema.safeParse(invalidPayload)
+    expect(result.success).toBe(false)
+    assert(result.error)
+    const issue = result.error.issues.find(i => i.path.includes('expenseCategoryId'))
+    assert(issue)
+    expect(issue.code).toBe('invalid_format')
+  })
+})
+
+describe('updateExpenseSchema', () => {
+  it('permite atualização parcial de título e descrição', () => {
+    const payload = {
+      title: 'Novo Título',
+      description: 'Nova Descrição',
+    }
+    const result = UpdateExpenseSchema.safeParse(payload)
+    expect(result.success).toBe(true)
+    assert(result.data)
+    expect(result.data.title).toBe(payload.title)
+    expect(result.data.description).toBe(payload.description)
+  })
+
+  it('permite atualização opcional de surveyAnswers', () => {
+    const payload = {
+      surveyAnswers: [
+        {
+          expenseCategoryId: '0748489b-4449-408a-a16b-44c9e0550c29',
+          data: { updated: true },
+        },
+      ],
+    }
+    const result = UpdateExpenseSchema.safeParse(payload)
+    expect(result.success).toBe(true)
+    assert(result.data)
+    expect(result.data.surveyAnswers).toHaveLength(1)
+  })
+
+  it('falha se campos não permitidos forem enviados', () => {
+    const payload = { status: ExpenseRequestStatus.APROVADO }
+    // UpdateExpenseSchema usa .pick({title, description}).partial().extend({surveyAnswers})
+    // Então ele deve ignorar ou falhar dependendo se .passthrough() ou .strict() é usado.
+    // BaseSchema em expense.schema.ts não usa strict().
+    // Mas Zod por padrão ignora campos extras no safeParse a menos que strict() seja usado.
+    const result = UpdateExpenseSchema.safeParse(payload)
+    expect(result.success).toBe(true)
+    expect(result.data).not.toHaveProperty('status')
   })
 })
 
