@@ -62,10 +62,43 @@ model ExpenseCategory {
   normalizedName String @unique
 
   projects Project[]
+  preferenceSurveys        PreferenceSurvey[]        
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   costBreakdowns CostBreakdown[]
+}
+
+model PreferenceSurvey {
+  id                String          @id @default(uuid()) 
+  schema            Json
+  ui                Json?           
+  version           Int             @default(1)
+  isActive          Boolean         @default(true)       
+
+  expenseCategoryId String
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+
+  surveyAnswers     PreferenceSurveyAnswer[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model PreferenceSurveyAnswer {
+  id               String         @id @default(uuid())
+  data             Json           
+  
+  expenseRequestId String
+  expenseRequest   ExpenseRequest @relation(fields: [expenseRequestId], references: [id], onDelete: Cascade)
+  
+  surveyId         String
+  survey           PreferenceSurvey         @relation(fields: [surveyId], references: [id]) 
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([expenseRequestId, surveyId]) 
 }
 
 model ExpenseRequest {
@@ -78,13 +111,6 @@ model ExpenseRequest {
   title       String
   description String?
 
-  city    String
-  state   String @db.VarChar(6) // ISO 3166-2 (e.g., "US-NY", "BR-AM")
-  country String @db.Char(2) // ISO 3166-1 (e.g., "US", "BR")
-
-  departureDate DateTime
-  returnDate    DateTime
-
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
@@ -96,6 +122,8 @@ model ExpenseRequest {
   attachmentKey String?
 
   costBreakdowns CostBreakdown[]
+  surveyAnswers  PreferenceSurveyAnswer[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
