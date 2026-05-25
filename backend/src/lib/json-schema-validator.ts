@@ -15,8 +15,15 @@ const ajv = new Ajv({
 addFormats(ajv)
 addErrors(ajv)
 
+const R2_KEY_REGEX = /^formulario-preferencias\/[\w/.-]+$/
+
 ajv.addFormat('iso-country', { validate: (code: string) => countries.isValid(code.toUpperCase()) })
 ajv.addFormat('iso-state', { validate: (code: string) => iso31662.subdivision(code.toUpperCase()) !== null })
+ajv.addFormat('r2-key', {
+  validate: (key: string) =>
+    typeof key === 'string'
+    && R2_KEY_REGEX.test(key),
+})
 
 ajv.addKeyword({
   keyword: 'dateAfter',

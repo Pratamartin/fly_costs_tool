@@ -34,7 +34,7 @@ function getClient(): S3Client {
 export type UploadFileOptions = {
   file: File
   contentType: string
-  folder: 'memorandos' | 'comprovantes'
+  folder: 'memorandos' | 'comprovantes' | 'formulario-preferencias'
   subfolder?: string
   prefix?: string
 }

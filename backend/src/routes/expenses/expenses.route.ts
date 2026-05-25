@@ -55,6 +55,10 @@ export const create = createRoute({
       CreateExpenseResponseSchema,
       'Solicitação criada com sucesso.',
     ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Dados inválidos'),
+      'Erro de validação ou lógica de negócio.',
+    ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
   },

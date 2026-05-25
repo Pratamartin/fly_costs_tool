@@ -3,9 +3,10 @@ import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
+import { PreferenceSurveyAnswerSchema } from './preference-survey.schema'
 import ProjectSchema from './project.schema'
-import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validPDFCheck, validStateCheck } from './schema.refine'
-import { FileItemSchema, IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
+import { reasonFieldRequired, validPDFCheck } from './schema.refine'
+import { FileItemSchema, IdSchema, TimestampSchema } from './shared.schema'
 import { UserSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
@@ -46,18 +47,15 @@ const BaseSchema = z.object({
       example: 'Por favor, ajuste o título da despesa para condizer com o memorando.',
     }),
 })
-  .extend(LocationSchema.shape)
-  .extend(TripPeriodSchema.shape)
 
 export const CreateExpenseSchema = BaseSchema.omit({
   status: true,
   rejectionReason: true,
   correctionReason: true,
+}).extend({
+  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1)
+    .openapi({ description: 'Lista de categorias e respostas de formulário solicitadas' }),
 })
-  .check(validStateCheck)
-  .check(validCountryCheck)
-  .check(stateBelongsToCountryCheck)
-  .check(returnDateAfterDepartureDateCheck)
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
@@ -67,6 +65,11 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
       .openapi({ description: 'Chave do memorando (PDF) no armazenamento R2.' }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
+    surveyAnswers: z.array(z.object({
+      id: IdSchema,
+      data: z.any(),
+      surveyId: IdSchema,
+    })).optional(),
   })
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
@@ -84,11 +87,6 @@ export const ExpenseListItemSchema = z.object({
     status: true,
     rejectionReason: true,
     correctionReason: true,
-    city: true,
-    state: true,
-    country: true,
-    departureDate: true,
-    returnDate: true,
   }).shape)
   .extend({
     attachmentKey: z.string().nullable()
@@ -121,14 +119,6 @@ export const UpdateExpenseSchema = BaseSchema
   .pick({
     title: true,
     description: true,
-    city: true,
-    state: true,
-    country: true,
-    departureDate: true,
-    returnDate: true,
   })
   .partial()
-  .check(validStateCheck)
-  .check(validCountryCheck)
-  .check(stateBelongsToCountryCheck)
-  .check(returnDateAfterDepartureDateCheck)
+  .extend({ surveyAnswers: z.array(PreferenceSurveyAnswerSchema).optional() })
