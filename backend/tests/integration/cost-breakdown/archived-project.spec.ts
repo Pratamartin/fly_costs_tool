@@ -6,7 +6,7 @@ import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
@@ -20,6 +20,7 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
 
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -30,11 +31,6 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
         projectId: ID_PROJ_IA,
         studentId: ID_ALUNO,
-        city: 'São Paulo',
-        state: 'BR-SP',
-        country: 'BR',
-        departureDate: new Date('2026-06-01'),
-        returnDate: new Date('2026-06-03'),
       },
     })
 
@@ -47,8 +43,12 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
+    await prisma.costBreakdown.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 

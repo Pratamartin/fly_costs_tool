@@ -8,7 +8,8 @@ import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
 
@@ -29,10 +30,12 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
   let _projectId: string
+  const categoryId = dummyExpenseCategories[0]!.id!
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
 
     const project = await prisma.project.findFirst()
@@ -52,9 +55,11 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.notification.deleteMany()
     await prisma.costBreakdown.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
     await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
@@ -66,14 +71,14 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
     const createRes = await expenseClient.expenses.$post({
       json: {
         title: 'Viagem para Rejeição',
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date('2026-07-01'),
-        returnDate: new Date('2026-07-05'),
+        surveyAnswers: [
+          {
+            expenseCategoryId: categoryId,
+            data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          },
+        ],
       },
     }, { headers: alunoHeaders })
-    expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
@@ -109,14 +114,14 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
     const createRes = await expenseClient.expenses.$post({
       json: {
         title: 'Viagem para Correção',
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date('2026-08-01'),
-        returnDate: new Date('2026-08-05'),
+        surveyAnswers: [
+          {
+            expenseCategoryId: categoryId,
+            data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          },
+        ],
       },
     }, { headers: alunoHeaders })
-    expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
 
     const { id: expenseId } = await createRes.json()

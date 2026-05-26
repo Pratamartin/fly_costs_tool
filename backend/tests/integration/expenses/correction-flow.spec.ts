@@ -6,7 +6,8 @@ import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
 
@@ -18,11 +19,13 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   let coordenadorHeaders: { Authorization: string }
   let createdExpenseId: string
   let projectId: string
+  const categoryId = dummyExpenseCategories[0]!.id!
   const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o memorando.'
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
 
     const project = await prisma.project.findFirst()
@@ -37,8 +40,11 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 
@@ -46,11 +52,12 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     const expenseData = {
       title: 'Inscrição - SBSC 2026',
       description: 'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
-      city: 'São Paulo',
-      state: 'BR-SP',
-      country: 'BR',
-      departureDate: new Date('2026-06-01'),
-      returnDate: new Date('2026-06-05'),
+      surveyAnswers: [
+        {
+          expenseCategoryId: categoryId,
+          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+        },
+      ],
     }
 
     const endpoint = client.expenses.$post
@@ -92,7 +99,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
       { headers: coordenadorHeaders },
     )
 
-    expect(res.status).toBe(status.FORBIDDEN)
+    assert(res.status === status.FORBIDDEN)
   })
 
   it('[Step 3] Admin move para EM_EDICAO com motivo', async () => {
@@ -116,7 +123,15 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   })
 
   it('[Step 4] Aluno edita a despesa (status volta para APROVADO)', async () => {
-    const updateData = { title: 'Título Corrigido - SBSC 2026' }
+    const updateData = {
+      title: 'Título Corrigido - SBSC 2026',
+      surveyAnswers: [
+        {
+          expenseCategoryId: categoryId,
+          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice-corrigido.pdf' },
+        },
+      ],
+    }
 
     const endpoint = client.expenses[':id'].$patch
     const res = await endpoint(
@@ -133,6 +148,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     expect(json.status).toBe(ExpenseRequestStatus.APROVADO)
     expect(json.title).toBe(updateData.title)
     expect(json.correctionReason).toBeNull()
+    expect(json.surveyAnswers![0]!.data.invoiceKey).toBe('formulario-preferencias/aluno-uuid/invoice-corrigido.pdf')
   })
 
   it('[Step 5] Admin move para EM_PROCESSAMENTO (vínculo de projeto)', async () => {

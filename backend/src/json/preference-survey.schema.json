@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Preference Survey Schemas",
+  "definitions": {
+    "hospedagem": {
+      "title": "Solicitação de Auxílio Hospedagem",
+      "description": "Indica se o requerente necessita de diárias.",
+      "type": "boolean"
+    },
+    "inscricao": {
+      "title": "Solicitação de Auxílio Inscrição",
+      "type": "object",
+      "properties": {
+        "invoiceKey": {
+          "type": "string",
+          "format": "r2-key",
+          "title": "INSCRIÇÃO (BOLETO DE INSCRIÇÃO ou INVOICE)",
+          "description": "Upload de 1 arquivo PDF (Máx 10 MB). Para Invoice, usar os dados: JUAN GABRIEL COLONNA - PDPG / FAPEAM | 541.044.082-04"
+        }
+      },
+      "required": [
+        "invoiceKey"
+      ]
+    },
+    "passagem-aerea": {
+      "title": "Solicitação de Auxílio Passagem Aérea",
+      "type": "object",
+      "properties": {
+        "departureDate": {
+          "type": "string",
+          "format": "date",
+          "title": "DATA IDA"
+        },
+        "returnDate": {
+          "type": "string",
+          "format": "date",
+          "title": "DATA RETORNO",
+          "dateAfter": {
+            "$data": "1/departureDate"
+          }
+        },
+        "departureRoute": {
+          "type": "string",
+          "title": "TRECHO IDA",
+          "description": "Exemplo: Manaus/Amazonas para Rio Branco/Acre"
+        },
+        "returnRoute": {
+          "type": "string",
+          "title": "TRECHO RETORNO",
+          "description": "Exemplo: Rio Branco/Acre para Manaus/Amazonas"
+        },
+        "flightSuggestionKey": {
+          "type": "string",
+          "format": "r2-key",
+          "title": "SUGESTÃO DE VOO",
+          "description": "Upload de 1 arquivo (Máx 10 MB)."
+        }
+      },
+      "required": [
+        "departureDate",
+        "returnDate",
+        "departureRoute",
+        "returnRoute"
+      ]
+    }
+  }
+}

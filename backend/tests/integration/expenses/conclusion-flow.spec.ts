@@ -6,7 +6,8 @@ import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
 
@@ -18,10 +19,12 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
   let coordenadorHeaders: { Authorization: string }
   let projectId: string
   let subcategoryName: string
+  const categoryId = dummyExpenseCategories[0]!.id!
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
 
     const project = await prisma.project.findFirst({ include: { expenseCategories: true } })
@@ -37,8 +40,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.costBreakdown.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
     await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
@@ -49,11 +54,12 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem para Conclusão',
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date('2026-07-01'),
-        returnDate: new Date('2026-07-05'),
+        surveyAnswers: [
+          {
+            expenseCategoryId: categoryId,
+            data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          },
+        ],
       },
     }, { headers: alunoHeaders })
     assert(createRes.status === status.CREATED)
@@ -75,12 +81,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     // 4. Tenta concluir sem breakdowns -> Deve falhar (BAD_REQUEST)
     const concludeFail1 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    expect(concludeFail1.status).toBe(status.BAD_REQUEST)
     assert(concludeFail1.status === status.BAD_REQUEST)
 
     const err1 = await concludeFail1.json()
     expect(err1.message).toContain('não possui custos registrados')
-    assert(err1.message.includes('não possui custos registrados'))
 
     // 5. Adiciona breakdown sem comprovante
     const breakdownRes = await client.expenses[':id']['cost-breakdowns'].$post({
@@ -95,12 +99,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     // 6. Tenta concluir com breakdown sem comprovante -> Deve falhar (BAD_REQUEST)
     const concludeFail2 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    expect(concludeFail2.status).toBe(status.BAD_REQUEST)
     assert(concludeFail2.status === status.BAD_REQUEST)
 
     const err2 = await concludeFail2.json()
     expect(err2.message).toContain('custos sem comprovantes')
-    assert(err2.message.includes('custos sem comprovantes'))
 
     // 7. Simula upload de comprovante via DB
     await prisma.costBreakdown.update({
@@ -110,23 +112,22 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     // 8. Conclui com sucesso
     const concludeSuccess = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    expect(concludeSuccess.status).toBe(status.OK)
     assert(concludeSuccess.status === status.OK)
 
     const finalExpense = await concludeSuccess.json()
     expect(finalExpense.status).toBe(ExpenseRequestStatus.CONCLUIDO)
-    assert(finalExpense.status === ExpenseRequestStatus.CONCLUIDO)
   })
 
   it('[PROIBIDO]: Apenas ADMIN pode concluir despesa', async () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem Proibida',
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date('2026-08-01'),
-        returnDate: new Date('2026-08-05'),
+        surveyAnswers: [
+          {
+            expenseCategoryId: categoryId,
+            data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          },
+        ],
       },
     }, { headers: alunoHeaders })
     assert(createRes.status === status.CREATED)
@@ -144,12 +145,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     // Tenta como Aluno
     const resAluno = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: alunoHeaders })
-    expect(resAluno.status).toBe(status.FORBIDDEN)
     assert(resAluno.status === status.FORBIDDEN)
 
     // Tenta como Coordenador
     const resCoord = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: coordenadorHeaders })
-    expect(resCoord.status).toBe(status.FORBIDDEN)
     assert(resCoord.status === status.FORBIDDEN)
   })
 
@@ -157,18 +156,18 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem Pendente',
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date('2026-09-01'),
-        returnDate: new Date('2026-09-05'),
+        surveyAnswers: [
+          {
+            expenseCategoryId: categoryId,
+            data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          },
+        ],
       },
     }, { headers: alunoHeaders })
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
     const res = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    expect(res.status).toBe(status.CONFLICT)
     assert(res.status === status.CONFLICT)
   })
 })

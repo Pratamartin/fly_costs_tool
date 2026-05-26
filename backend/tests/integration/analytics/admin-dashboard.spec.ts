@@ -4,7 +4,7 @@ import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { analytics } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import seedExpenses, { dummyExpenses } from '@/seeds/expense.seed'
 import seedProjects, { dummyProjects } from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
@@ -18,6 +18,7 @@ describe('get /analytics/admin-dashboard', () => {
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
     await seedExpenses()
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
@@ -25,8 +26,11 @@ describe('get /analytics/admin-dashboard', () => {
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 
@@ -34,12 +38,12 @@ describe('get /analytics/admin-dashboard', () => {
 
   it('deve retornar 401 quando nenhum token é fornecido', async () => {
     const res = await endpoint.$get({ query: {} })
-    expect(res.status).toBe(status.UNAUTHORIZED)
+    assert(res.status === status.UNAUTHORIZED)
   })
 
   it('deve retornar 403 quando um ALUNO tenta acessar o dashboard', async () => {
     const res = await endpoint.$get({ query: {} }, { headers: alunoHeaders })
-    expect(res.status).toBe(status.FORBIDDEN)
+    assert(res.status === status.FORBIDDEN)
   })
 
   it('deve retornar estatísticas corretas e valores financeiros como string', async () => {

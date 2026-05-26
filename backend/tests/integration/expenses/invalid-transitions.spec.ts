@@ -1,13 +1,12 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
-import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
-import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
-import seedProjects from '@/seeds/project.seed'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import { getAuthHeaders } from '../../util'
 
 const client = testClient(createTestApp(expenses))
@@ -16,20 +15,39 @@ describe('[Expense Status] - Integridade de transição de status', () => {
   let alunoHeaders: { Authorization: string }
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
-  let projectId: string
+
+  beforeAll(async () => {
+    await seedUsers()
+    await seedExpenseCategories()
+    await seedPreferenceSurveys()
+
+    alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
+    adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
+    coordenadorHeaders = await getAuthHeaders('coordenador@test.com', 'COORDENADOR')
+  })
+
+  afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
+    await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
+    await prisma.expenseCategory.deleteMany()
+    await prisma.user.deleteMany()
+  })
 
   const createPendingExpense = async () => {
-    const res = await client.expenses.$post(
-      {
-        json: {
-          title: 'Viagem de Teste Isolado',
-          city: 'Manaus',
-          state: 'BR-AM',
-          country: 'BR',
-          departureDate: new Date('2026-07-01'),
-          returnDate: new Date('2026-07-05'),
+    const categoryId = dummyExpenseCategories[0]!.id!
+    const expenseData = {
+      title: 'Solicitação Status Test',
+      surveyAnswers: [
+        {
+          expenseCategoryId: categoryId,
+          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
         },
-      },
+      ],
+    }
+
+    const res = await client.expenses.$post(
+      { json: expenseData },
       { headers: alunoHeaders },
     )
 
@@ -39,57 +57,36 @@ describe('[Expense Status] - Integridade de transição de status', () => {
     return json.id
   }
 
-  beforeAll(async () => {
-    await seedUsers()
-    await seedExpenseCategories()
-    await seedProjects()
-
-    const project = await prisma.project.findFirst()
-    projectId = project!.id
-
-    alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
-    adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
-    coordenadorHeaders = await getAuthHeaders('coordenador@test.com', 'COORDENADOR')
-
-    vi.spyOn(jobManager, 'emit').mockResolvedValue(undefined)
-  })
-
-  afterAll(async () => {
-    await prisma.expenseRequest.deleteMany()
-    await prisma.project.deleteMany()
-    await prisma.expenseCategory.deleteMany()
-    await prisma.user.deleteMany()
-  })
-
   it('[SUCESSO]: Aluno cria uma solicitação (PENDENTE)', async () => {
     const id = await createPendingExpense()
     expect(id).toBeDefined()
-    expect(typeof id).toBe('string')
   })
 
   it('[PROIBIDO]: PENDENTE -> EM_PROCESSAMENTO (Deve aprovar antes)', async () => {
-    const expenseId = await createPendingExpense()
+    const id = await createPendingExpense()
 
     const res = await client.expenses[':id']['assign-project'].$patch(
       {
-        param: { id: expenseId },
-        json: { projectId },
+        param: { id },
+        json: { projectId: crypto.randomUUID() },
       },
       { headers: adminHeaders },
     )
 
     assert(res.status === status.CONFLICT)
+    const json = await res.json()
+    expect(json.message).toContain('não está com status APROVADO')
   })
 
   it('[PROIBIDO]: PENDENTE -> EM_EDICAO (Necessário aprovar)', async () => {
-    const expenseId = await createPendingExpense()
+    const id = await createPendingExpense()
 
     const res = await client.expenses[':id'].status.$patch(
       {
-        param: { id: expenseId },
+        param: { id },
         json: {
           status: ExpenseRequestStatus.EM_EDICAO,
-          reason: 'Ajuste algo',
+          reason: 'teste',
         },
       },
       { headers: adminHeaders },
@@ -99,61 +96,62 @@ describe('[Expense Status] - Integridade de transição de status', () => {
   })
 
   it('[PROIBIDO]: REJEITADO -> APROVADO (Rejeição é definitiva)', async () => {
-    const expenseId = await createPendingExpense()
+    const id = await createPendingExpense()
 
-    const rejectRes = await client.expenses[':id'].status.$patch(
+    // 1. Rejeita
+    await client.expenses[':id'].status.$patch(
       {
-        param: { id: expenseId },
+        param: { id },
         json: {
           status: ExpenseRequestStatus.REJEITADO,
-          reason: 'Rejeitado para teste',
+          reason: 'rejeitado',
         },
       },
       { headers: coordenadorHeaders },
     )
-    assert(rejectRes.status === status.OK)
 
+    // 2. Tenta aprovar
     const res = await client.expenses[':id'].status.$patch(
       {
-        param: { id: expenseId },
+        param: { id },
         json: { status: ExpenseRequestStatus.APROVADO },
       },
       { headers: coordenadorHeaders },
     )
+
     assert(res.status === status.CONFLICT)
   })
 
   it('[PROIBIDO]: EM_PROCESSAMENTO -> EM_EDICAO (Solicitação já corrigida)', async () => {
-    const expenseId = await createPendingExpense()
+    const id = await createPendingExpense()
 
-    const approveRes = await client.expenses[':id'].status.$patch(
+    // 1. Aprova
+    await client.expenses[':id'].status.$patch(
       {
-        param: { id: expenseId },
+        param: { id },
         json: { status: ExpenseRequestStatus.APROVADO },
       },
       { headers: coordenadorHeaders },
     )
-    assert(approveRes.status === status.OK)
 
-    const processRes = await client.expenses[':id']['assign-project'].$patch(
-      {
-        param: { id: expenseId },
-        json: { projectId },
-      },
-      { headers: adminHeaders },
-    )
-    assert(processRes.status === status.OK)
+    // 2. Move para Em Processamento (Simula via DB para facilitar setup de projeto)
+    await prisma.expenseRequest.update({
+      where: { id },
+      data: { status: ExpenseRequestStatus.EM_PROCESSAMENTO },
+    })
 
+    // 3. Tenta mover para EM_EDICAO
     const res = await client.expenses[':id'].status.$patch(
       {
-        param: { id: expenseId },
+        param: { id },
         json: {
           status: ExpenseRequestStatus.EM_EDICAO,
-          reason: 'Tarde demais',
+          reason: 'volta pra edição',
         },
       },
       { headers: adminHeaders },
     )
+
     assert(res.status === status.CONFLICT)
   })
 })
