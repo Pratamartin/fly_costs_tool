@@ -71,6 +71,11 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
     const createRes = await expenseClient.expenses.$post({
       json: {
         title: 'Viagem para Rejeição',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         surveyAnswers: [
           {
             expenseCategoryId: categoryId,
@@ -114,6 +119,11 @@ describe('[Gatilhos de Notificação] - Gatilhos de mudança de status de despes
     const createRes = await expenseClient.expenses.$post({
       json: {
         title: 'Viagem para Correção',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         surveyAnswers: [
           {
             expenseCategoryId: categoryId,

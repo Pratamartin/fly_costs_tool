@@ -38,6 +38,11 @@ describe('[Expense Status] - Integridade de transição de status', () => {
     const categoryId = dummyExpenseCategories[0]!.id!
     const expenseData = {
       title: 'Solicitação Status Test',
+      event: {
+        name: 'Evento Teste',
+        location: 'Local Teste',
+      },
+      article: { classification: 'Sem Qualis' },
       surveyAnswers: [
         {
           expenseCategoryId: categoryId,
