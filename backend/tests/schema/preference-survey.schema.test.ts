@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import schema from '@/json/preference-survey.schema.json'
+import { preferenceSurveyJSONSchema } from '@/json'
 import ajv from '@/lib/json-schema-validator'
 
 describe('preference Survey Schema Validation', () => {
   describe('hospedagem', () => {
-    const validate = ajv.compile(schema.definitions.hospedagem)
+    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.hospedagem)
 
     it('deve validar com sucesso um booleano', () => {
       expect(validate(true)).toBe(true)
@@ -19,7 +19,7 @@ describe('preference Survey Schema Validation', () => {
   })
 
   describe('inscricao', () => {
-    const validate = ajv.compile(schema.definitions.inscricao)
+    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.inscricao)
 
     it('deve validar com sucesso uma inscrição válida', () => {
       const validPayload = { invoiceKey: 'formulario-preferencias/user-123/invoice.pdf' }
@@ -38,7 +38,7 @@ describe('preference Survey Schema Validation', () => {
   })
 
   describe('passagem-aerea', () => {
-    const validate = ajv.compile(schema.definitions['passagem-aerea'])
+    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions['passagem-aerea'])
 
     it('deve validar com sucesso uma solicitação de passagem válida', () => {
       const validPayload = {

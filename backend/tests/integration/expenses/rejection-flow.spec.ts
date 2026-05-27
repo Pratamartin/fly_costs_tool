@@ -38,6 +38,11 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
   it('[Step 1] Aluno cria uma solicitação de despesa', async () => {
     const expenseData = {
       title: 'Inscrição - SBSC 2026',
+      event: {
+        name: 'Evento Teste',
+        location: 'Local Teste',
+      },
+      article: { classification: 'Sem Qualis' },
       description: 'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
       surveyAnswers: [
         {

@@ -13,6 +13,11 @@ describe('createExpenseSchema', () => {
   const payload: CreateExpenseInput = {
     title: example.title,
     description: example.description,
+    event: {
+      name: 'Evento Teste',
+      location: 'Local Teste',
+    },
+    article: { classification: 'A1' },
     surveyAnswers: [
       {
         expenseCategoryId: '0748489b-4449-408a-a16b-44c9e0550c29',
@@ -39,7 +44,7 @@ describe('createExpenseSchema', () => {
     assert(result.error)
     const issue = result.error.issues.find(i => i.path.includes('surveyAnswers'))
     assert(issue)
-    expect(issue.code).toBe('too_small')
+    expect(issue.message).toBe('Selecione pelo menos uma preferência para continuar.')
   })
 
   it('deve falhar quando uma categoria não for um UUID válido', () => {
@@ -90,10 +95,6 @@ describe('updateExpenseSchema', () => {
 
   it('falha se campos não permitidos forem enviados', () => {
     const payload = { status: ExpenseRequestStatus.APROVADO }
-    // UpdateExpenseSchema usa .pick({title, description}).partial().extend({surveyAnswers})
-    // Então ele deve ignorar ou falhar dependendo se .passthrough() ou .strict() é usado.
-    // BaseSchema em expense.schema.ts não usa strict().
-    // Mas Zod por padrão ignora campos extras no safeParse a menos que strict() seja usado.
     const result = UpdateExpenseSchema.safeParse(payload)
     expect(result.success).toBe(true)
     expect(result.data).not.toHaveProperty('status')

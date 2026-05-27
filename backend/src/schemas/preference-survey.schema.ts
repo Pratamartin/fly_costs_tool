@@ -1,16 +1,19 @@
 import { z } from '@hono/zod-openapi'
+import { preferenceSurveyJSONSchema, preferenceSurveyJSONUi } from '@/json'
 import { IdSchema, TimestampSchema } from './shared.schema'
 
 export const PreferenceSurveySchema = z.object({
   id: IdSchema,
-  schema: z.any(),
-  ui: z.any().nullable(),
-  version: z.number().int(),
-  isActive: z.boolean(),
+  schema: z.fromJSONSchema(preferenceSurveyJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({ example: preferenceSurveyJSONSchema.definitions['passagem-aerea'] }),
+  ui: z.any().nullable()
+    .openapi({ example: preferenceSurveyJSONUi['passagem-aerea'] }),
+  version: z.number().int()
+    .openapi({ example: 1 }),
+  isActive: z.boolean().openapi({ example: true }),
   expenseCategoryId: IdSchema,
   expenseCategory: z.object({
-    name: z.string(),
-    normalizedName: z.string(),
+    name: z.string().openapi({ example: 'Inscrição' }),
+    normalizedName: z.string().openapi({ example: 'inscricao' }),
   }),
 }).extend(TimestampSchema)
 

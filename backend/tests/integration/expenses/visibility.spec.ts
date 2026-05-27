@@ -21,6 +21,11 @@ describe('[Expense Visibility] - Role-based isolation', () => {
       data: {
         title,
         status: reqStatus,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         studentId: alunoId,
       },
     })
@@ -102,6 +107,11 @@ describe('[Expense Visibility] - Role-based isolation', () => {
     const despesaOutro = await prisma.expenseRequest.create({
       data: {
         title: 'Despesa Outro',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         studentId: outroAluno.id,
       },
     })

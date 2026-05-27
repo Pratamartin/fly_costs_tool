@@ -54,6 +54,11 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem para Conclusão',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         surveyAnswers: [
           {
             expenseCategoryId: categoryId,
@@ -122,6 +127,11 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem Proibida',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         surveyAnswers: [
           {
             expenseCategoryId: categoryId,
@@ -156,6 +166,11 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const createRes = await client.expenses.$post({
       json: {
         title: 'Viagem Pendente',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         surveyAnswers: [
           {
             expenseCategoryId: categoryId,

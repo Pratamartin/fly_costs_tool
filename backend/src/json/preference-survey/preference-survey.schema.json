@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Preference Survey Schemas",
+  "definitions": {
+    "hospedagem": {
+      "title": "Auxílio Hospedagem",
+      "type": "boolean"
+    },
+    "inscricao": {
+      "title": "Solicitação de Inscrição",
+      "type": "object",
+      "properties": {
+        "invoiceKey": {
+          "type": "string",
+          "format": "r2-key",
+          "title": "Anexar Boleto/Invoice"
+        }
+      },
+      "required": [
+        "invoiceKey"
+      ]
+    },
+    "passagem-aerea": {
+      "title": "Solicitação de Passagem",
+      "type": "object",
+      "properties": {
+        "departureDate": { 
+          "type": "string", 
+          "format": "date", 
+          "title": "Data Ida" 
+        },
+        "returnDate": { 
+          "type": "string", 
+          "format": "date", 
+          "title": "Data Volta",
+          "dateAfter": { 
+            "$data": "1/departureDate" 
+          } 
+        },
+        "departureRoute": { 
+          "type": "string", 
+          "title": "Trecho Ida" 
+        },
+        "returnRoute": { 
+          "type": "string", 
+          "title": "Trecho Volta" 
+        },
+        "flightSuggestionKey": { 
+          "type": "string", 
+          "format": "r2-key", 
+          "title": "Sugestão de Voo" 
+        }
+      },
+      "required": [
+        "departureDate", 
+        "returnDate", 
+        "departureRoute", 
+        "returnRoute"
+      ]
+    }
+  }
+}

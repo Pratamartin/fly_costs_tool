@@ -51,6 +51,11 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   it('[Step 1] Aluno cria uma solicitação de despesa', async () => {
     const expenseData = {
       title: 'Inscrição - SBSC 2026',
+      event: {
+        name: 'Evento Teste',
+        location: 'Local Teste',
+      },
+      article: { classification: 'Sem Qualis' },
       description: 'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
       surveyAnswers: [
         {
@@ -125,6 +130,11 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   it('[Step 4] Aluno edita a despesa (status volta para APROVADO)', async () => {
     const updateData = {
       title: 'Título Corrigido - SBSC 2026',
+      event: {
+        name: 'Evento Teste',
+        location: 'Local Teste',
+      },
+      article: { classification: 'Sem Qualis' },
       surveyAnswers: [
         {
           expenseCategoryId: categoryId,

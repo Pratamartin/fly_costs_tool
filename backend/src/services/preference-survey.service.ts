@@ -35,8 +35,8 @@ export async function getActiveSurveyByCategoryId(categoryId: string) {
 }
 
 export async function validateAnswers(answers: { expenseCategoryId: string, data: Record<string, unknown> }[]) {
-  if (!answers || !Array.isArray(answers)) {
-    return PREFERENCE_SURVEY_ERROR_CODES.INVALID_SURVEY_DATA
+  if (!answers || !Array.isArray(answers) || answers.length === 0) {
+    return PREFERENCE_SURVEY_ERROR_CODES.AT_LEAST_ONE_ANSWER_REQUIRED
   }
 
   // Otimização: Busca em lote para evitar N+1 queries

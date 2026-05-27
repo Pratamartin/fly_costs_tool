@@ -55,6 +55,11 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Custo via Serviço',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_DATA_SCIENCE,
         studentId: ID_ALUNO,
       },
@@ -81,6 +86,11 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Gasto Base para Empate',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
       },
@@ -96,6 +106,11 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Gasto Extra para Desempate',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
       },

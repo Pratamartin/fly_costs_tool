@@ -29,6 +29,11 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
       data: {
         title: 'Despesa para projeto arquivado',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_IA,
         studentId: ID_ALUNO,
       },
