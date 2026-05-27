@@ -60,7 +60,7 @@ export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
 }>
 
 export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations | { error: string }> {
-  const { surveyAnswers, ...rest } = data
+  const { surveyAnswers, event, article, ...rest } = data
 
   const validationError = await validateAnswers(surveyAnswers)
   if (validationError) {
@@ -71,6 +71,8 @@ export async function createExpenseRequest(userId: string, data: CreateExpenseDT
     const expense = await tx.expenseRequest.create({
       data: {
         ...rest,
+        event: event as Prisma.InputJsonValue,
+        article: article as Prisma.InputJsonValue,
         studentId: userId,
         status: ExpenseRequestStatus.PENDENTE,
       },
@@ -335,7 +337,7 @@ export async function updateExpense(
     return { error: phrases.CONFLICT }
   }
 
-  const { surveyAnswers, ...rest } = data
+  const { surveyAnswers, event, article, ...rest } = data
 
   if (surveyAnswers) {
     const validationError = await validateAnswers(surveyAnswers)
@@ -359,13 +361,20 @@ export async function updateExpense(
       }
     }
 
+    const updateData: Prisma.ExpenseRequestUpdateInput = {
+      ...rest,
+      status: ExpenseRequestStatus.APROVADO,
+      correctionReason: null,
+    }
+
+    if (event)
+      updateData.event = event as Prisma.InputJsonValue
+    if (article)
+      updateData.article = article as Prisma.InputJsonValue
+
     return tx.expenseRequest.update({
       where: { id },
-      data: {
-        ...rest,
-        status: ExpenseRequestStatus.APROVADO,
-        correctionReason: null,
-      },
+      data: updateData,
       include: expenseInclude,
     })
   })

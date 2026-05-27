@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { articleJSONSchema, eventJSONSchema } from '@/json'
 import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
 import { PreferenceSurveyAnswerSchema } from './preference-survey.schema'
 import ProjectSchema from './project.schema'
@@ -31,6 +32,14 @@ const BaseSchema = z.object({
       example:
       'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
     }),
+  event: z.fromJSONSchema(eventJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({
+    description: eventJSONSchema.description,
+    example: eventJSONSchema.examples[0],
+  }),
+  article: z.fromJSONSchema(articleJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({
+    description: articleJSONSchema.description,
+    example: articleJSONSchema.examples[0],
+  }),
   status: z.enum(ExpenseRequestStatus)
     .openapi({
       description: 'Status atual da solicitação',
@@ -53,7 +62,7 @@ export const CreateExpenseSchema = BaseSchema.omit({
   rejectionReason: true,
   correctionReason: true,
 }).extend({
-  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1)
+  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
     .openapi({ description: 'Lista de categorias e respostas de formulário solicitadas' }),
 })
 
@@ -119,6 +128,11 @@ export const UpdateExpenseSchema = BaseSchema
   .pick({
     title: true,
     description: true,
+    event: true,
+    article: true,
   })
   .partial()
-  .extend({ surveyAnswers: z.array(PreferenceSurveyAnswerSchema).optional() })
+  .extend({
+    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
+      .optional(),
+  })
