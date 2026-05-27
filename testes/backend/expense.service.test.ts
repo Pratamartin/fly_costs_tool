@@ -81,6 +81,8 @@ function expenseRow(overrides: Record<string, unknown> = {}) {
 describe('CreateExpenseSchema (validação campos / datas)', () => {
   const validBase = {
     title: 'Viagem à conferência',
+    event: { name: 'Evento Teste', location: 'Local Teste' },
+    article: { classification: 'A1' },
     surveyAnswers: [
       { expenseCategoryId: '123e4567-e89b-12d3-a456-426614174000', data: { some: 'data' } },
     ],
