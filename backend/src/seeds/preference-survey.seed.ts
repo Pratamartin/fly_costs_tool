@@ -1,7 +1,7 @@
 import type { Prisma } from '@/generated/prisma/client'
 import { ID_SURVEY_HOSPEDAGEM, ID_SURVEY_INSCRICAO, ID_SURVEY_PASSAGEM_AEREA } from '@/constants/seed.constant'
-import surveySchema from '@/json/preference-survey.schema.json' with { type: 'json' }
-import surveyUiSchema from '@/json/preference-survey.ui.json' with { type: 'json' }
+import surveySchema from '@/json/preference-survey/preference-survey.schema.json' with { type: 'json' }
+import surveyUiSchema from '@/json/preference-survey/preference-survey.ui.json' with { type: 'json' }
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { dummyExpenseCategories } from './expense.category.seed'
