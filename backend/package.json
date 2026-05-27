@@ -36,6 +36,7 @@
     "ajv": "^8.20.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
+    "ajv-i18n": "^4.2.0",
     "bcryptjs": "^3.0.3",
     "cpf-cnpj-validator": "^2.1.0",
     "cross-env": "^10.1.0",
