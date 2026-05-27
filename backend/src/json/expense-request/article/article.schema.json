@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Detalhes do Artigo",
+  "description": "Informações sobre o artigo aceito/apresentado no evento.",
+  "type": "object",
+  "properties": {
+    "classification": {
+      "type": "string",
+      "title": "Classificação QUALIS CAPES",
+      "enum": ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"]
+    }
+  },
+  "required": [
+    "classification"
+  ],
+  "examples": [
+    {
+      "classification": "A1"
+    }
+  ]
+}

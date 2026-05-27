@@ -1,0 +1,73 @@
+{
+  "passagem-aerea": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Group",
+        "label": "Planejamento de Voo",
+        "elements": [
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              { 
+                "type": "Control", 
+                "scope": "#/properties/departureDate" 
+              },
+              { 
+                "type": "Control", 
+                "scope": "#/properties/returnDate" 
+              }
+            ]
+          },
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              {
+                "type": "Control",
+                "scope": "#/properties/departureRoute",
+                "options": { 
+                  "placeholder": "Origem: ex: Manaus/AM" 
+                }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/returnRoute",
+                "options": { 
+                  "placeholder": "Destino: ex: Rio Branco/AC" 
+                }
+              }
+            ]
+          },
+          {
+            "type": "Control",
+            "scope": "#/properties/flightSuggestionKey",
+            "options": { 
+              "widget": "file-upload" 
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "inscricao": {
+    "type": "Group",
+    "label": "Inscrição no Evento",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/invoiceKey",
+        "options": { 
+          "widget": "file-upload" 
+        }
+      }
+    ]
+  },
+  "hospedagem": {
+    "type": "Control",
+    "scope": "#",
+    "label": "Auxílio Hospedagem",
+    "options": { 
+      "toggle": true 
+    }
+  }
+}
