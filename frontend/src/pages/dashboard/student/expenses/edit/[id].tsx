@@ -20,11 +20,11 @@ export default function EditarDespesa() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
-  const [departureDate, setDepartureDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
+  const [eventName, setEventName] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [articleClassification, setArticleClassification] = useState("");
+
+  const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -56,11 +56,9 @@ export default function EditarDespesa() {
       setExpense(exp);
       setTitle(exp.title);
       setDescription(exp.description ?? "");
-      setCity(exp.city);
-      setState(exp.state);
-      setCountry(exp.country);
-      setDepartureDate(fmtDateInput(exp.departureDate));
-      setReturnDate(fmtDateInput(exp.returnDate));
+      setEventName(exp.event?.name ?? "");
+      setEventLocation(exp.event?.location ?? "");
+      setArticleClassification(exp.article?.classification ?? "");
     } else if (expResult.error === "UNAUTHORIZED") {
       localStorage.removeItem("accessToken");
       router.push("/login");
@@ -78,12 +76,8 @@ export default function EditarDespesa() {
     const token = localStorage.getItem("accessToken");
     if (!token || !expense) return;
 
-    if (!title.trim() || !city.trim() || !state.trim() || !departureDate || !returnDate) {
+    if (!title.trim() || !eventName.trim() || !eventLocation.trim() || !articleClassification) {
       setErro("Preencha todos os campos obrigatórios.");
-      return;
-    }
-    if (new Date(returnDate) < new Date(departureDate)) {
-      setErro("Data de retorno deve ser após a data de partida.");
       return;
     }
 
@@ -92,11 +86,8 @@ export default function EditarDespesa() {
     const result = await updateExpense(token, expense.id, {
       title: title.trim(),
       description: description.trim() || undefined,
-      city: city.trim(),
-      state: state.trim(),
-      country: country.trim() || "BR",
-      departureDate,
-      returnDate,
+      event: { name: eventName.trim(), location: eventLocation.trim() },
+      article: { classification: articleClassification },
     });
     setSalvando(false);
 
@@ -232,72 +223,58 @@ export default function EditarDespesa() {
                   />
                 </div>
 
-                {/* Destino */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* Evento */}
+                <div className="space-y-3">
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Cidade <span className="text-red-500">*</span>
+                      Nome do Evento <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
                       disabled={salvando}
+                      placeholder="ex.: Simpósio Brasileiro de Engenharia de Software (SBES)"
                       className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Estado <span className="text-red-500">*</span>
+                      Local do Evento <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
+                      value={eventLocation}
+                      onChange={(e) => setEventLocation(e.target.value)}
                       disabled={salvando}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      País
-                    </label>
-                    <input
-                      type="text"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      disabled={salvando}
-                      placeholder="BR"
+                      placeholder="ex.: Rio de Janeiro/RJ ou Lisboa, Portugal"
                       className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
                 </div>
 
-                {/* Datas */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Data de Partida <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={departureDate}
-                      onChange={(e) => setDepartureDate(e.target.value)}
+                {/* Classificação QUALIS */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Classificação QUALIS CAPES <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={articleClassification}
+                      onChange={(e) => setArticleClassification(e.target.value)}
                       disabled={salvando}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Data de Retorno <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={returnDate}
-                      onChange={(e) => setReturnDate(e.target.value)}
-                      disabled={salvando}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
-                    />
+                      className={`w-full appearance-none rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-3 pr-8 text-sm outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition ${articleClassification ? "text-gray-800" : "text-gray-400"}`}
+                    >
+                      <option value="" disabled>Selecione a classificação...</option>
+                      {QUALIS_VALUES.map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </span>
                   </div>
                 </div>
 

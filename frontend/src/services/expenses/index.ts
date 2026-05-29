@@ -25,6 +25,21 @@ export type CostBreakdown = {
   }
 }
 
+export type ExpenseEvent = {
+  name: string
+  location: string
+}
+
+export type ExpenseArticle = {
+  classification: string
+}
+
+export type ExpenseSurveyAnswer = {
+  id: string
+  data: unknown
+  surveyId: string
+}
+
 export type Expense = {
   id: string
   title: string
@@ -32,11 +47,9 @@ export type Expense = {
   status: ExpenseStatus
   rejectionReason: string | null
   correctionNote: string | null
-  city: string
-  state: string
-  country: string
-  departureDate: string
-  returnDate: string
+  event: ExpenseEvent
+  article: ExpenseArticle
+  surveyAnswers?: ExpenseSurveyAnswer[]
   createdAt: string
   updatedAt: string
   studentId?: string
@@ -74,11 +87,8 @@ export type UpdateExpenseStatusResult =
 export type UpdateExpensePayload = {
   title?: string
   description?: string
-  city?: string
-  state?: string
-  country?: string
-  departureDate?: string
-  returnDate?: string
+  event?: ExpenseEvent
+  article?: ExpenseArticle
 }
 
 export type UpdateExpenseResult =
@@ -92,12 +102,19 @@ export type GetExpenseResult =
 export type CreateExpensePayload = {
   title: string
   description?: string
-  city: string
-  state: string
-  country?: string
-  departureDate: string
-  returnDate: string
+  event: ExpenseEvent
+  article: ExpenseArticle
+  surveyAnswers: Array<{ expenseCategoryId: string; data: unknown }>
 }
+
+export type ExpenseFormsData = {
+  event: { schema: unknown; ui: unknown }
+  article: { schema: unknown; ui: unknown }
+}
+
+export type ExpenseFormsResult =
+  | { ok: true; data: ExpenseFormsData }
+  | { ok: false; error: "UNAUTHORIZED" | "UNKNOWN" }
 
 export type CreateExpenseResult =
   | { ok: true; data: Expense }
@@ -198,6 +215,15 @@ export async function getExpenseById(
   if (res.status === 200) return { ok: true, data: await res.json() }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function getExpenseForms(token: string): Promise<ExpenseFormsResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/forms`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   return { ok: false, error: "UNKNOWN" }
 }
 
