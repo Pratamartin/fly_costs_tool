@@ -87,12 +87,33 @@ export type ResetPasswordResult =
   | { ok: true }
   | { ok: false; error: ResetPasswordError }
 
-// MOCK: POST /v1/auth/forgot-password — backend não implementado ainda
-export async function forgotPassword(_email: string): Promise<ForgotPasswordResult> {
-  return new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 900))
+export async function forgotPassword(email: string): Promise<ForgotPasswordResult> {
+  const res = await fetch(`${API_URL}/v1/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+
+  if (res.status === 200) return { ok: true }
+  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  return { ok: false, error: "UNKNOWN" }
 }
 
-// MOCK: POST /v1/auth/reset-password — backend não implementado ainda
-export async function resetPassword(_token: string, _newPassword: string): Promise<ResetPasswordResult> {
-  return new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 900))
+export async function resetPassword(token: string, newPassword: string): Promise<ResetPasswordResult> {
+  const res = await fetch(`${API_URL}/v1/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  })
+
+  if (res.status === 200) return { ok: true }
+  if (res.status === 400) {
+    const body = await res.json().catch(() => ({}))
+    const error = body?.error === "TOKEN_EXPIRED" ? "TOKEN_EXPIRED"
+      : body?.error === "TOKEN_INVALID" ? "TOKEN_INVALID"
+      : "UNKNOWN"
+    return { ok: false, error }
+  }
+  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  return { ok: false, error: "UNKNOWN" }
 }
