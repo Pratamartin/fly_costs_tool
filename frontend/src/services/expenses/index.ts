@@ -421,32 +421,59 @@ export async function exportExpensesReport(
 
   const { jobId } = await res.json()
 
+  const sseRes = await fetch(`${API_URL}/v1/expenses/reports/status/${jobId}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "text/event-stream" },
+  })
+
+  if (sseRes.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (!sseRes.ok || !sseRes.body) return { ok: false, error: "UNKNOWN" }
+
   return new Promise<ExportReportResult>((resolve) => {
-    const es = new EventSource(`${API_URL}/v1/expenses/reports/status/${jobId}`)
+    const reader = sseRes.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    let currentEvent = ""
 
-    es.addEventListener("report-finished", (e) => {
-      es.close()
-      try {
-        const data = JSON.parse((e as MessageEvent).data)
-        resolve({ ok: true, downloadUrl: data.downloadUrl })
-      } catch {
-        resolve({ ok: false, error: "UNKNOWN" })
-      }
-    })
+    const read = () => {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          resolve({ ok: false, error: "UNKNOWN" })
+          return
+        }
 
-    es.addEventListener("report-error", (e) => {
-      es.close()
-      try {
-        const data = JSON.parse((e as MessageEvent).data)
-        console.error("report-error:", data)
-      } catch { /* noop */ }
-      resolve({ ok: false, error: "REPORT_FAILED" })
-    })
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() ?? ""
 
-    es.onerror = () => {
-      es.close()
-      resolve({ ok: false, error: "UNKNOWN" })
+        for (const line of lines) {
+          if (line.startsWith("event:")) {
+            currentEvent = line.slice(6).trim()
+          } else if (line.startsWith("data:")) {
+            const raw = line.slice(5).trim()
+            if (currentEvent === "report-finished") {
+              reader.cancel()
+              try {
+                const data = JSON.parse(raw)
+                resolve({ ok: true, downloadUrl: data.downloadUrl })
+              } catch {
+                resolve({ ok: false, error: "UNKNOWN" })
+              }
+              return
+            }
+            if (currentEvent === "report-error") {
+              reader.cancel()
+              resolve({ ok: false, error: "REPORT_FAILED" })
+              return
+            }
+            currentEvent = ""
+          }
+        }
+
+        read()
+      }).catch(() => resolve({ ok: false, error: "UNKNOWN" }))
     }
+
+    read()
   })
 }
 
