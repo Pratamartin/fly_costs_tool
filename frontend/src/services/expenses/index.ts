@@ -25,6 +25,21 @@ export type CostBreakdown = {
   }
 }
 
+export type ExpenseEvent = {
+  name: string
+  location: string
+}
+
+export type ExpenseArticle = {
+  classification: string
+}
+
+export type ExpenseSurveyAnswer = {
+  id: string
+  data: unknown
+  surveyId: string
+}
+
 export type Expense = {
   id: string
   title: string
@@ -32,11 +47,9 @@ export type Expense = {
   status: ExpenseStatus
   rejectionReason: string | null
   correctionNote: string | null
-  city: string
-  state: string
-  country: string
-  departureDate: string
-  returnDate: string
+  event: ExpenseEvent
+  article: ExpenseArticle
+  surveyAnswers?: ExpenseSurveyAnswer[]
   createdAt: string
   updatedAt: string
   studentId?: string
@@ -74,11 +87,8 @@ export type UpdateExpenseStatusResult =
 export type UpdateExpensePayload = {
   title?: string
   description?: string
-  city?: string
-  state?: string
-  country?: string
-  departureDate?: string
-  returnDate?: string
+  event?: ExpenseEvent
+  article?: ExpenseArticle
 }
 
 export type UpdateExpenseResult =
@@ -92,12 +102,19 @@ export type GetExpenseResult =
 export type CreateExpensePayload = {
   title: string
   description?: string
-  city: string
-  state: string
-  country?: string
-  departureDate: string
-  returnDate: string
+  event: ExpenseEvent
+  article: ExpenseArticle
+  surveyAnswers: Array<{ expenseCategoryId: string; data: unknown }>
 }
+
+export type ExpenseFormsData = {
+  event: { schema: unknown; ui: unknown }
+  article: { schema: unknown; ui: unknown }
+}
+
+export type ExpenseFormsResult =
+  | { ok: true; data: ExpenseFormsData }
+  | { ok: false; error: "UNAUTHORIZED" | "UNKNOWN" }
 
 export type CreateExpenseResult =
   | { ok: true; data: Expense }
@@ -198,6 +215,15 @@ export async function getExpenseById(
   if (res.status === 200) return { ok: true, data: await res.json() }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function getExpenseForms(token: string): Promise<ExpenseFormsResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/forms`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -361,52 +387,67 @@ export async function uploadMemorandum(
 }
 
 export type ReportFilters = {
-  startDate?: string
-  endDate?: string
+  from?: string
+  to?: string
   status?: ExpenseStatus | "all"
   projectId?: string
-  studentName?: string
+  studentId?: string
 }
 
-export type ExportReportError = "UNAUTHORIZED" | "NOT_IMPLEMENTED" | "UNKNOWN"
+export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "UNKNOWN"
 
 export type ExportReportResult =
-  | { ok: true; blob: Blob; filename: string }
+  | { ok: true; downloadUrl: string }
   | { ok: false; error: ExportReportError }
-
-const MOCK_REPORT = true
 
 export async function exportExpensesReport(
   token: string,
   filters: ReportFilters
 ): Promise<ExportReportResult> {
-  if (MOCK_REPORT) {
-    const { generateMockReportPdf } = await import("@/lib/mockReportPdf")
-    const blob = await generateMockReportPdf(token, filters)
-    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
-    return { ok: true, blob, filename }
-  }
-
   const params = new URLSearchParams()
-  if (filters.startDate) params.append("startDate", filters.startDate)
-  if (filters.endDate) params.append("endDate", filters.endDate)
+  if (filters.from) params.append("from", filters.from)
+  if (filters.to) params.append("to", filters.to)
   if (filters.status && filters.status !== "all") params.append("status", filters.status)
   if (filters.projectId) params.append("projectId", filters.projectId)
-  if (filters.studentName) params.append("studentName", filters.studentName)
+  if (filters.studentId) params.append("studentId", filters.studentId)
 
   const res = await fetch(`${API_URL}/v1/expenses/report?${params.toString()}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   })
 
-  if (res.status === 200) {
-    const blob = await res.blob()
-    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
-    return { ok: true, blob, filename }
-  }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
-  if (res.status === 404 || res.status === 501) return { ok: false, error: "NOT_IMPLEMENTED" }
-  return { ok: false, error: "UNKNOWN" }
+  if (res.status !== 202) return { ok: false, error: "UNKNOWN" }
+
+  const { jobId } = await res.json()
+
+  return new Promise<ExportReportResult>((resolve) => {
+    const es = new EventSource(`${API_URL}/v1/expenses/report/status/${jobId}`)
+
+    es.addEventListener("report-finished", (e) => {
+      es.close()
+      try {
+        const data = JSON.parse((e as MessageEvent).data)
+        resolve({ ok: true, downloadUrl: data.downloadUrl })
+      } catch {
+        resolve({ ok: false, error: "UNKNOWN" })
+      }
+    })
+
+    es.addEventListener("report-error", (e) => {
+      es.close()
+      try {
+        const data = JSON.parse((e as MessageEvent).data)
+        console.error("report-error:", data)
+      } catch { /* noop */ }
+      resolve({ ok: false, error: "REPORT_FAILED" })
+    })
+
+    es.onerror = () => {
+      es.close()
+      resolve({ ok: false, error: "UNKNOWN" })
+    }
+  })
 }
 
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"

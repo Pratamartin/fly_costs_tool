@@ -118,12 +118,7 @@ export default function AdminExpenses() {
     setExporting(false);
     if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
     setShowReportModal(false);
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = result.filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open(result.downloadUrl, "_blank");
   }
 
   function handleSelectAll(checked: boolean) {
@@ -449,8 +444,8 @@ export default function AdminExpenses() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="text-sm text-gray-700">{expense.city}</p>
-                          <p className="text-xs text-gray-400">{expense.state} · {expense.country}</p>
+                          <p className="text-sm text-gray-700">{expense.event?.name}</p>
+                          <p className="text-xs text-gray-400">{expense.event?.location}</p>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="text-sm text-gray-700">{formatDate(expense.createdAt)}</p>
@@ -530,7 +525,7 @@ export default function AdminExpenses() {
                         <StatusBadge status={expense.status} />
                       </div>
                       <p className="text-sm font-medium text-gray-800 mb-0.5">{expense.title}</p>
-                      <p className="text-xs text-gray-400 mb-2">{expense.project?.name ?? "Sem projeto"} · {expense.city}, {expense.state}</p>
+                      <p className="text-xs text-gray-400 mb-2">{expense.project?.name ?? "Sem projeto"} · {expense.event?.location}</p>
                       <div className="flex items-center justify-between">
                         {expense.student && (
                           <div className="flex items-center gap-2">
@@ -559,7 +554,7 @@ export default function AdminExpenses() {
                           <StatusBadge status={expense.status} />
                         </div>
                         <p className="text-sm font-semibold text-gray-900 mb-0.5">{expense.title}</p>
-                        <p className="text-xs text-gray-400 mb-3">{expense.city}, {expense.state} · {expense.country}</p>
+                        <p className="text-xs text-gray-400 mb-3">{expense.event?.location}</p>
                         <div className="flex items-center justify-between border-t border-gray-100 pt-3">
                           {expense.student ? (
                             <div className="flex items-center gap-2">

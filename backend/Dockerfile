@@ -32,4 +32,4 @@ COPY --from=builder --chown=hono:nodejs /app/package.json /app/package.json
 USER hono
 EXPOSE 3001
 
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node src/seed.js && node src/index.js"]

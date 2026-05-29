@@ -699,17 +699,15 @@ export default function ExpenseDetalhe() {
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Destino</p>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {expense.city}, {expense.state}
-                      {expense.country && expense.country !== "BR" && ` — ${expense.country}`}
-                    </p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
+                    <p className="text-sm font-semibold text-gray-800">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Período</p>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {fmtDate(expense.departureDate)} → {fmtDate(expense.returnDate)}
-                    </p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Local · QUALIS</p>
+                    <p className="text-sm font-semibold text-gray-800">{expense.event?.location}</p>
+                    <span className="mt-1 inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
+                      {expense.article?.classification}
+                    </span>
                   </div>
                 </div>
 
@@ -763,13 +761,12 @@ export default function ExpenseDetalhe() {
                           <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.452-.23.773-.417.635-.374 1.52-.965 2.396-1.763C15.281 15.523 17 13.687 17 11a7 7 0 10-14 0c0 2.687 1.719 4.523 3.216 5.855a19.032 19.032 0 002.396 1.763 11.46 11.46 0 00.773.417 5.75 5.75 0 00.281.14l.018.008.006.003zM10 13a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Destino & Período</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Evento & Local</p>
                           <p className="text-sm font-semibold text-gray-800">
-                            {expense.city}, {expense.state}
-                            {expense.country && expense.country !== "BR" && ` — ${expense.country}`}
+                            {expense.event?.name ?? "—"}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {fmtDate(expense.departureDate)} → {fmtDate(expense.returnDate)}
+                            {expense.event?.location ?? "—"}
                           </p>
                         </div>
                       </div>
@@ -1219,24 +1216,21 @@ export default function ExpenseDetalhe() {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                     <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.452-.23.773-.417.635-.374 1.52-.965 2.396-1.763C15.281 15.523 17 13.687 17 11a7 7 0 10-14 0c0 2.687 1.719 4.523 3.216 5.855a19.032 19.032 0 002.396 1.763 11.46 11.46 0 00.773.417 5.75 5.75 0 00.281.14l.018.008.006.003zM10 13a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-sm font-bold text-gray-800">Detalhes da Viagem</h3>
+                  <h3 className="text-sm font-bold text-gray-800">Detalhes do Evento</h3>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Destino</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">
-                      {expense.city}, {expense.state}
-                      {expense.country && expense.country !== "BR" && `, ${expense.country}`}
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.name ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Partida</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{fmtDate(expense.departureDate)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Local</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.location ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Retorno</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{fmtDate(expense.returnDate)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">QUALIS</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.article?.classification ?? "—"}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Criado em</p>

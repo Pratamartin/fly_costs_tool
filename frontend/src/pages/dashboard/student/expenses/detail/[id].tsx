@@ -192,17 +192,18 @@ export default function StudentExpenseDetail() {
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Destino</p>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {expense.city}, {expense.state}
-                      {expense.country && expense.country !== "BR" && ` — ${expense.country}`}
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Evento</p>
+                    <p className="text-sm font-semibold text-gray-800">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Período</p>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {fmtDate(expense.departureDate)} → {fmtDate(expense.returnDate)}
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Local</p>
+                    <p className="text-sm font-semibold text-gray-800">{expense.event?.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">QUALIS</p>
+                    <span className="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
+                      {expense.article?.classification}
+                    </span>
                   </div>
                   {expense.project && (
                     <div className="col-span-2">
@@ -318,22 +319,21 @@ export default function StudentExpenseDetail() {
             {/* Right sidebar */}
             <div className="space-y-5">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-800 mb-4">Detalhes da Viagem</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-4">Detalhes do Evento</h3>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Destino</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">
-                      {expense.city}, {expense.state}
-                      {expense.country && expense.country !== "BR" && `, ${expense.country}`}
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Partida</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{fmtDate(expense.departureDate)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Local</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.location}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Retorno</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{fmtDate(expense.returnDate)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">QUALIS</p>
+                    <span className="mt-0.5 inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
+                      {expense.article?.classification}
+                    </span>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Criado em</p>

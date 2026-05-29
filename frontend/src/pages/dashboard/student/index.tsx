@@ -224,17 +224,15 @@ export default function DashboardAluno() {
     setErro(null);
     try {
       const result = await createExpense(token, {
-        title: data.descricao,
-        description: data.descricaoDetalhada || undefined,
-        city: data.city,
-        state: data.state,
-        country: data.country || "BR",
-        departureDate: data.departureDate,
-        returnDate: data.returnDate,
+        title: data.title,
+        description: data.description,
+        event: data.event,
+        article: data.article,
+        surveyAnswers: data.surveyAnswers,
       });
       if (result.ok) {
-        if (data.arquivo) {
-          await uploadMemorandum(token, result.data.id, data.arquivo);
+        if (data.memorando) {
+          await uploadMemorandum(token, result.data.id, data.memorando);
         }
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
         setModalAberto(false);
