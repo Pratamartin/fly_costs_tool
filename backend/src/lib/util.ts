@@ -1,6 +1,5 @@
-import type { z } from '@hono/zod-openapi'
 import type { AppContext, AppOpenAPI } from './type'
-import { OpenAPIHono } from '@hono/zod-openapi'
+import { OpenAPIHono, z } from '@hono/zod-openapi'
 import { defaultHook } from 'stoker/openapi'
 
 export function createRouter() {
@@ -28,12 +27,27 @@ export function multipartFormContentRequired<
   }
 }
 
-/**
- * Gera uma data ISO relativa ao "agora" para evitar que seeds e mocks expirem.
- * @param daysOffset - Dias para somar (ex: 2) ou subtrair (ex: -5).
- * @param hours - Hora do dia fixa (0-23). Padrão: 9.
- * @returns Data no padrão ISO 8601.
- */
+export function sseContent<
+  T extends z.ZodTypeAny,
+  E extends z.ZodTypeAny = z.ZodString,
+>(
+  dataSchema: T,
+  description: string,
+  eventSchema: E = z.string() as unknown as E,
+) {
+  return {
+    content: {
+      'text/event-stream': {
+        schema: z.object({
+          event: eventSchema.openapi({ description: 'Nome do evento SSE' }),
+          data: dataSchema.openapi({ description: 'Payload JSON do evento' }),
+        }),
+      },
+    },
+    description,
+  }
+}
+
 export function getRelativeDate(daysOffset: number, hours: number = 9): string {
   const date = new Date()
   date.setDate(date.getDate() + daysOffset)

@@ -1,4 +1,4 @@
-import type { Job, SendOptions, WorkOptions } from 'pg-boss'
+import type { Job, JobWithMetadata, SendOptions, WorkOptions } from 'pg-boss'
 import type { Prisma } from '@/generated/prisma/client'
 import { fromPrisma, PgBoss } from 'pg-boss'
 import env from '@/env'
@@ -21,7 +21,7 @@ boss.on('warning', (warning) => {
 
 export type EmitOptions = SendOptions & { tx?: Prisma.TransactionClient }
 
-export abstract class BaseJob<T extends object = object> {
+export abstract class BaseJob<TData extends object = object, TOutput = unknown> {
   abstract readonly type: string
 
   readonly options: SendOptions = {
@@ -35,16 +35,14 @@ export abstract class BaseJob<T extends object = object> {
 
   async start(): Promise<void> {
     await this.boss.work(this.type, this.workOptions ?? {}, async (jobs) => {
-      const jobArray = Array.isArray(jobs) ? jobs : [jobs]
-      for (const job of jobArray) {
-        await this.work(job as Job<T>)
-      }
+      const results = await Promise.all(jobs.map(job => this.work(job as Job<TData>)))
+      return jobs.length === 1 ? results[0] : results
     })
   }
 
-  abstract work(job: Job<T>): Promise<void>
+  abstract work(job: Job<TData>): Promise<TOutput>
 
-  async emit(data: T, options?: EmitOptions): Promise<void> {
+  async emit(data: TData, options?: EmitOptions): Promise<void> {
     const { tx, ...sendOptions } = options || {}
 
     await this.boss.send(this.type, data, {
@@ -55,16 +53,26 @@ export abstract class BaseJob<T extends object = object> {
   }
 }
 
-export class JobManager<TMapping extends Record<string, any> = Record<string, never>> {
-  private jobsMap = new Map<string, BaseJob<any>>()
+export class JobManager<TMapping extends Record<string, { req: any, res: any }> = Record<string, never>> {
+  private jobsMap = new Map<string, BaseJob<any, any>>()
 
   constructor(public readonly boss: PgBoss) {}
 
-  register<TType extends string, TData extends object>(
-    job: BaseJob<TData> & { type: TType },
-  ): JobManager<TMapping & { [K in TType]: TData }> {
+  register<TType extends string, TData extends object, TOutput>(
+    job: BaseJob<TData, TOutput> & { type: TType },
+  ): JobManager<TMapping & { [K in TType]: { req: TData, res: TOutput } }> {
     this.jobsMap.set(job.type, job)
     return this as any
+  }
+
+  getWorker<K extends keyof TMapping & string>(
+    type: K,
+  ): BaseJob<TMapping[K]['req'], TMapping[K]['res']> {
+    const worker = this.jobsMap.get(type)
+    if (!worker) {
+      throw new Error(`Worker for job type "${type}" not found.`)
+    }
+    return worker as BaseJob<TMapping[K]['req'], TMapping[K]['res']>
   }
 
   async start(): Promise<void> {
@@ -81,7 +89,7 @@ export class JobManager<TMapping extends Record<string, any> = Record<string, ne
 
   async emit<K extends keyof TMapping & string>(
     type: K,
-    data: TMapping[K],
+    data: TMapping[K]['req'],
     options?: EmitOptions,
   ): Promise<void> {
     const job = this.jobsMap.get(type)
@@ -89,5 +97,21 @@ export class JobManager<TMapping extends Record<string, any> = Record<string, ne
       throw new Error(`Job ${type} not registered`)
     }
     await job.emit(data, options)
+  }
+
+  async getJob<K extends keyof TMapping & string>(
+    type: K,
+    jobId: string,
+  ): Promise<(JobWithMetadata<TMapping[K]['req']> & { output: TMapping[K]['res'] | null }) | null> {
+    const [job] = await this.boss.findJobs<TMapping[K]['req']>(type, { id: jobId })
+    return (job as any) || null
+  }
+
+  async completeJob<K extends keyof TMapping & string>(
+    type: K,
+    jobId: string,
+    data: TMapping[K]['res'],
+  ): Promise<void> {
+    await this.boss.complete(type, jobId, data as object)
   }
 }
