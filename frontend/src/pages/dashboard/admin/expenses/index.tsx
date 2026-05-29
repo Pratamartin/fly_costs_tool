@@ -118,12 +118,7 @@ export default function AdminExpenses() {
     setExporting(false);
     if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
     setShowReportModal(false);
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = result.filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open(result.downloadUrl, "_blank");
   }
 
   function handleSelectAll(checked: boolean) {

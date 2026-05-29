@@ -387,52 +387,67 @@ export async function uploadMemorandum(
 }
 
 export type ReportFilters = {
-  startDate?: string
-  endDate?: string
+  from?: string
+  to?: string
   status?: ExpenseStatus | "all"
   projectId?: string
-  studentName?: string
+  studentId?: string
 }
 
-export type ExportReportError = "UNAUTHORIZED" | "NOT_IMPLEMENTED" | "UNKNOWN"
+export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "UNKNOWN"
 
 export type ExportReportResult =
-  | { ok: true; blob: Blob; filename: string }
+  | { ok: true; downloadUrl: string }
   | { ok: false; error: ExportReportError }
-
-const MOCK_REPORT = true
 
 export async function exportExpensesReport(
   token: string,
   filters: ReportFilters
 ): Promise<ExportReportResult> {
-  if (MOCK_REPORT) {
-    const { generateMockReportPdf } = await import("@/lib/mockReportPdf")
-    const blob = await generateMockReportPdf(token, filters)
-    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
-    return { ok: true, blob, filename }
-  }
-
   const params = new URLSearchParams()
-  if (filters.startDate) params.append("startDate", filters.startDate)
-  if (filters.endDate) params.append("endDate", filters.endDate)
+  if (filters.from) params.append("from", filters.from)
+  if (filters.to) params.append("to", filters.to)
   if (filters.status && filters.status !== "all") params.append("status", filters.status)
   if (filters.projectId) params.append("projectId", filters.projectId)
-  if (filters.studentName) params.append("studentName", filters.studentName)
+  if (filters.studentId) params.append("studentId", filters.studentId)
 
   const res = await fetch(`${API_URL}/v1/expenses/report?${params.toString()}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   })
 
-  if (res.status === 200) {
-    const blob = await res.blob()
-    const filename = `relatorio-despesas-${new Date().toISOString().slice(0, 10)}.pdf`
-    return { ok: true, blob, filename }
-  }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
-  if (res.status === 404 || res.status === 501) return { ok: false, error: "NOT_IMPLEMENTED" }
-  return { ok: false, error: "UNKNOWN" }
+  if (res.status !== 202) return { ok: false, error: "UNKNOWN" }
+
+  const { jobId } = await res.json()
+
+  return new Promise<ExportReportResult>((resolve) => {
+    const es = new EventSource(`${API_URL}/v1/expenses/report/status/${jobId}`)
+
+    es.addEventListener("report-finished", (e) => {
+      es.close()
+      try {
+        const data = JSON.parse((e as MessageEvent).data)
+        resolve({ ok: true, downloadUrl: data.downloadUrl })
+      } catch {
+        resolve({ ok: false, error: "UNKNOWN" })
+      }
+    })
+
+    es.addEventListener("report-error", (e) => {
+      es.close()
+      try {
+        const data = JSON.parse((e as MessageEvent).data)
+        console.error("report-error:", data)
+      } catch { /* noop */ }
+      resolve({ ok: false, error: "REPORT_FAILED" })
+    })
+
+    es.onerror = () => {
+      es.close()
+      resolve({ ok: false, error: "UNKNOWN" })
+    }
+  })
 }
 
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"
