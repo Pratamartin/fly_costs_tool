@@ -14,25 +14,18 @@ import { seedExpenseCategories, seedExpenses, seedPreferenceSurveys, seedProject
 import { getReportViewModel } from '@/services/reports'
 import { getAuthHeaders } from '../../util'
 
-vi.mock('@aws-sdk/client-s3', () => {
+vi.mock('@/lib/storage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/storage')>()
   return {
-    S3Client: class {
-      send = vi.fn().mockResolvedValue({})
-    },
-    PutObjectCommand: class { constructor(public input: any) {} },
-    GetObjectCommand: class { constructor(public input: any) {} },
-    DeleteObjectCommand: class { constructor(public input: any) {} },
+    ...actual,
+    isStorageConfigured: vi.fn().mockReturnValue(true),
+    uploadStream: vi.fn().mockResolvedValue({
+      fileKey: 'reports/mock-file.pdf',
+      fileName: 'mock-file.pdf',
+    }),
+    getSignedDownloadUrl: vi.fn().mockResolvedValue('http://signed.url/report.pdf'),
   }
 })
-
-vi.mock('@aws-sdk/lib-storage', () => ({
-  Upload: class {
-    constructor() {}
-    done = vi.fn().mockResolvedValue({})
-  },
-}))
-
-vi.mock('@aws-sdk/s3-request-presigner', () => ({ getSignedUrl: vi.fn().mockResolvedValue('http://signed.url/report.pdf') }))
 
 const app = createTestApp(expenses)
 const client = testClient(app)
@@ -117,8 +110,7 @@ describe('[Expense Reports Flow] Integration Tests', () => {
       expect(typeof result.fileKey).toBe('string')
       expect(result.fileKey.length).toBeGreaterThan(0)
 
-      // O storage adiciona um prefixo UUID, então verificamos apenas o final do caminho
-      expect(result.fileKey).toMatch(/reports\/.*-report-test-job-id\.pdf$/)
+      expect(result.fileKey).toBe('reports/mock-file.pdf')
     })
   })
 
