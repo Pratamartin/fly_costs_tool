@@ -136,3 +136,23 @@ export const UpdateExpenseSchema = BaseSchema
     surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
       .optional(),
   })
+
+export const ExpenseReportQuerySchema = z.object({
+  from: z.coerce.date().optional()
+    .openapi({
+      description: 'Data inicial para filtro (createdAt)',
+      example: '2026-01-01T00:00:00Z',
+    }),
+  to: z.coerce.date().optional()
+    .openapi({
+      description: 'Data final para filtro (createdAt)',
+      example: '2026-12-31T23:59:59Z',
+    }),
+  status: z.enum(ExpenseRequestStatus).optional()
+    .openapi({
+      description: 'Filtrar por status',
+      example: ExpenseRequestStatus.APROVADO,
+    }),
+  projectId: IdSchema.optional().openapi({ description: 'Filtrar por projeto' }),
+  studentId: IdSchema.optional().openapi({ description: 'Filtrar por aluno' }),
+})

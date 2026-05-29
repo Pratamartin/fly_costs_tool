@@ -4,11 +4,13 @@ import costBreakdowns from './cost-breakdowns'
 import * as handlers from './expenses.handler'
 import * as routes from './expenses.route'
 import forms from './forms'
+import reports from './reports'
 
 const router = createRouter().basePath('/expenses')
   .route('/', categories)
   .route('/', costBreakdowns)
   .route('/', forms)
+  .route('/', reports)
   .openapi(routes.index, handlers.index)
   .openapi(routes.create, handlers.create)
   .openapi(routes.read, handlers.read)

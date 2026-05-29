@@ -27,23 +27,27 @@
         "departureDate": { 
           "type": "string", 
           "format": "date", 
-          "title": "Data Ida" 
+          "title": "Data Ida",
+          "x-report": true
         },
         "returnDate": { 
           "type": "string", 
           "format": "date", 
           "title": "Data Volta",
+          "x-report": true,
           "dateAfter": { 
             "$data": "1/departureDate" 
           } 
         },
         "departureRoute": { 
           "type": "string", 
-          "title": "Trecho Ida" 
+          "title": "Trecho Ida",
+          "x-report": true
         },
         "returnRoute": { 
           "type": "string", 
-          "title": "Trecho Volta" 
+          "title": "Trecho Volta",
+          "x-report": true
         },
         "flightSuggestionKey": { 
           "type": "string", 

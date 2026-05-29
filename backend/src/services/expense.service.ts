@@ -51,6 +51,7 @@ export const expenseInclude = {
       id: true,
       data: true,
       surveyId: true,
+      survey: { select: { schema: true } },
     },
   },
 } satisfies Prisma.ExpenseRequestInclude
