@@ -1,0 +1,14 @@
+{
+  "type": "Group",
+  "label": "Dados da Publicação",
+  "elements": [
+    {
+      "type": "Control",
+      "scope": "#/properties/classification",
+      "label": "Classificação QUALIS CAPES",
+      "options": {
+        "placeholder": "Selecione a classificação do evento"
+      }
+    }
+  ]
+}

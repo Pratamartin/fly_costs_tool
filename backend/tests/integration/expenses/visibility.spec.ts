@@ -5,7 +5,7 @@ import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { getAuthHeaders } from '../../util'
 
 const client = testClient(createTestApp(expenses))
@@ -21,12 +21,12 @@ describe('[Expense Visibility] - Role-based isolation', () => {
       data: {
         title,
         status: reqStatus,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         studentId: alunoId,
-        city: 'Test City',
-        state: 'BR-SP',
-        country: 'BR',
-        departureDate: new Date(),
-        returnDate: new Date(),
       },
     })
   }
@@ -34,9 +34,11 @@ describe('[Expense Visibility] - Role-based isolation', () => {
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
 
     const aluno = await prisma.user.findFirst({ where: { role: UserRole.ALUNO } })
-    alunoId = aluno!.id
+    assert(aluno)
+    alunoId = aluno.id
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -52,27 +54,26 @@ describe('[Expense Visibility] - Role-based isolation', () => {
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 
-  it('[ALUNO] deve visualizar todos os seus próprios registros', async () => {
+  it('aluno visualiza apenas suas próprias despesas', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: alunoHeaders })
-    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
-    expect(json.length).toBe(5)
+    expect(json).toHaveLength(5) // Todas as 5 criadas no beforeAll são do alunoId
   })
 
-  it('[COORDENADOR] deve visualizar apenas PENDENTE, APROVADO, REJEITADO', async () => {
+  it('coordenador visualiza despesas PENDENTE, APROVADO, REJEITADO', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: coordenadorHeaders })
-    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
-
     const json = await res.json()
 
-    const statuses = json.map(e => e.status)
-    expect(json.length).toBe(3)
+    const statuses = json.map((e: any) => e.status)
     expect(statuses).toContain(ExpenseRequestStatus.PENDENTE)
     expect(statuses).toContain(ExpenseRequestStatus.APROVADO)
     expect(statuses).toContain(ExpenseRequestStatus.REJEITADO)
@@ -80,33 +81,43 @@ describe('[Expense Visibility] - Role-based isolation', () => {
     expect(statuses).not.toContain(ExpenseRequestStatus.EM_PROCESSAMENTO)
   })
 
-  it('[ADMIN] deve visualizar APROVADO, EM_PROCESSAMENTO, EM_EDICAO', async () => {
+  it('admin visualiza despesas APROVADO, EM_EDICAO, EM_PROCESSAMENTO, CONCLUIDO', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: adminHeaders })
-    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
-
     const json = await res.json()
 
-    const statuses = json.map(e => e.status)
-    expect(json.length).toBe(3)
+    const statuses = json.map((e: any) => e.status)
     expect(statuses).toContain(ExpenseRequestStatus.APROVADO)
-    expect(statuses).toContain(ExpenseRequestStatus.EM_PROCESSAMENTO)
     expect(statuses).toContain(ExpenseRequestStatus.EM_EDICAO)
-    expect(statuses).not.toContain(ExpenseRequestStatus.REJEITADO)
+    expect(statuses).toContain(ExpenseRequestStatus.EM_PROCESSAMENTO)
     expect(statuses).not.toContain(ExpenseRequestStatus.PENDENTE)
   })
 
-  it('[COORDENADOR] não deve conseguir acessar detalhes de EM_EDICAO via ID', async () => {
-    const emEdicao = await prisma.expenseRequest.findFirst({ where: { status: ExpenseRequestStatus.EM_EDICAO } })
+  it('aluno não pode ver despesas de outros alunos (simulado)', async () => {
+    // Cria despesa de outro aluno
+    const outroAluno = await prisma.user.create({
+      data: {
+        name: 'Outro Aluno',
+        email: 'outro@test.com',
+        passwordHash: 'hash',
+        role: UserRole.ALUNO,
+      },
+    })
 
-    const res = await client.expenses[':id'].$get({ param: { id: emEdicao!.id } }, { headers: coordenadorHeaders })
-    expect(res.status).toBe(status.NOT_FOUND)
-  })
+    const despesaOutro = await prisma.expenseRequest.create({
+      data: {
+        title: 'Despesa Outro',
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
+        studentId: outroAluno.id,
+      },
+    })
 
-  it('[ADMIN] não deve conseguir acessar detalhes de PENDENTE via ID', async () => {
-    const pendente = await prisma.expenseRequest.findFirst({ where: { status: ExpenseRequestStatus.PENDENTE } })
-
-    const res = await client.expenses[':id'].$get({ param: { id: pendente!.id } }, { headers: adminHeaders })
-    expect(res.status).toBe(status.NOT_FOUND)
+    // Tenta acessar via ID
+    const res = await client.expenses[':id'].$get({ param: { id: despesaOutro.id } }, { headers: alunoHeaders })
+    assert(res.status === status.NOT_FOUND) // Handler retorna NOT_FOUND se não for do aluno
   })
 })

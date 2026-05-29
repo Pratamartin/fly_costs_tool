@@ -30,10 +30,21 @@ const prismaMock = vi.hoisted(() => ({
   project: {
     findUnique: vi.fn(),
   },
-  $transaction: vi.fn(),
+  notification: {
+    create: vi.fn(),
+  },
+  user: {
+    findUnique: vi.fn(),
+  },
+  $transaction: vi.fn((cb) => cb(prismaMock)),
 }))
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
+
+vi.mock('@/services/preference-survey.service', () => ({
+  validateAnswers: vi.fn().mockResolvedValue(null),
+  createSurveyAnswer: vi.fn().mockResolvedValue({}),
+}))
 
 import { createCostBreakdown, getProjectBudgetMetrics } from '@/services/budget.service'
 import {
@@ -47,6 +58,8 @@ const txMock = {
   expenseRequest: { findUnique: vi.fn() },
   costBreakdown: { create: vi.fn() },
   project: { update: vi.fn() },
+  notification: { create: vi.fn() },
+  user: { findUnique: vi.fn() },
 }
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
@@ -59,11 +72,6 @@ function baseExpense(overrides: Record<string, unknown> = {}) {
     studentId: STUDENT_ID,
     title: 'Congresso',
     description: null,
-    city: 'Manaus',
-    state: 'BR-AM',
-    country: 'BR',
-    departureDate: new Date('2026-07-01T12:00:00.000Z'),
-    returnDate: new Date('2026-07-05T12:00:00.000Z'),
     status: ExpenseRequestStatus.PENDENTE,
     rejectionReason: null,
     projectId: null,
@@ -95,14 +103,11 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
 
   it('cria solicitação → aprova → atribui projeto → discrimina → visualiza', async () => {
     prismaMock.expenseRequest.create.mockResolvedValue(baseExpense())
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(baseExpense())
 
     const created = await createExpenseRequest(STUDENT_ID, {
       title: 'Congresso',
-      city: 'Manaus',
-      state: 'BR-AM',
-      country: 'BR',
-      departureDate: new Date('2026-07-01'),
-      returnDate: new Date('2026-07-05'),
+      surveyAnswers: [{ expenseCategoryId: '123e4567-e89b-12d3-a456-426614174000', data: {} }],
     })
     expect('error' in created).toBe(false)
 

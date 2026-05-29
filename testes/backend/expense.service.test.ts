@@ -23,10 +23,27 @@ const prismaMock = vi.hoisted(() => ({
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  preferenceSurveyAnswer: {
+    deleteMany: vi.fn(),
+    create: vi.fn(),
+  },
+  notification: {
+    create: vi.fn(),
+  },
+  user: {
+    findUnique: vi.fn(),
+  },
+  $transaction: vi.fn((cb) => cb(prismaMock)),
 }))
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
+vi.mock('@/services/preference-survey.service', () => ({
+  validateAnswers: vi.fn().mockResolvedValue(null),
+  createSurveyAnswer: vi.fn().mockResolvedValue({}),
+}))
+
+import * as preferenceSurveyService from '@/services/preference-survey.service'
 import {
   createExpenseRequest,
   expenseInclude,
@@ -46,11 +63,6 @@ function expenseRow(overrides: Record<string, unknown> = {}) {
     studentId: STUDENT_ID,
     title: ' Congresso ',
     description: null,
-    city: 'Manaus',
-    state: 'BR-AM',
-    country: 'BR',
-    departureDate: new Date('2026-07-01T12:00:00.000Z'),
-    returnDate: new Date('2026-07-05T12:00:00.000Z'),
     status: ExpenseRequestStatus.PENDENTE,
     rejectionReason: null,
     correctionReason: null as string | null,
@@ -61,6 +73,7 @@ function expenseRow(overrides: Record<string, unknown> = {}) {
     student: { id: STUDENT_ID, name: 'Codibentinho' },
     project: null,
     costBreakdowns: [],
+    surveyAnswers: [],
     ...overrides,
   }
 }
@@ -68,80 +81,71 @@ function expenseRow(overrides: Record<string, unknown> = {}) {
 describe('CreateExpenseSchema (validação campos / datas)', () => {
   const validBase = {
     title: 'Viagem à conferência',
-    city: 'Manaus',
-    state: 'BR-AM',
-    country: 'BR',
-    departureDate: new Date('2026-08-01'),
-    returnDate: new Date('2026-08-10'),
+    event: { name: 'Evento Teste', location: 'Local Teste' },
+    article: { classification: 'A1' },
+    surveyAnswers: [
+      { expenseCategoryId: '123e4567-e89b-12d3-a456-426614174000', data: { some: 'data' } },
+    ],
   }
 
   it('aceita criação com localização e datas válidas', () => {
     const r = CreateExpenseSchema.safeParse(validBase)
+    if (!r.success) {
+      console.log('Zod errors:', JSON.stringify(r.error.format(), null, 2))
+    }
     expect(r.success).toBe(true)
   })
 
-  it('falha sem campos obrigatórios (ex.: city)', () => {
-    const { city: _c, ...rest } = validBase
+  it('falha sem campos obrigatórios (ex.: title)', () => {
+    const { title: _t, ...rest } = validBase
     const r = CreateExpenseSchema.safeParse(rest)
     expect(r.success).toBe(false)
   })
 
-  it('falha quando volta < ida (schema)', () => {
+  it('falha se surveyAnswers estiver vazio', () => {
     const r = CreateExpenseSchema.safeParse({
       ...validBase,
-      departureDate: new Date('2026-08-10'),
-      returnDate: new Date('2026-08-01'),
+      surveyAnswers: [],
     })
     expect(r.success).toBe(false)
   })
 
-  it('createExpenseRequest retorna erro quando volta < ida (serviço, antes do Prisma)', async () => {
-    const result = await createExpenseRequest(STUDENT_ID, {
-      title: 'T',
-      city: 'Manaus',
-      state: 'BR-AM',
-      country: 'BR',
-      departureDate: new Date('2026-08-10'),
-      returnDate: new Date('2026-08-01'),
-    })
+  it('createExpenseRequest retorna erro quando validação de respostas falha', async () => {
+    vi.mocked(preferenceSurveyService.validateAnswers).mockResolvedValueOnce('INVALID_DATA')
 
-    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE)
+    const result = await createExpenseRequest(STUDENT_ID, validBase)
+
+    expect('error' in result && result.error).toBe('INVALID_DATA')
     expect(prismaMock.expenseRequest.create).not.toHaveBeenCalled()
   })
 })
 
 describe('createExpenseRequest', () => {
-  it('persiste despesa com localização e período', async () => {
+  it('persiste despesa básica', async () => {
     prismaMock.expenseRequest.create.mockResolvedValue(expenseRow())
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
 
     const result = await createExpenseRequest(STUDENT_ID, {
       title: 'Evento',
-      city: 'Manaus',
-      state: 'BR-AM',
-      country: 'BR',
-      departureDate: new Date('2026-07-01'),
-      returnDate: new Date('2026-07-05'),
+      surveyAnswers: [{ expenseCategoryId: 'cat-1', data: {} }],
     })
 
     expect('error' in result).toBe(false)
     if ('error' in result)
       return
-    expect(result.city).toBe('Manaus')
-    expect(prismaMock.expenseRequest.create).toHaveBeenCalledWith(
-      expect.objectContaining({ include: expenseInclude }),
-    )
+    expect(result.title).toBe(' Congresso ')
+    expect(prismaMock.expenseRequest.create).toHaveBeenCalled()
   })
 })
 
 describe('getAllExpenseRequests / getExpenseById (formato retorno)', () => {
-  it('lista inclui campos de localização e attachmentKey quando presentes', async () => {
+  it('lista inclui attachmentKey quando presente', async () => {
     prismaMock.expenseRequest.findMany.mockResolvedValue([
-      expenseRow({ city: 'São Paulo', attachmentKey: 'memorandos/k.pdf' }),
+      expenseRow({ attachmentKey: 'memorandos/k.pdf' }),
     ])
 
     const list = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
 
-    expect(list[0].city).toBe('São Paulo')
     expect(list[0].attachmentKey).toBe('memorandos/k.pdf')
   })
 

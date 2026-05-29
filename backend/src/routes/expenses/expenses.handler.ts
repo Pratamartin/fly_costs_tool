@@ -25,6 +25,10 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 
   const result = await createExpenseRequest(sub, data)
 
+  if (result && 'error' in result) {
+    return c.json({ message: result.error }, codes.BAD_REQUEST)
+  }
+
   const parsed = CreateExpenseResponseSchema.parse(result)
 
   return c.json(parsed, codes.CREATED)

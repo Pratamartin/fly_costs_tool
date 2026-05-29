@@ -12,6 +12,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/env': path.resolve(__dirname, './mocks/env.ts'),
+      '@/lib/jobs': path.resolve(__dirname, './mocks/jobs.ts'),
       '@': path.resolve(__dirname, '../../backend/src'),
       '@/generated/prisma/client': path.resolve(__dirname, './mocks/prisma-client.ts'),
       '@/generated/prisma/enums': path.resolve(__dirname, './mocks/prisma-enums.ts'),

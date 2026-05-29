@@ -17,7 +17,9 @@
     "verbatimModuleSyntax": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true
+    "noImplicitOverride": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
   },
   "tsc-alias": {
     "resolveFullPaths": true

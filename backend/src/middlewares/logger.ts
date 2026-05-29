@@ -1,17 +1,4 @@
 import { pinoLogger } from 'hono-pino'
-import env from '@/env'
+import { logger } from '@/lib/logger'
 
-export default pinoLogger({
-  pino: {
-    level: env.LOG_LEVEL,
-    transport: env.NODE_ENV !== 'production'
-      ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            ignore: 'pid,hostname',
-          },
-        }
-      : undefined,
-  },
-})
+export default pinoLogger({ pino: logger })

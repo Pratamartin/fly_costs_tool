@@ -64,5 +64,24 @@ export const FileItemSchema = z
   })
 
 export const MultiFileSchema = z.object({ files: z.array(FileItemSchema).openapi({ description: 'Múltiplos arquivos para upload' }) })
+
+export const PaginationSchema = z.object({
+  limit: z.coerce.number().int()
+    .min(1)
+    .max(100)
+    .default(20)
+    .openapi({
+      example: 20,
+      description: 'Número de registros por página',
+    }),
+  offset: z.coerce.number().int()
+    .min(0)
+    .default(0)
+    .openapi({
+      example: 0,
+      description: 'Número de registros a pular',
+    }),
+})
+
 export const UnauthorizedResponse = jsonContent(createMessageObjectSchema('Não autenticado'), 'Erro: Token inválido ou expirado.')
 export const ForbiddenResponse = jsonContent(createMessageObjectSchema('Acesso restrito'), 'Erro: Perfil não autorizado.')

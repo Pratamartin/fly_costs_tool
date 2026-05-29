@@ -50,8 +50,8 @@ export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } })
 }
 
-export async function getUserById(id: string) {
-  const user = await prisma.user.findUnique({
+export async function getUserById(id: string, tx: Prisma.TransactionClient = prisma) {
+  const user = await tx.user.findUnique({
     where: { id },
     omit,
     include: { profile: true },

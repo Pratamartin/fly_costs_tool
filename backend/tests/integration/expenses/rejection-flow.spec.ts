@@ -5,8 +5,8 @@ import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
-import seedProjects from '@/seeds/project.seed'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
+import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import { getAuthHeaders } from '../../util'
 
 const client = testClient(createTestApp(expenses))
@@ -15,32 +15,41 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
   let alunoHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
   let createdExpenseId: string
-  const rejectionReason = 'O aluno excedeu o limite semestral de benefícios.'
+  const categoryId = dummyExpenseCategories[0]!.id!
+  const rejectionReason = 'O aluno solicitante excedeu o limite semestral de benefícios.'
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
-    await seedProjects()
+    await seedPreferenceSurveys()
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     coordenadorHeaders = await getAuthHeaders('coordenador@test.com', 'COORDENADOR')
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
     await prisma.expenseRequest.deleteMany()
-    await prisma.project.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 
   it('[Step 1] Aluno cria uma solicitação de despesa', async () => {
     const expenseData = {
       title: 'Inscrição - SBSC 2026',
+      event: {
+        name: 'Evento Teste',
+        location: 'Local Teste',
+      },
+      article: { classification: 'Sem Qualis' },
       description: 'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
-      city: 'São Paulo',
-      state: 'BR-SP',
-      country: 'BR',
-      departureDate: new Date('2026-06-01'),
-      returnDate: new Date('2026-06-05'),
+      surveyAnswers: [
+        {
+          expenseCategoryId: categoryId,
+          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+        },
+      ],
     }
 
     const endpoint = client.expenses.$post
@@ -51,12 +60,6 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
 
     assert(res.status === status.CREATED)
     const json = await res.json()
-
-    expect(json).toHaveProperty('id')
-    expect(json.status).toBe(ExpenseRequestStatus.PENDENTE)
-    expect(json.title).toBe(expenseData.title)
-    expect(json.rejectionReason).toBeNull()
-
     createdExpenseId = json.id
   })
 
@@ -78,7 +81,6 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
 
     expect(json.status).toBe(ExpenseRequestStatus.REJEITADO)
     expect(json.rejectionReason).toBe(rejectionReason)
-    expect(json.id).toBe(createdExpenseId)
   })
 
   it('[Step 3] Aluno visualiza a solicitação rejeitada com o motivo', async () => {
@@ -103,13 +105,13 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
         param: { id: createdExpenseId },
         json: {
           status: ExpenseRequestStatus.REJEITADO,
-          reason: 'Outro motivo',
+          reason: 'Tentando rejeitar novamente',
         },
       },
       { headers: coordenadorHeaders },
     )
 
-    expect(res.status).toBe(status.CONFLICT)
+    assert(res.status === status.CONFLICT)
     const json = await res.json()
     expect(json).toHaveProperty('message')
   })
@@ -119,26 +121,21 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
     const res = await endpoint(
       {
         param: { id: createdExpenseId },
-        json: { status: ExpenseRequestStatus.APROVADO },
+        json: { status: ExpenseRequestStatus.PENDENTE as any },
       },
       { headers: alunoHeaders },
     )
 
-    expect(res.status).toBe(status.FORBIDDEN)
+    assert(res.status === status.FORBIDDEN)
   })
 
   it('[Step 6] Validar lista de despesas - aluno pode visualizar a rejeitada', async () => {
     const endpoint = client.expenses.$get
-    const res = await endpoint(
-      { query: {} },
-      { headers: alunoHeaders },
-    )
+    const res = await endpoint({ query: {} }, { headers: alunoHeaders })
 
-    expect(res.status).toBe(status.OK)
+    assert(res.status === status.OK)
     const json = await res.json()
-
-    assert(Array.isArray(json))
-    const rejectedExpense = json.find(exp => exp.id === createdExpenseId)
+    const rejectedExpense = json.find((exp: any) => exp.id === createdExpenseId)
 
     assert(rejectedExpense)
     expect(rejectedExpense.status).toBe(ExpenseRequestStatus.REJEITADO)

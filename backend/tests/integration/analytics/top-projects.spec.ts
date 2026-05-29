@@ -6,7 +6,7 @@ import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { analytics } from '@/routes'
-import { seedExpenseCategories, seedUsers } from '@/seeds'
+import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedExpenses from '@/seeds/expense.seed'
 import seedProjects from '@/seeds/project.seed'
@@ -17,18 +17,24 @@ const client = testClient(createTestApp(analytics))
 
 describe('get /analytics/top-projects', () => {
   let adminHeaders: { Authorization: string }
+  const subcategoryName = dummyExpenseCategories[0]!.normalizedName
 
   beforeAll(async () => {
     await seedUsers()
     await seedExpenseCategories()
+    await seedPreferenceSurveys()
     await seedProjects()
     await seedExpenses()
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
   })
 
   afterAll(async () => {
+    await prisma.preferenceSurveyAnswer.deleteMany()
+    await prisma.costBreakdown.deleteMany()
     await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
+    await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
   })
 
@@ -49,17 +55,16 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Custo via Serviço',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_DATA_SCIENCE,
         studentId: ID_ALUNO,
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date(),
-        returnDate: new Date(),
       },
     })
 
-    const subcategoryName = dummyExpenseCategories[0]!.normalizedName
     await createCostBreakdown(expense.id, {
       amount: 100,
       subcategoryName,
@@ -67,6 +72,7 @@ describe('get /analytics/top-projects', () => {
 
     const testLimit = 1
     const res = await endpoint.$get({ query: { limit: testLimit } }, { headers: adminHeaders })
+    assert(res.status === status.OK)
     const json = await res.json()
 
     expect(json).toHaveLength(testLimit)
@@ -80,19 +86,19 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Gasto Base para Empate',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date(),
-        returnDate: new Date(),
       },
     })
 
     await createCostBreakdown(baseExpense.id, {
       amount: VALOR_PARA_EMPATAR,
-      subcategoryName: dummyExpenseCategories[0]!.normalizedName,
+      subcategoryName,
     })
 
     // ARRANGE: Cria a vantagem em volume (quantidade de requisições)
@@ -100,13 +106,13 @@ describe('get /analytics/top-projects', () => {
       data: {
         title: 'Gasto Extra para Desempate',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'Evento Teste',
+          location: 'Local Teste',
+        },
+        article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
-        city: 'Manaus',
-        state: 'BR-AM',
-        country: 'BR',
-        departureDate: new Date(),
-        returnDate: new Date(),
       },
     })
 

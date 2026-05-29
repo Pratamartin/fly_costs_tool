@@ -77,6 +77,26 @@
     npm run dev
     ```
 
+## 🔍 Observabilidade
+
+Para facilitar o desenvolvimento e monitoramento do sistema de notificações e jobs, incluímos ferramentas integradas ao Docker:
+
+### 1. Subir ferramentas via Docker
+```bash
+docker compose up prisma-studio pgboss-dashboard -d
+```
+
+| Ferramenta | URL | Descrição |
+| :--- | :--- | :--- |
+| **Prisma Studio** | `http://localhost:5555` | Visualizador e editor do banco de dados |
+| **pg-boss Dashboard** | `http://localhost:5001` | Monitoramento de filas e background jobs |
+
+### 2. Rodar Dashboard de Jobs localmente (CLI)
+Se preferir rodar sem Docker, utilize:
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/flycostsdb" npm run jobs:ui
+```
+
 ## 🧪 Testes
 
 Os testes de integração utilizam a tecnologia **Testcontainers** para provisionar um banco de dados PostgreSQL efêmero e isolado automaticamente.
@@ -97,8 +117,10 @@ Os testes de integração utilizam a tecnologia **Testcontainers** para provisio
 | :--- | :--- |
 | `npx prisma generate` | Gera as classes e tipagens |
 | `npx prisma format` | Formata e identifica erros de modelagem no schema|
-| `npm run db:ui` | Visualize o banco utilizando [Prisma Studio](https://www.prisma.io) |
-| `npm run db:migrate` | Cria e aplica migrações |
+| `npm run db:ui` | Visualize o banco utilizando [Prisma Studio](https://www.prisma.io) (Porta 5555) |
+| `npm run jobs:ui` | Abre o dashboard do pg-boss para monitorar jobs |
+| `npm run db:migrate` | Cria e aplica migrações (Desenvolvimento) |
+| `npm run db:deploy` | Aplica migrações pendentes (Produção) |
 | `npm run db:seed` | Popula o banco com dados pré-definidos |
 | `npm run db:reset` | Limpa os dados e reaplica schema |
 | `npm run db:sync` | Sincroniza o banco de dados local/remoto |

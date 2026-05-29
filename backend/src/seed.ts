@@ -1,8 +1,10 @@
+import { logger } from './lib/logger'
 import prisma from './lib/orm'
-import { seedExpenseCategories, seedExpenses, seedInviteCodes, seedProjects, seedUsers } from './seeds'
+import { seedExpenseCategories, seedExpenses, seedInviteCodes, seedPreferenceSurveys, seedProjects, seedUsers } from './seeds'
 
 async function main() {
   await seedExpenseCategories()
+  await seedPreferenceSurveys()
   await seedInviteCodes()
   await seedProjects()
   await seedUsers()
@@ -11,7 +13,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Erro crítico durante o seed:', e)
+    logger.error(e, '❌ Erro crítico durante o seed')
     process.exit(1)
   })
   .finally(async () => {

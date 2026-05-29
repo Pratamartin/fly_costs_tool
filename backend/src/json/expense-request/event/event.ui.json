@@ -1,0 +1,22 @@
+{
+  "type": "Group",
+  "label": "Informações do Evento Acadêmico",
+  "elements": [
+    {
+      "type": "Control",
+      "scope": "#/properties/name",
+      "label": "Nome do Evento",
+      "options": {
+        "placeholder": "Ex: Simpósio Brasileiro de Engenharia de Software (SBES)"
+      }
+    },
+    {
+      "type": "Control",
+      "scope": "#/properties/location",
+      "label": "Cidade/Estado de Realização",
+      "options": {
+        "placeholder": "Ex: Rio de Janeiro/RJ ou Lisboa, Portugal"
+      }
+    }
+  ]
+}

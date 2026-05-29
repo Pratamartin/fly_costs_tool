@@ -1,9 +1,11 @@
+x-app-build: &api-build
+  context: .
+  dockerfile: Dockerfile
+
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: fly-costs-backend
+  api:
+    build: *api-build
+    container_name: fly-costs-api
     ports:
       - "3001:3001"
     env_file:
@@ -15,11 +17,17 @@ services:
     networks:
       - fly-costs-network
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
 
   postgres:
-    image: postgres
+    image: postgres:18-alpine
     container_name: fly-costs-db
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "flycostsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: user
@@ -28,6 +36,48 @@ services:
       - fly-costs-db-data:/var/lib/postgresql
     ports:
       - "5432:5432"
+    networks:
+      - fly-costs-network
+
+  migrations:
+    build: *api-build
+    command: npm run db:deploy
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - fly-costs-network
+
+  prisma-studio:
+    build: *api-build
+    container_name: fly-costs-prisma-studio
+    command: "sh -c \"npm run db:ui -- --browser none 2>&1 | awk '/ERR_STREAM_UNABLE_TO_PIPE/{skip=1} skip && /}/{skip=0; next} !skip {print; fflush()}'\""
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+    ports:
+      - "5555:5555"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - fly-costs-network
+
+  pgboss-dashboard:
+    build: *api-build
+    container_name: fly-costs-pgboss-dashboard
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres/flycostsdb
+    command: sh -c "npx pg-boss migrate --connection-string $$DATABASE_URL && npm run jobs:ui"
+    ports:
+      - "5001:5001"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
     networks:
       - fly-costs-network
 

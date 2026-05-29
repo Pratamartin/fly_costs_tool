@@ -3,8 +3,9 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { UserRole } from '@/generated/prisma/enums'
+import { articleJSONSchema, eventJSONSchema } from '@/json'
 import { multipartFormContentRequired } from '@/lib/util'
-import { requireAuth, requireRole } from '@/middlewares'
+import { requireAuth, requireRole, validateJsonSchema } from '@/middlewares'
 import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
 import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
@@ -41,7 +42,12 @@ export const index = createRoute({
 export const create = createRoute({
   path: '/',
   method: 'post',
-  middleware: [requireAuth, requireRole(ALLOWED_ROLES)],
+  middleware: [
+    requireAuth,
+    requireRole(ALLOWED_ROLES),
+    validateJsonSchema('event', eventJSONSchema),
+    validateJsonSchema('article', articleJSONSchema),
+  ],
   security: [{ bearerAuth: [] }],
   summary: 'Create expense request',
   description: `
@@ -54,6 +60,10 @@ export const create = createRoute({
     [codes.CREATED]: jsonContent(
       CreateExpenseResponseSchema,
       'Solicitação criada com sucesso.',
+    ),
+    [codes.BAD_REQUEST]: jsonContent(
+      createMessageObjectSchema('Dados inválidos'),
+      'Erro de validação ou lógica de negócio.',
     ),
     [codes.UNAUTHORIZED]: UnauthorizedResponse,
     [codes.FORBIDDEN]: ForbiddenResponse,
@@ -82,7 +92,12 @@ export const read = createRoute({
 export const update = createRoute({
   path: '/{id}',
   method: 'patch',
-  middleware: [requireAuth, requireRole(ALLOWED_ROLES)],
+  middleware: [
+    requireAuth,
+    requireRole(ALLOWED_ROLES),
+    validateJsonSchema('event', eventJSONSchema),
+    validateJsonSchema('article', articleJSONSchema),
+  ],
   security: [{ bearerAuth: [] }],
   summary: 'Update expense',
   description: `
@@ -92,7 +107,7 @@ export const update = createRoute({
   tags,
   request: {
     params: z.object({ id: IdSchema }),
-    body: jsonContentRequired(UpdateExpenseSchema, 'Dados atualizados da solicitação'),
+    body: jsonContentRequired(UpdateExpenseSchema, 'Dados atualizados da solicitaçãos'),
   },
   responses: {
     [codes.OK]: jsonContent(ExpenseResponseSchema, 'Solicitação atualizada com sucesso.'),

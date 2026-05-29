@@ -2,10 +2,12 @@ import { z } from '@hono/zod-openapi'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { articleJSONSchema, eventJSONSchema } from '@/json'
 import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
+import { PreferenceSurveyAnswerSchema } from './preference-survey.schema'
 import ProjectSchema from './project.schema'
-import { reasonFieldRequired, returnDateAfterDepartureDateCheck, stateBelongsToCountryCheck, validCountryCheck, validPDFCheck, validStateCheck } from './schema.refine'
-import { FileItemSchema, IdSchema, LocationSchema, TimestampSchema, TripPeriodSchema } from './shared.schema'
+import { reasonFieldRequired, validPDFCheck } from './schema.refine'
+import { FileItemSchema, IdSchema, TimestampSchema } from './shared.schema'
 import { UserSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
@@ -30,6 +32,14 @@ const BaseSchema = z.object({
       example:
       'Inscrição para apresentação de artigo aceito no Simpósio Brasileiro de Sistemas Colaborativos.',
     }),
+  event: z.fromJSONSchema(eventJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({
+    description: eventJSONSchema.description,
+    example: eventJSONSchema.examples[0],
+  }),
+  article: z.fromJSONSchema(articleJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({
+    description: articleJSONSchema.description,
+    example: articleJSONSchema.examples[0],
+  }),
   status: z.enum(ExpenseRequestStatus)
     .openapi({
       description: 'Status atual da solicitação',
@@ -46,18 +56,15 @@ const BaseSchema = z.object({
       example: 'Por favor, ajuste o título da despesa para condizer com o memorando.',
     }),
 })
-  .extend(LocationSchema.shape)
-  .extend(TripPeriodSchema.shape)
 
 export const CreateExpenseSchema = BaseSchema.omit({
   status: true,
   rejectionReason: true,
   correctionReason: true,
+}).extend({
+  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
+    .openapi({ description: 'Lista de categorias e respostas de formulário solicitadas' }),
 })
-  .check(validStateCheck)
-  .check(validCountryCheck)
-  .check(stateBelongsToCountryCheck)
-  .check(returnDateAfterDepartureDateCheck)
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
@@ -67,6 +74,11 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
       .openapi({ description: 'Chave do memorando (PDF) no armazenamento R2.' }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
+    surveyAnswers: z.array(z.object({
+      id: IdSchema,
+      data: z.any(),
+      surveyId: IdSchema,
+    })).optional(),
   })
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
@@ -84,11 +96,6 @@ export const ExpenseListItemSchema = z.object({
     status: true,
     rejectionReason: true,
     correctionReason: true,
-    city: true,
-    state: true,
-    country: true,
-    departureDate: true,
-    returnDate: true,
   }).shape)
   .extend({
     attachmentKey: z.string().nullable()
@@ -121,14 +128,31 @@ export const UpdateExpenseSchema = BaseSchema
   .pick({
     title: true,
     description: true,
-    city: true,
-    state: true,
-    country: true,
-    departureDate: true,
-    returnDate: true,
+    event: true,
+    article: true,
   })
   .partial()
-  .check(validStateCheck)
-  .check(validCountryCheck)
-  .check(stateBelongsToCountryCheck)
-  .check(returnDateAfterDepartureDateCheck)
+  .extend({
+    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
+      .optional(),
+  })
+
+export const ExpenseReportQuerySchema = z.object({
+  from: z.coerce.date().optional()
+    .openapi({
+      description: 'Data inicial para filtro (createdAt)',
+      example: '2026-01-01T00:00:00Z',
+    }),
+  to: z.coerce.date().optional()
+    .openapi({
+      description: 'Data final para filtro (createdAt)',
+      example: '2026-12-31T23:59:59Z',
+    }),
+  status: z.enum(ExpenseRequestStatus).optional()
+    .openapi({
+      description: 'Filtrar por status',
+      example: ExpenseRequestStatus.APROVADO,
+    }),
+  projectId: IdSchema.optional().openapi({ description: 'Filtrar por projeto' }),
+  studentId: IdSchema.optional().openapi({ description: 'Filtrar por aluno' }),
+})

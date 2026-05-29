@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
-import type { Prisma } from '@/generated/prisma/client'
-import { Decimal } from '@prisma/client/runtime/client'
+import { Prisma } from '@/generated/prisma/client'
+import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { ID_PROJ_DATA_SCIENCE, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '../constants/seed.constant'
 import { dummyExpenseCategories } from './expense.category.seed'
@@ -10,7 +9,7 @@ export const dummyProjects: Prisma.ProjectCreateInput[] = [
     id: ID_PROJ_ROBOTICA,
     name: 'Laboratório de Robótica Avançada',
     code: 'ROBOTICA-26',
-    budget: new Decimal(15000.00),
+    budget: new Prisma.Decimal(15000.00),
     expenseCategories: {
       connect: dummyExpenseCategories
         .map(expenseCategory => ({ id: expenseCategory.id })),
@@ -20,8 +19,8 @@ export const dummyProjects: Prisma.ProjectCreateInput[] = [
     id: ID_PROJ_IA,
     name: 'Pesquisa em IA Aplicada',
     code: 'IA-WEB-26',
-    budget: new Decimal(25000.00),
-    usedBudget: new Decimal(15000.00),
+    budget: new Prisma.Decimal(25000.00),
+    usedBudget: new Prisma.Decimal(15000.00),
     expenseCategories: {
       connect: dummyExpenseCategories
         .map(expenseCategory => ({ id: expenseCategory.id })),
@@ -31,13 +30,13 @@ export const dummyProjects: Prisma.ProjectCreateInput[] = [
     id: ID_PROJ_DATA_SCIENCE,
     name: 'Projeto de DATASCIENCE',
     code: 'DATA-26',
-    budget: new Decimal(10000.00),
+    budget: new Prisma.Decimal(10000.00),
     expenseCategories: { connect: dummyExpenseCategories.map(c => ({ id: c.id })) },
   },
 ]
 
 async function seedProjects() {
-  console.log('🎯 Seeding Dummy Projects...')
+  logger.info('🎯 Seeding Dummy Projects...')
 
   for (const { id, ...data } of dummyProjects) {
     await prisma.project.upsert({

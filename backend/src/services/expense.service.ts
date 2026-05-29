@@ -10,6 +10,9 @@ import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import { getProjectBudgetMetrics } from './budget.service'
+import { notifyStatusChange } from './notifications'
+
+import { createSurveyAnswer, validateAnswers } from './preference-survey.service'
 
 type CreateExpenseDTO = z.infer<typeof CreateExpenseSchema>
 type UpdateExpenseDTO = z.infer<typeof UpdateExpenseSchema>
@@ -43,6 +46,14 @@ export const expenseInclude = {
       attachmentKey: true,
     },
   },
+  surveyAnswers: {
+    select: {
+      id: true,
+      data: true,
+      surveyId: true,
+      survey: { select: { schema: true } },
+    },
+  },
 } satisfies Prisma.ExpenseRequestInclude
 
 export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
@@ -50,19 +61,46 @@ export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
 }>
 
 export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations | { error: string }> {
-  if (data.returnDate < data.departureDate) {
-    return { error: EXPENSE_ERROR_CODES.RETURN_BEFORE_DEPARTURE }
+  const { surveyAnswers, event, article, ...rest } = data
+
+  const validationError = await validateAnswers(surveyAnswers)
+  if (validationError) {
+    return { error: validationError }
   }
 
-  const result = await prisma.expenseRequest.create({
-    data: {
-      ...data,
-      studentId: userId,
-    },
-    include: expenseInclude,
+  const result = await prisma.$transaction(async (tx) => {
+    const expense = await tx.expenseRequest.create({
+      data: {
+        ...rest,
+        event: event as Prisma.InputJsonValue,
+        article: article as Prisma.InputJsonValue,
+        studentId: userId,
+        status: ExpenseRequestStatus.PENDENTE,
+      },
+    })
+
+    for (const answer of surveyAnswers) {
+      await createSurveyAnswer(
+        tx,
+        expense.id,
+        answer.expenseCategoryId,
+        answer.data,
+      )
+    }
+
+    const finalExpense = await tx.expenseRequest.findUnique({
+      where: { id: expense.id },
+      include: expenseInclude,
+    })
+
+    if (!finalExpense) {
+      throw new Error('Falha ao recuperar a despesa após criação.')
+    }
+
+    return finalExpense
   })
 
-  return result
+  return result as ExpenseWithRelations
 }
 
 export async function getAllExpenseRequests(
@@ -147,6 +185,12 @@ export async function updateExpenseStatus(
     include: expenseInclude,
   })
 
+  await notifyStatusChange(
+    updatedRequest.studentId,
+    updatedRequest,
+    updatedRequest.status,
+  )
+
   return updatedRequest
 }
 
@@ -182,6 +226,12 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
       projectId,
     },
   })
+
+  await notifyStatusChange(
+    updatedExpense.studentId,
+    updatedExpense,
+    updatedExpense.status,
+  )
 
   return updatedExpense
 }
@@ -288,17 +338,49 @@ export async function updateExpense(
     return { error: phrases.CONFLICT }
   }
 
-  const updatedRequest = await prisma.expenseRequest.update({
-    where: { id },
-    data: {
-      ...data,
+  const { surveyAnswers, event, article, ...rest } = data
+
+  if (surveyAnswers) {
+    const validationError = await validateAnswers(surveyAnswers)
+    if (validationError) {
+      return { error: validationError }
+    }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    if (surveyAnswers) {
+      // Estratégia simples: Deletar tudo e re-inserir usando a versão ATIVA
+      await tx.preferenceSurveyAnswer.deleteMany({ where: { expenseRequestId: id } })
+
+      for (const answer of surveyAnswers) {
+        await createSurveyAnswer(
+          tx,
+          id,
+          answer.expenseCategoryId,
+          answer.data,
+        )
+      }
+    }
+
+    const updateData: Prisma.ExpenseRequestUpdateInput = {
+      ...rest,
       status: ExpenseRequestStatus.APROVADO,
       correctionReason: null,
-    },
-    include: expenseInclude,
+    }
+
+    if (event)
+      updateData.event = event as Prisma.InputJsonValue
+    if (article)
+      updateData.article = article as Prisma.InputJsonValue
+
+    return tx.expenseRequest.update({
+      where: { id },
+      data: updateData,
+      include: expenseInclude,
+    })
   })
 
-  return updatedRequest
+  return result as ExpenseWithRelations
 }
 
 export async function concludeExpenseRequest(
@@ -336,6 +418,12 @@ export async function concludeExpenseRequest(
     data: { status: ExpenseRequestStatus.CONCLUIDO },
     include: expenseInclude,
   })
+
+  await notifyStatusChange(
+    updatedExpense.studentId,
+    updatedExpense,
+    updatedExpense.status,
+  )
 
   return updatedExpense
 }
