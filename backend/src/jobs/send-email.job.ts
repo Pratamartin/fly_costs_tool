@@ -11,7 +11,7 @@ export type EmailJobData = {
   requestId?: string
 } & SendEmailInput
 
-export class SendEmailJob extends BaseJob<EmailJobData> {
+export class SendEmailJob extends BaseJob<EmailJobData, void> {
   readonly type = 'send-email' as const
 
   override readonly options = {

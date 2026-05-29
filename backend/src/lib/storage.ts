@@ -1,5 +1,7 @@
+import type { Readable } from 'node:stream'
 import crypto from 'node:crypto'
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { FILENAME_SANITIZE_REGEX } from '@/constants/file.constant'
 import env from '@/env'
@@ -34,15 +36,23 @@ function getClient(): S3Client {
 export type UploadFileOptions = {
   file: File
   contentType: string
-  folder: 'memorandos' | 'comprovantes' | 'formulario-preferencias'
+  folder: 'memorandos' | 'comprovantes' | 'formulario-preferencias' | 'reports'
   subfolder?: string
   prefix?: string
+}
+
+export type UploadStreamOptions = {
+  stream: Readable
+  fileName: string
+  contentType: string
+  folder: 'reports'
+  subfolder?: string
 }
 
 export type UploadFileResult = {
   fileKey: string
   fileName: string
-  fileSize: number
+  fileSize?: number
 }
 
 export async function uploadFile(options: UploadFileOptions): Promise<UploadFileResult> {
@@ -67,6 +77,32 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadFile
     fileKey,
     fileName: sanitizedFileName,
     fileSize: file.size,
+  }
+}
+
+export async function uploadStream(options: UploadStreamOptions): Promise<UploadFileResult> {
+  const { stream, fileName, contentType, folder, subfolder } = options
+  const uniqueId = crypto.randomUUID()
+  const sanitizedFileName = fileName.replace(FILENAME_SANITIZE_REGEX, '_')
+
+  const path = subfolder ? `${folder}/${subfolder}` : folder
+  const fileKey = `${path}/${uniqueId}-${sanitizedFileName}`
+
+  const upload = new Upload({
+    client: getClient(),
+    params: {
+      Bucket: env.R2_BUCKET_NAME!,
+      Key: fileKey,
+      Body: stream,
+      ContentType: contentType,
+    },
+  })
+
+  await upload.done()
+
+  return {
+    fileKey,
+    fileName: sanitizedFileName,
   }
 }
 

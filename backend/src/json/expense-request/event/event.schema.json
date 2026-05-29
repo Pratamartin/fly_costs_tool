@@ -12,7 +12,8 @@
     "location": { 
       "type": "string",
       "minLength": 3,
-      "title": "Localização do Evento"
+      "title": "Localização do Evento",
+      "x-report": true
     }
   },
   "required": [
