@@ -162,12 +162,7 @@ export default function DashboardCoordenador() {
     setExporting(false);
     if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
     setShowReportModal(false);
-    const a = document.createElement("a");
-    a.href = result.downloadUrl;
-    a.download = "relatorio.pdf";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.open(result.downloadUrl, "_blank");
   }
 
   async function handleLogout() {
