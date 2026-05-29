@@ -411,7 +411,7 @@ export async function exportExpensesReport(
   if (filters.projectId) params.append("projectId", filters.projectId)
   if (filters.studentId) params.append("studentId", filters.studentId)
 
-  const res = await fetch(`${API_URL}/v1/expenses/report?${params.toString()}`, {
+  const res = await fetch(`${API_URL}/v1/expenses/reports?${params.toString()}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -422,7 +422,7 @@ export async function exportExpensesReport(
   const { jobId } = await res.json()
 
   return new Promise<ExportReportResult>((resolve) => {
-    const es = new EventSource(`${API_URL}/v1/expenses/report/status/${jobId}`)
+    const es = new EventSource(`${API_URL}/v1/expenses/reports/status/${jobId}`)
 
     es.addEventListener("report-finished", (e) => {
       es.close()
