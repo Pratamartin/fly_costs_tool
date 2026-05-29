@@ -12,9 +12,9 @@ function validarSenha(senha: string) {
 
 export default function ResetPassword() {
   const router = useRouter();
-  const { token } = router.query;
+  const { token: tokenQuery } = router.query;
 
-  const [form, setForm] = useState({ senha: "", confirmar: "" });
+  const [form, setForm] = useState({ codigo: "", senha: "", confirmar: "" });
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -23,13 +23,13 @@ export default function ResetPassword() {
   const [errosSenha, setErrosSenha] = useState<string[]>([]);
   const [tocouSenha, setTocouSenha] = useState(false);
 
-  const tokenValido = typeof token === "string" && token.length > 0;
+  const tokenDaUrl = typeof tokenQuery === "string" ? tokenQuery : "";
 
   useEffect(() => {
-    if (router.isReady && !tokenValido) {
-      setErro("Link inválido ou expirado. Solicite um novo link de redefinição.");
+    if (router.isReady && tokenDaUrl) {
+      setForm((prev) => ({ ...prev, codigo: tokenDaUrl }));
     }
-  }, [router.isReady, tokenValido]);
+  }, [router.isReady, tokenDaUrl]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
@@ -44,6 +44,11 @@ export default function ResetPassword() {
     setErro(null);
     setTocouSenha(true);
 
+    if (!form.codigo.trim()) {
+      setErro("Informe o código de redefinição recebido no e-mail.");
+      return;
+    }
+
     const erros = validarSenha(form.senha);
     if (erros.length > 0) {
       setErrosSenha(erros);
@@ -57,7 +62,7 @@ export default function ResetPassword() {
 
     setCarregando(true);
     try {
-      const result = await resetPassword(token as string, form.senha);
+      const result = await resetPassword(form.codigo.trim(), form.senha);
       if (result.ok) {
         setSucesso(true);
         setTimeout(() => router.push("/login"), 3000);
@@ -164,31 +169,6 @@ export default function ResetPassword() {
                   Ir para o Login agora
                 </button>
               </div>
-            ) : !tokenValido && router.isReady ? (
-              /* Token ausente/inválido */
-              <div className="text-center">
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-red-600">
-                    <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">Link inválido</h2>
-                <p className="mt-3 text-sm text-gray-500">
-                  Este link de redefinição é inválido ou já expirou. Solicite um novo link para continuar.
-                </p>
-                <button
-                  onClick={() => router.push("/forgot-password")}
-                  className="mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8]"
-                >
-                  Solicitar novo link
-                </button>
-                <button
-                  onClick={() => router.push("/login")}
-                  className="mt-3 w-full text-center text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Voltar ao login
-                </button>
-              </div>
             ) : (
               /* Formulário de redefinição */
               <>
@@ -213,6 +193,30 @@ export default function ResetPassword() {
                       <p className="text-sm text-red-700">{erro}</p>
                     </div>
                   )}
+
+                  {/* Código de redefinição */}
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Código de redefinição <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="codigo"
+                      value={form.codigo}
+                      onChange={handleChange}
+                      placeholder="Cole aqui o código recebido no e-mail"
+                      required
+                      disabled={carregando}
+                      className={`w-full rounded-lg border bg-gray-50 px-3 py-2.5 font-mono text-xs text-gray-800 placeholder-gray-400 outline-none focus:ring-1 disabled:opacity-50 ${
+                        !form.codigo.trim() && tocouSenha
+                          ? "border-red-400 focus:border-red-400 focus:ring-red-400"
+                          : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                      }`}
+                    />
+                    {tokenDaUrl && (
+                      <p className="mt-1 text-xs text-green-600">Código preenchido automaticamente via link do e-mail.</p>
+                    )}
+                  </div>
 
                   {/* Nova senha */}
                   <div>

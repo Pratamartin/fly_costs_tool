@@ -69,7 +69,9 @@ export const forgotPassword: AppRouteHandler<ForgotPasswordRoute> = async (c) =>
       subject: 'SGDA: Recuperação de Senha',
       template: {
         type: 'password-recovery',
-        props: { resetToken: plainToken },
+        props: {
+          resetToken: `${env.FRONTEND_URL}/reset-password?token=${plainToken}`,
+        },
       },
     }, { singletonKey: `password_recovery_${email}` })
   }
