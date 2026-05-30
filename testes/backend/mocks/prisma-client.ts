@@ -2,18 +2,37 @@
 export class PrismaDecimal {
   constructor(public readonly v: number) {}
 
-  minus(other: PrismaDecimal) {
-    return new PrismaDecimal(this.v - other.v)
+  add(other: PrismaDecimal | number) {
+    const n = typeof other === 'number' ? other : other.v
+    return new PrismaDecimal(this.v + n)
   }
 
-  plus(other: PrismaDecimal) {
-    return new PrismaDecimal(this.v + other.v)
+  minus(other: PrismaDecimal | number) {
+    const n = typeof other === 'number' ? other : other.v
+    return new PrismaDecimal(this.v - n)
+  }
+
+  plus(other: PrismaDecimal | number) {
+    const n = typeof other === 'number' ? other : other.v
+    return new PrismaDecimal(this.v + n)
   }
 
   /** Prisma compara com Decimal ou número; o stub aceita ambos. */
   lessThanOrEqualTo(other: number | PrismaDecimal) {
     const n = typeof other === 'number' ? other : other.v
     return this.v <= n
+  }
+
+  /** Retorna -1, 0 ou 1 (mesmo contrato do Decimal.js real). */
+  comparedTo(other: PrismaDecimal | number) {
+    const n = typeof other === 'number' ? other : other.v
+    if (this.v < n) return -1
+    if (this.v > n) return 1
+    return 0
+  }
+
+  toNumber() {
+    return this.v
   }
 
   toString() {
