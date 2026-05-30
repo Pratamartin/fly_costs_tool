@@ -28,6 +28,15 @@ const storageMock = vi.hoisted(() => ({
 
 vi.mock('@/lib/storage', () => storageMock)
 
+vi.mock('@/services/preference-survey.service', () => ({
+  validateAnswers: vi.fn().mockResolvedValue(null),
+  createSurveyAnswer: vi.fn().mockResolvedValue({}),
+}))
+
+vi.mock('@/services/notifications', () => ({
+  notifyStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
     findUnique: vi.fn(),
