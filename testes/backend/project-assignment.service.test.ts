@@ -25,6 +25,15 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
+vi.mock('@/services/preference-survey.service', () => ({
+  validateAnswers: vi.fn().mockResolvedValue(null),
+  createSurveyAnswer: vi.fn().mockResolvedValue({}),
+}))
+
+vi.mock('@/services/notifications', () => ({
+  notifyStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 const budgetMock = vi.hoisted(() => ({
   getProjectBudgetMetrics: vi.fn(),
 }))
