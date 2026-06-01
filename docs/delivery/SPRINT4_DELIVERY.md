@@ -62,7 +62,8 @@ Data: 2026-05-30
 
 ---
 
-## Miscellaneous
+## Pequenas melhorias
 - Internacionalização de alguns erros de validação (Zod/AJV) para PT-BR.
+- Setup do `prisma-studio` para introspecção do banco de dados.
 - Setup do `pg-boss-dashboard` para observabilidade de filas.
 - Suíte de testes de integração cobrindo isolamento de notificações e fluxos de segurança.
