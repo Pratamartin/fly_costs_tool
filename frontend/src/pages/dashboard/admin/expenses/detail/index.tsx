@@ -16,6 +16,7 @@ import {
 } from "@/services/expenses";
 import { listProjects, type Project } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
+import { toast } from "@/lib/toast";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -387,10 +388,11 @@ export default function ExpenseDetalhe() {
     setAprovando(false);
     if (result.ok) {
       setExpense(result.data);
+      toast.success("Despesa aprovada com sucesso!");
       const projResult = await listProjects(token, { isActive: true });
       if (projResult.ok) setProjects(projResult.data);
     } else {
-      setErro("Erro ao aprovar despesa.");
+      toast.error("Erro ao aprovar despesa.");
     }
   }
 
@@ -403,8 +405,9 @@ export default function ExpenseDetalhe() {
     if (result.ok) {
       setExpense(result.data);
       setShowModalCorrecao(false);
+      toast.success("Correção solicitada ao aluno.");
     } else {
-      setErro("Erro ao solicitar correção.");
+      toast.error("Erro ao solicitar correção.");
     }
   }
 
@@ -417,8 +420,9 @@ export default function ExpenseDetalhe() {
     if (result.ok) {
       setExpense(result.data);
       setShowModalRejeitar(false);
+      toast.success("Despesa rejeitada.");
     } else {
-      setErro("Erro ao rejeitar despesa.");
+      toast.error("Erro ao rejeitar despesa.");
     }
   }
 
@@ -431,6 +435,7 @@ export default function ExpenseDetalhe() {
     setVinculando(false);
     if (result.ok) {
       setExpense(result.data);
+      toast.success("Projeto vinculado com sucesso!");
       setCarregandoCategorias(true);
       const catResult = await listCategories(undefined, token);
       if (catResult.ok) setCategories(catResult.data);
