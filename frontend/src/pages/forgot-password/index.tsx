@@ -108,11 +108,12 @@ export default function ForgotPassword() {
                     <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">E-mail enviado!</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Solicitação recebida</h2>
                 <p className="mt-3 text-sm text-gray-500">
-                  Enviamos um link de redefinição para{" "}
-                  <span className="font-medium text-gray-700">{email}</span>.
-                  Verifique sua caixa de entrada e também a pasta de spam.
+                  Se o e-mail{" "}
+                  <span className="font-medium text-gray-700">{email}</span>{" "}
+                  estiver cadastrado, você receberá as instruções de redefinição em breve.
+                  Verifique também a pasta de spam.
                 </p>
                 <p className="mt-2 text-xs text-gray-400">
                   O link expira em 30 minutos.

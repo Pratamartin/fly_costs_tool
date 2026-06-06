@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import StudentSidebar from "@/components/StudentSidebar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import AdminSidebar from "@/components/AdminSidebar";
 import { getMe, updateProfile, type UserProfile, type UpdateProfileData } from "@/services/user";
+import { toast } from "@/lib/toast";
+import { profilePersonalSchema } from "@/lib/schemas";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,8 +26,6 @@ interface BankForm {
   bankAgency: string;
   bankAccount: string;
 }
-
-type ToastState = { message: string; type: "success" | "error" } | null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -188,35 +188,6 @@ function SectionHeader({
   );
 }
 
-function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
-  if (!toast) return null;
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all ${
-        toast.type === "success"
-          ? "border-green-200 bg-green-50 text-green-800"
-          : "border-red-200 bg-red-50 text-red-800"
-      }`}
-    >
-      {toast.type === "success" ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-red-600">
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-        </svg>
-      )}
-      <p className="text-sm font-medium">{toast.message}</p>
-      <button onClick={onClose} className="ml-1 rounded-lg p-0.5 opacity-60 hover:opacity-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -239,18 +210,6 @@ export default function ProfilePage() {
   const [savingBank, setSavingBank] = useState(false);
   const [bankErrors, setBankErrors] = useState<Partial<Record<keyof BankForm, string>>>({});
   const [bankVisible, setBankVisible] = useState(false);
-
-  const [toast, setToast] = useState<ToastState>(null);
-
-  const showToast = useCallback((message: string, type: "success" | "error") => {
-    setToast({ message, type });
-  }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -287,9 +246,18 @@ export default function ProfilePage() {
   }
 
   async function savePersonal() {
-    const errors: Partial<Record<keyof PersonalForm, string>> = {};
-    if (!personalForm.name.trim()) errors.name = "Nome é obrigatório";
-    if (Object.keys(errors).length > 0) {
+    const parsed = profilePersonalSchema.safeParse({
+      name: personalForm.name,
+      cpf: personalForm.cpf || undefined,
+      rgPassaporte: personalForm.rgPassaporte || undefined,
+    });
+
+    if (!parsed.success) {
+      const errors: Partial<Record<keyof PersonalForm, string>> = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as keyof PersonalForm;
+        if (field) errors[field] = issue.message;
+      }
       setPersonalErrors(errors);
       return;
     }
@@ -317,21 +285,21 @@ export default function ProfilePage() {
       setUserProfile(result.data);
       setPersonalForm(profileToPersonalForm(result.data));
       setEditingPersonal(false);
-      showToast("Informações pessoais salvas!", "success");
+      toast.success("Informações pessoais salvas!");
     } else if (result.error === "UNAUTHORIZED") {
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "FORBIDDEN") {
-      showToast("Sem permissão para editar dados de perfil.", "error");
+      toast.error("Sem permissão para editar dados de perfil.");
       setEditingPersonal(false);
     } else if (result.error === "CONFLICT") {
       setPersonalErrors({ cpf: "Este CPF já está cadastrado por outro usuário." });
-      showToast("CPF já cadastrado.", "error");
+      toast.error("CPF já cadastrado.");
     } else if (result.error === "VALIDATION_ERROR" && result.fieldErrors) {
       setPersonalErrors(result.fieldErrors as Partial<Record<keyof PersonalForm, string>>);
-      showToast("Corrija os campos destacados", "error");
+      toast.error("Corrija os campos destacados");
     } else {
-      showToast("Erro ao salvar. Tente novamente.", "error");
+      toast.error("Erro ao salvar. Tente novamente.");
     }
   }
 
@@ -367,15 +335,15 @@ export default function ProfilePage() {
       setUserProfile(result.data);
       setBankForm(profileToBankForm(result.data));
       setEditingBank(false);
-      showToast("Dados bancários salvos!", "success");
+      toast.success("Dados bancários salvos!");
     } else if (result.error === "UNAUTHORIZED") {
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "VALIDATION_ERROR" && result.fieldErrors) {
       setBankErrors(result.fieldErrors as Partial<Record<keyof BankForm, string>>);
-      showToast("Corrija os campos destacados", "error");
+      toast.error("Corrija os campos destacados");
     } else {
-      showToast("Erro ao salvar dados bancários. Tente novamente.", "error");
+      toast.error("Erro ao salvar dados bancários. Tente novamente.");
     }
   }
 
@@ -438,8 +406,6 @@ export default function ProfilePage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Toast toast={toast} onClose={() => setToast(null)} />
-
       {sidebar}
 
       <div className="flex flex-1 flex-col overflow-hidden">

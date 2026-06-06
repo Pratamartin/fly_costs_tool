@@ -6,6 +6,7 @@ import { getAdminDashboard, getTopProjects, type AdminDashboard, type TopProject
 import { listExpenses, type Expense, type ExpenseStatus } from "@/services/expenses";
 import { createProject } from "@/services/projects";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import { toast } from "@/lib/toast";
 
 const AVATAR_COLORS: Record<string, string> = {
   A: "bg-pink-500", B: "bg-indigo-500", C: "bg-sky-500", D: "bg-violet-500",
@@ -97,6 +98,7 @@ export default function DashboardAdmin() {
     setCriando(false);
     if (result.ok) {
       setShowModalCriar(false);
+      toast.success("Projeto criado com sucesso!");
     } else if (result.error === "CONFLICT") {
       setErroCriar("Já existe um projeto com esse código.");
     } else {

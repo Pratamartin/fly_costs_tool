@@ -5,6 +5,7 @@ import StudentSidebar from "@/components/StudentSidebar";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
+import { toast } from "@/lib/toast";
 
 type Status = "Pendente" | "Aprovado" | "Em Processamento" | "Rejeitado" | "Correção Solicitada" | "Concluído";
 type Filtro = "Todos" | Status;
@@ -214,6 +215,7 @@ export default function DashboardAluno() {
 
   async function handleLogout() {
     localStorage.removeItem("accessToken");
+    toast.success("Sessão encerrada com sucesso.");
     router.push("/login");
   }
 
@@ -236,6 +238,7 @@ export default function DashboardAluno() {
         }
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
         setModalAberto(false);
+        toast.success("Solicitação de despesa enviada com sucesso!");
       } else if (result.error === "UNAUTHORIZED") {
         localStorage.removeItem("accessToken");
         router.push("/login");

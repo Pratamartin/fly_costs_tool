@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 import { listProjects, createProject, deleteProject, type Project } from "@/services/projects";
+import { toast } from "@/lib/toast";
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
   if (isActive) {
@@ -85,6 +86,7 @@ export default function AdminProjects() {
     if (result.ok) {
       setProjects((prev) => [result.data, ...prev]);
       setShowModalCriar(false);
+      toast.success("Projeto criado com sucesso!");
     } else if (result.error === "CONFLICT") {
       setErroCriar("Já existe um projeto com esse código.");
     } else {
@@ -98,8 +100,9 @@ export default function AdminProjects() {
     const result = await deleteProject(token, id);
     if (result.ok) {
       setProjects((prev) => prev.map((p) => p.id === id ? { ...p, isActive: false } : p));
+      toast.success("Projeto arquivado.");
     } else {
-      setErro("Erro ao arquivar projeto");
+      toast.error("Erro ao arquivar projeto");
     }
   }
 

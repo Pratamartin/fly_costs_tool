@@ -1,76 +1,84 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { login } from "@/services/auth";
+import { getMe } from "@/services/user";
+import { useAuthStore } from "@/store/authStore";
+import { toast } from "@/lib/toast";
+import { loginSchema, type LoginFormValues } from "@/lib/schemas";
+
+const roles = [
+  { value: "", label: "Selecione seu perfil de acesso" },
+  { value: "admin", label: "Administrador" },
+  { value: "coordenador", label: "Coordenador" },
+  { value: "aluno", label: "Aluno" },
+] as const;
 
 export default function Login() {
   const router = useRouter();
+  const setToken = useAuthStore((s) => s.setToken);
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    email: "",
-    senha: "",
-    perfil: "",
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: "onTouched",
+    defaultValues: { email: "", senha: "", perfil: undefined as unknown as "admin" },
   });
 
-  const roles = [
-    { value: "", label: "Selecione seu perfil de acesso" },
-    { value: "admin", label: "Administrador" },
-    { value: "coordenador", label: "Coordenador" },
-    { value: "aluno", label: "Aluno" },
-  ];
+  const perfil = watch("perfil");
+  const mostrarCredenciais = perfil === "coordenador" || perfil === "aluno" || perfil === "admin";
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) {
-    const target = e.target as HTMLInputElement;
-    const value = target.type === "checkbox" ? target.checked : target.value;
-    setForm({ ...form, [target.name]: value });
-  }
+  const ROLE_MAP: Record<LoginFormValues["perfil"], string> = {
+    admin: "ADMIN",
+    coordenador: "COORDENADOR",
+    aluno: "ALUNO",
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErro(null);
-    setCarregando(true);
+  async function onSubmit(values: LoginFormValues) {
+    const result = await login({ email: values.email, password: values.senha });
 
-    // Se coordenador, aluno ou admin, fazer login com API
-    if (form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") {
-      try {
-        const result = await login({
-          email: form.email,
-          password: form.senha,
-        });
-
-        if (result.ok) {
-          // Salvar token no localStorage
-          localStorage.setItem("accessToken", result.accessToken);
-          // Redirecionar para dashboard apropriado
-          const dashboard =
-            form.perfil === "aluno"
-              ? "/dashboard/student"
-              : form.perfil === "admin"
-              ? "/dashboard/admin"
-              : "/dashboard/coordinator";
-          router.push(dashboard);
-        } else {
-          if (result.error === "INVALID_CREDENTIALS") {
-            setErro("Email ou senha inválidos");
-          } else if (result.error === "VALIDATION_ERROR") {
-            setErro("Dados inválidos. Verifique os campos.");
-          } else {
-            setErro("Erro ao fazer login. Tente novamente.");
-          }
-          setCarregando(false);
-        }
-      } catch (_err) {
-        setErro("Erro de conexão com o servidor.");
-        setCarregando(false);
+    if (result.ok) {
+      // Verificar se o role do usuário bate com o perfil selecionado
+      const meResult = await getMe(result.accessToken);
+      if (!meResult.ok || meResult.data.role !== ROLE_MAP[values.perfil]) {
+        toast.error("Usuário não encontrado para este perfil de acesso.");
+        return;
       }
+
+      localStorage.setItem("accessToken", result.accessToken);
+      setToken(result.accessToken);
+      toast.success("Login realizado com sucesso!");
+
+      const dashboard =
+        values.perfil === "aluno"
+          ? "/dashboard/student"
+          : values.perfil === "admin"
+          ? "/dashboard/admin"
+          : "/dashboard/coordinator";
+      router.push(dashboard);
     } else {
-      setErro("Selecione um perfil de acesso");
-      setCarregando(false);
+      if (result.error === "INVALID_CREDENTIALS") {
+        toast.error("Email ou senha inválidos");
+      } else if (result.error === "VALIDATION_ERROR") {
+        toast.error("Dados inválidos. Verifique os campos.");
+      } else {
+        toast.error("Erro ao fazer login. Tente novamente.");
+      }
     }
   }
+
+  const fieldClass = (hasError: boolean) =>
+    `w-full rounded-lg border bg-gray-50 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition disabled:opacity-50 ${
+      hasError
+        ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+        : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+    }`;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-10">
@@ -78,13 +86,11 @@ export default function Login() {
 
         {/* Painel esquerdo */}
         <div className="relative hidden w-[42%] flex-col justify-between overflow-hidden bg-[#1e2d3d] p-10 md:flex">
-          {/* Círculos decorativos */}
           <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-white/5" />
           <div className="absolute top-32 -right-10 h-40 w-40 rounded-full bg-white/5" />
           <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/5" />
 
           <div className="relative z-10">
-            {/* Logo */}
             <div className="mb-8 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="h-6 w-6">
@@ -96,19 +102,13 @@ export default function Login() {
               <span className="text-lg font-bold text-white">SGDA</span>
             </div>
 
-            {/* Título */}
-            <h1 className="mb-3 text-4xl font-bold leading-tight text-white">
-              Acesso<br />Seguro
-            </h1>
+            <h1 className="mb-3 text-4xl font-bold leading-tight text-white">Acesso<br />Seguro</h1>
             <p className="text-sm leading-relaxed text-gray-400">
               Acesse o painel para gerenciar despesas acadêmicas, acompanhar reembolsos e visualizar relatórios financeiros.
             </p>
 
-            {/* Recursos */}
             <div className="mt-8 rounded-xl bg-white/5 p-5">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Recursos da plataforma
-              </p>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">Recursos da plataforma</p>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
@@ -136,7 +136,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Rodapé esquerdo */}
           <p className="relative z-10 text-xs text-gray-500">© 2026 SGDA</p>
         </div>
 
@@ -144,18 +143,9 @@ export default function Login() {
         <div className="flex flex-1 flex-col justify-center bg-white px-10 py-12">
           <div className="mx-auto w-full max-w-sm">
             <h2 className="text-2xl font-bold text-gray-900">Bem-vindo de volta</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Insira seus dados para acessar o sistema.
-            </p>
+            <p className="mt-1 text-sm text-gray-500">Insira seus dados para acessar o sistema.</p>
 
-            <form onSubmit={handleSubmit} className="mt-7 space-y-5">
-
-              {/* Mensagem de erro */}
-              {erro && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-700">{erro}</p>
-                </div>
-              )}
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-5" noValidate>
 
               {/* Perfil de acesso */}
               <div>
@@ -169,17 +159,17 @@ export default function Login() {
                     </svg>
                   </span>
                   <select
-                    name="perfil"
-                    value={form.perfil}
-                    onChange={handleChange}
-                    required
-                    disabled={carregando}
-                    className="w-full appearance-none rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
+                    {...register("perfil")}
+                    disabled={isSubmitting}
+                    className={`w-full appearance-none rounded-lg border bg-gray-50 py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none focus:ring-1 transition disabled:opacity-50 ${
+                      errors.perfil
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                    }`}
                   >
-                    {roles.map((r) => (
-                      <option key={r.value} value={r.value} disabled={r.value === ""}>
-                        {r.label}
-                      </option>
+                    <option value="">Selecione seu perfil de acesso</option>
+                    {roles.slice(1).map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
                   <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
@@ -188,14 +178,13 @@ export default function Login() {
                     </svg>
                   </span>
                 </div>
+                {errors.perfil && <p className="mt-1 text-sm text-red-600">{errors.perfil.message}</p>}
               </div>
 
               {/* E-mail */}
-              {(form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") && (
+              {mostrarCredenciais && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    E-mail
-                  </label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">E-mail</label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -205,20 +194,18 @@ export default function Login() {
                     </span>
                     <input
                       type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
+                      {...register("email")}
                       placeholder="Digite seu e-mail institucional"
-                      required
-                      disabled={carregando}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
+                      disabled={isSubmitting}
+                      className={`${fieldClass(!!errors.email)} pl-9 pr-4`}
                     />
                   </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
                 </div>
               )}
 
               {/* Senha */}
-              {(form.perfil === "coordenador" || form.perfil === "aluno" || form.perfil === "admin") && (
+              {mostrarCredenciais && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <label className="text-sm font-medium text-gray-700">Senha</label>
@@ -234,18 +221,15 @@ export default function Login() {
                     </span>
                     <input
                       type={mostrarSenha ? "text" : "password"}
-                      name="senha"
-                      value={form.senha}
-                      onChange={handleChange}
+                      {...register("senha")}
                       placeholder="••••••••"
-                      required
-                      disabled={carregando}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
+                      disabled={isSubmitting}
+                      className={`${fieldClass(!!errors.senha)} pl-9 pr-10`}
                     />
                     <button
                       type="button"
                       onClick={() => setMostrarSenha(!mostrarSenha)}
-                      disabled={carregando}
+                      disabled={isSubmitting}
                       className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600 disabled:opacity-50"
                     >
                       {mostrarSenha ? (
@@ -261,20 +245,21 @@ export default function Login() {
                       )}
                     </button>
                   </div>
+                  {errors.senha && <p className="mt-1 text-sm text-red-600">{errors.senha.message}</p>}
                 </div>
               )}
 
               {/* Botão */}
               <button
                 type="submit"
-                disabled={carregando}
+                disabled={isSubmitting || !isValid}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {carregando ? (
+                {isSubmitting ? (
                   <>
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Entrando...
                   </>
@@ -295,12 +280,9 @@ export default function Login() {
                 Cadastre-se aqui
               </a>
             </p>
-
             <p className="mt-3 text-center text-sm text-gray-500">
               Está com dificuldades?{" "}
-              <a href="#" className="font-medium text-[#2563EB] hover:underline">
-                Fale com o Suporte
-              </a>
+              <a href="#" className="font-medium text-[#2563EB] hover:underline">Fale com o Suporte</a>
             </p>
           </div>
         </div>
