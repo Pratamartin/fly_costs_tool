@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { login } from "@/services/auth";
+import { getMe } from "@/services/user";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "@/lib/toast";
 import { loginSchema, type LoginFormValues } from "@/lib/schemas";
@@ -33,10 +34,23 @@ export default function Login() {
   const perfil = watch("perfil");
   const mostrarCredenciais = perfil === "coordenador" || perfil === "aluno" || perfil === "admin";
 
+  const ROLE_MAP: Record<LoginFormValues["perfil"], string> = {
+    admin: "ADMIN",
+    coordenador: "COORDENADOR",
+    aluno: "ALUNO",
+  };
+
   async function onSubmit(values: LoginFormValues) {
     const result = await login({ email: values.email, password: values.senha });
 
     if (result.ok) {
+      // Verificar se o role do usuário bate com o perfil selecionado
+      const meResult = await getMe(result.accessToken);
+      if (!meResult.ok || meResult.data.role !== ROLE_MAP[values.perfil]) {
+        toast.error("Usuário não encontrado para este perfil de acesso.");
+        return;
+      }
+
       localStorage.setItem("accessToken", result.accessToken);
       setToken(result.accessToken);
       toast.success("Login realizado com sucesso!");
