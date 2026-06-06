@@ -400,81 +400,105 @@ export type ExportReportResult =
   | { ok: true; downloadUrl: string }
   | { ok: false; error: ExportReportError }
 
+const SSE_TIMEOUT_MS = 60_000
+
 export async function exportExpensesReport(
   token: string,
   filters: ReportFilters
 ): Promise<ExportReportResult> {
-  const params = new URLSearchParams()
-  if (filters.from) params.append("from", filters.from)
-  if (filters.to) params.append("to", filters.to)
-  if (filters.status && filters.status !== "all") params.append("status", filters.status)
-  if (filters.projectId) params.append("projectId", filters.projectId)
-  if (filters.studentId) params.append("studentId", filters.studentId)
+  try {
+    const params = new URLSearchParams()
+    if (filters.from) params.append("from", filters.from)
+    if (filters.to) params.append("to", filters.to)
+    if (filters.status && filters.status !== "all") params.append("status", filters.status)
+    if (filters.projectId) params.append("projectId", filters.projectId)
+    if (filters.studentId) params.append("studentId", filters.studentId)
 
-  const res = await fetch(`${API_URL}/v1/expenses/reports?${params.toString()}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  })
+    const res = await fetch(`${API_URL}/v1/expenses/reports?${params.toString()}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    })
 
-  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
-  if (res.status !== 202) return { ok: false, error: "UNKNOWN" }
+    if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+    if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+    if (res.status !== 202) return { ok: false, error: "UNKNOWN" }
 
-  const { jobId } = await res.json()
+    const body = await res.json()
+    const jobId: string | undefined = body?.jobId
+    if (!jobId) return { ok: false, error: "UNKNOWN" }
 
-  const sseRes = await fetch(`${API_URL}/v1/expenses/reports/status/${jobId}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "text/event-stream" },
-  })
+    const sseRes = await fetch(`${API_URL}/v1/expenses/reports/status/${jobId}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "text/event-stream" },
+    })
 
-  if (sseRes.status === 401) return { ok: false, error: "UNAUTHORIZED" }
-  if (!sseRes.ok || !sseRes.body) return { ok: false, error: "UNKNOWN" }
+    if (sseRes.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+    if (!sseRes.ok || !sseRes.body) return { ok: false, error: "UNKNOWN" }
 
-  return new Promise<ExportReportResult>((resolve) => {
-    const reader = sseRes.body!.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ""
-    let currentEvent = ""
+    return new Promise<ExportReportResult>((resolve) => {
+      const reader = sseRes.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let currentEvent = ""
+      let resolved = false
 
-    const read = () => {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          resolve({ ok: false, error: "UNKNOWN" })
-          return
-        }
+      const settle = (result: ExportReportResult) => {
+        if (resolved) return
+        resolved = true
+        reader.cancel().catch(() => {})
+        resolve(result)
+      }
 
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split("\n")
-        buffer = lines.pop() ?? ""
+      // Timeout: backend nunca enviou o evento
+      const timeout = setTimeout(() => settle({ ok: false, error: "UNKNOWN" }), SSE_TIMEOUT_MS)
 
-        for (const line of lines) {
-          if (line.startsWith("event:")) {
-            currentEvent = line.slice(6).trim()
-          } else if (line.startsWith("data:")) {
-            const raw = line.slice(5).trim()
-            if (currentEvent === "report-finished") {
-              reader.cancel()
-              try {
-                const data = JSON.parse(raw)
-                resolve({ ok: true, downloadUrl: data.downloadUrl })
-              } catch {
-                resolve({ ok: false, error: "UNKNOWN" })
-              }
-              return
-            }
-            if (currentEvent === "report-error") {
-              reader.cancel()
-              resolve({ ok: false, error: "REPORT_FAILED" })
-              return
-            }
-            currentEvent = ""
+      const read = () => {
+        reader.read().then(({ done, value }) => {
+          if (done) {
+            clearTimeout(timeout)
+            settle({ ok: false, error: "UNKNOWN" })
+            return
           }
-        }
 
-        read()
-      }).catch(() => resolve({ ok: false, error: "UNKNOWN" }))
-    }
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
 
-    read()
-  })
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              currentEvent = line.slice(6).trim()
+            } else if (line.startsWith("data:")) {
+              const raw = line.slice(5).trim()
+              if (currentEvent === "report-finished") {
+                clearTimeout(timeout)
+                try {
+                  const data = JSON.parse(raw)
+                  settle({ ok: true, downloadUrl: data.downloadUrl })
+                } catch {
+                  settle({ ok: false, error: "UNKNOWN" })
+                }
+                return
+              }
+              if (currentEvent === "report-error") {
+                clearTimeout(timeout)
+                settle({ ok: false, error: "REPORT_FAILED" })
+                return
+              }
+              currentEvent = ""
+            }
+          }
+
+          read()
+        }).catch(() => {
+          clearTimeout(timeout)
+          settle({ ok: false, error: "UNKNOWN" })
+        })
+      }
+
+      read()
+    })
+  } catch {
+    return { ok: false, error: "UNKNOWN" }
+  }
 }
 
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"

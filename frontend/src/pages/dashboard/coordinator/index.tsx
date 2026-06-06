@@ -159,11 +159,19 @@ export default function DashboardCoordenador() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     setExporting(true);
-    const result = await exportExpensesReport(token, filters);
-    setExporting(false);
-    if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
-    setShowReportModal(false);
-    window.open(result.downloadUrl, "_blank");
+    try {
+      const result = await exportExpensesReport(token, filters);
+      if (!result.ok) {
+        toast.error("Erro ao gerar relatório. Tente novamente.");
+        return;
+      }
+      setShowReportModal(false);
+      window.open(result.downloadUrl, "_blank");
+    } catch {
+      toast.error("Erro inesperado ao gerar relatório.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleLogout() {

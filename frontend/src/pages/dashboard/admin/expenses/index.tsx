@@ -4,6 +4,7 @@ import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
 import { listExpenses, updateExpenseStatus, exportExpensesReport, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
+import { toast } from "@/lib/toast";
 import { listProjects } from "@/services/projects";
 
 type StatusFilter = "all" | ExpenseStatus;
@@ -114,11 +115,19 @@ export default function AdminExpenses() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     setExporting(true);
-    const result = await exportExpensesReport(token, filters);
-    setExporting(false);
-    if (!result.ok) { setErro("Erro ao gerar relatório"); return; }
-    setShowReportModal(false);
-    window.open(result.downloadUrl, "_blank");
+    try {
+      const result = await exportExpensesReport(token, filters);
+      if (!result.ok) {
+        toast.error("Erro ao gerar relatório. Tente novamente.");
+        return;
+      }
+      setShowReportModal(false);
+      window.open(result.downloadUrl, "_blank");
+    } catch {
+      toast.error("Erro inesperado ao gerar relatório.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   function handleSelectAll(checked: boolean) {
