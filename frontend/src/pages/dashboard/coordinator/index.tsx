@@ -8,6 +8,7 @@ import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, updateExpenseStatus, getExpenseById, exportExpensesReport, type Expense, type ReportFilters } from "@/services/expenses";
 import { listProjects } from "@/services/projects";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import { toast } from "@/lib/toast";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -167,6 +168,7 @@ export default function DashboardCoordenador() {
 
   async function handleLogout() {
     localStorage.removeItem("accessToken");
+    toast.success("Sessão encerrada com sucesso.");
     router.push("/login");
   }
 
@@ -193,10 +195,11 @@ export default function DashboardCoordenador() {
           PENDENTE: prev.PENDENTE.filter((s) => s.id !== id),
           APROVADO: [...prev.APROVADO, expenseToSolicitacao(result.data)],
         }));
+        toast.success("Despesa aprovada com sucesso!");
       } else if (result.error === "CONFLICT") {
-        setErro("Esta despesa já foi decidida");
+        toast.error("Esta despesa já foi decidida");
       } else {
-        setErro("Erro ao aprovar despesa");
+        toast.error("Erro ao aprovar despesa");
       }
     } catch (_err) {
       setErro("Erro de conexão");
@@ -215,10 +218,11 @@ export default function DashboardCoordenador() {
           REJEITADO: [...prev.REJEITADO, expenseToSolicitacao(result.data)],
         }));
         setRejeitando(null);
+        toast.success("Despesa rejeitada.");
       } else if (result.error === "CONFLICT") {
-        setErro("Esta despesa já foi decidida");
+        toast.error("Esta despesa já foi decidida");
       } else {
-        setErro("Erro ao rejeitar despesa");
+        toast.error("Erro ao rejeitar despesa");
       }
     } catch (_err) {
       setErro("Erro de conexão");
