@@ -1,8 +1,7 @@
 import type { z } from '@hono/zod-openapi'
+import type { ServiceResult } from '@/lib/problems'
 import type { CreateCostBreakdownSchema } from '@/schemas/cost-breakdown.schema'
-import * as phrases from 'stoker/http-status-phrases'
 import { COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
-import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { Prisma } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import { logger } from '@/lib/logger'
@@ -11,7 +10,7 @@ import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile } fro
 
 type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal, isActive: boolean }
 
-export async function getProjectBudgetMetrics(projectId: string): Promise<BudgetMetricsResult | { error: string }> {
+export async function getProjectBudgetMetrics(projectId: string): Promise<ServiceResult<BudgetMetricsResult, 'PROJECT_NOT_FOUND'>> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
@@ -22,7 +21,7 @@ export async function getProjectBudgetMetrics(projectId: string): Promise<Budget
   })
 
   if (!project)
-    return { error: phrases.NOT_FOUND }
+    return { error: 'PROJECT_NOT_FOUND' }
 
   return {
     total: project.budget,
@@ -32,24 +31,30 @@ export async function getProjectBudgetMetrics(projectId: string): Promise<Budget
   }
 }
 
-export function isCategoryAllowedInProject(
+export function validateCategoryAllowedInProject(
   projectCategories: { normalizedName: string }[],
   requestedCategory: string,
-): boolean {
+): ServiceResult<{ success: true }, 'INVALID_SUBCATEGORIES'> {
   const validCategories = projectCategories.map(c => c.normalizedName)
-  return validCategories.includes(requestedCategory)
+  if (!validCategories.includes(requestedCategory)) {
+    return { error: 'INVALID_SUBCATEGORIES' }
+  }
+  return { success: true }
 }
 
-export function hasSufficientBudget(
+export function validateSufficientBudget(
   totalBudget: Prisma.Decimal,
   usedBudget: Prisma.Decimal,
   requestedAmount: number | Prisma.Decimal,
   oldAmount: number | Prisma.Decimal = 0,
-): boolean {
+): ServiceResult<{ success: true }, 'PROJECT_INSUFFICIENT_FUNDS'> {
   const available = totalBudget.minus(usedBudget).plus(oldAmount)
   const requested = new Prisma.Decimal(requestedAmount)
 
-  return requested.lessThanOrEqualTo(available)
+  if (requested.greaterThan(available)) {
+    return { error: 'PROJECT_INSUFFICIENT_FUNDS' }
+  }
+  return { success: true }
 }
 
 async function getExpenseContext(tx: Prisma.TransactionClient, expenseRequestId: string) {
@@ -69,29 +74,37 @@ async function getExpenseContext(tx: Prisma.TransactionClient, expenseRequestId:
   })
 }
 
+export type CostBreakdownWithCategory = Prisma.CostBreakdownGetPayload<{ include: { expenseCategory: true } }>
+
 export async function createCostBreakdown(
   expenseRequestId: string,
   data: z.infer<typeof CreateCostBreakdownSchema>,
-) {
+): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS'>> {
   const result = await prisma.$transaction(async (tx) => {
     const expense = await getExpenseContext(tx, expenseRequestId)
 
-    if (!expense || !expense.project) {
-      return { error: phrases.NOT_FOUND }
+    if (!expense) {
+      return { error: 'EXPENSE_NOT_FOUND' }
+    }
+
+    if (!expense.project) {
+      return { error: 'PROJECT_NOT_FOUND' }
     }
 
     const project = expense.project
 
     if (!project.isActive) {
-      return { error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED }
+      return { error: 'PROJECT_ARCHIVED' }
     }
 
-    if (!isCategoryAllowedInProject(project.expenseCategories, data.subcategoryName)) {
-      return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }
+    const categoryResult = validateCategoryAllowedInProject(project.expenseCategories, data.subcategoryName)
+    if ('error' in categoryResult) {
+      return categoryResult
     }
 
-    if (!hasSufficientBudget(project.budget, project.usedBudget, data.amount)) {
-      return { error: PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS }
+    const budgetResult = validateSufficientBudget(project.budget, project.usedBudget, data.amount)
+    if ('error' in budgetResult) {
+      return budgetResult
     }
 
     const costBreakdown = await tx.costBreakdown.create({
@@ -112,16 +125,16 @@ export async function createCostBreakdown(
     return costBreakdown
   }, { isolationLevel: 'Serializable' })
 
-  return result
+  return result as ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS'>
 }
 
 export async function uploadCostBreakdownReceipt(
   expenseId: string,
   breakdownId: string,
   file: File,
-) {
+): Promise<ServiceResult<CostBreakdownWithCategory, 'STORAGE_UNAVAILABLE' | 'COST_BREAKDOWN_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
   if (!isStorageConfigured()) {
-    return { error: 'STORAGE_NOT_CONFIGURED' }
+    return { error: 'STORAGE_UNAVAILABLE' }
   }
 
   const breakdown = await prisma.costBreakdown.findFirst({
@@ -133,7 +146,7 @@ export async function uploadCostBreakdownReceipt(
   })
 
   if (!breakdown) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'COST_BREAKDOWN_NOT_FOUND' }
   }
 
   if (breakdown.attachmentKey) {
@@ -142,7 +155,7 @@ export async function uploadCostBreakdownReceipt(
     }
     catch (error) {
       logger.error(error, 'Failed to delete previous file from R2:')
-      return { error: phrases.BAD_GATEWAY }
+      return { error: 'STORAGE_PROVIDER_ERROR' }
     }
   }
 
@@ -165,14 +178,14 @@ export async function uploadCostBreakdownReceipt(
   }
   catch (error) {
     logger.error(error, 'R2 Upload error:')
-    return { error: phrases.BAD_GATEWAY }
+    return { error: 'STORAGE_PROVIDER_ERROR' }
   }
 }
 
 export async function deleteCostBreakdownReceipt(
   expenseId: string,
   breakdownId: string,
-) {
+): Promise<ServiceResult<{ success: true }, 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
   const breakdown = await prisma.costBreakdown.findFirst({
     where: {
       id: breakdownId,
@@ -180,8 +193,12 @@ export async function deleteCostBreakdownReceipt(
     },
   })
 
-  if (!breakdown || !breakdown.attachmentKey) {
-    return { error: phrases.NOT_FOUND }
+  if (!breakdown) {
+    return { error: 'COST_BREAKDOWN_NOT_FOUND' }
+  }
+
+  if (!breakdown.attachmentKey) {
+    return { error: 'RECEIPT_NOT_FOUND' }
   }
 
   try {
@@ -196,7 +213,7 @@ export async function deleteCostBreakdownReceipt(
   }
   catch (error) {
     logger.error(error, 'R2 Delete error:')
-    return { error: phrases.BAD_GATEWAY }
+    return { error: 'STORAGE_PROVIDER_ERROR' }
   }
 }
 
@@ -205,9 +222,9 @@ export async function getCostBreakdownReceiptUrl(
   breakdownId: string,
   userId: string,
   role: UserRole,
-) {
+): Promise<ServiceResult<{ url: string, expiresIn: number }, 'STORAGE_UNAVAILABLE' | 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
   if (!isStorageConfigured()) {
-    return { error: 'STORAGE_NOT_CONFIGURED' }
+    return { error: 'STORAGE_UNAVAILABLE' }
   }
 
   const breakdown = await prisma.costBreakdown.findFirst({
@@ -219,8 +236,12 @@ export async function getCostBreakdownReceiptUrl(
     select: { attachmentKey: true },
   })
 
-  if (!breakdown || !breakdown.attachmentKey) {
-    return { error: phrases.NOT_FOUND }
+  if (!breakdown) {
+    return { error: 'COST_BREAKDOWN_NOT_FOUND' }
+  }
+
+  if (!breakdown.attachmentKey) {
+    return { error: 'RECEIPT_NOT_FOUND' }
   }
 
   try {
@@ -232,6 +253,6 @@ export async function getCostBreakdownReceiptUrl(
   }
   catch (error) {
     logger.error(error, 'R2 Pre-sign error:')
-    return { error: phrases.BAD_GATEWAY }
+    return { error: 'STORAGE_PROVIDER_ERROR' }
   }
 }

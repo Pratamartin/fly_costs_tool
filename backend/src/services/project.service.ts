@@ -1,8 +1,8 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
+import type { ServiceResult } from '@/lib/problems'
 import type { CreateProjectSchema, ListProjectQuerySchema, UpdateProjectSchema } from '@/schemas/project.schema'
-import * as phrases from 'stoker/http-status-phrases'
-import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES, PROJECT_ERROR_CODES } from '@/constants/project.constant'
+import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES } from '@/constants/project.constant'
 import prisma from '@/lib/orm'
 import { validateSubcategoriesExist } from './expense.category.service'
 
@@ -25,18 +25,18 @@ export type ProjectWithSubcategories = ReturnType<typeof formatProjectSubcategor
 
 export async function createProject(
   data: CreateProjectDTO,
-): Promise<ProjectWithSubcategories | { error: string }> {
+): Promise<ServiceResult<ProjectWithSubcategories, 'PROJECT_CODE_IN_USE' | 'INVALID_SUBCATEGORIES'>> {
   const codeExists = await getProjectByCode(data.code)
-  if (codeExists) {
-    return { error: phrases.CONFLICT }
+  if (!('error' in codeExists)) {
+    return { error: 'PROJECT_CODE_IN_USE' }
   }
 
   if (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES) {
-    return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }
+    return { error: 'INVALID_SUBCATEGORIES' }
   }
 
   if (!await validateSubcategoriesExist(data.subcategories)) {
-    return { error: PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND }
+    return { error: 'INVALID_SUBCATEGORIES' }
   }
 
   const { subcategories, ...restData } = data
@@ -89,50 +89,62 @@ export async function getAllProjects(
 
 export async function getProjectById(
   id: string,
-): Promise<ProjectWithSubcategories | null> {
+): Promise<ServiceResult<ProjectWithSubcategories, 'PROJECT_NOT_FOUND'>> {
   const project = await prisma.project.findUnique({
     where: { id },
     include: projectInclude,
   })
-  return project ? formatProjectSubcategories(project) : null
+
+  if (!project) {
+    return { error: 'PROJECT_NOT_FOUND' }
+  }
+
+  return formatProjectSubcategories(project)
 }
 
 export async function getProjectByCode(
   code: string,
-): Promise<ProjectWithSubcategories | null> {
+): Promise<ServiceResult<ProjectWithSubcategories, 'PROJECT_NOT_FOUND'>> {
   const project = await prisma.project.findUnique({
     where: { code },
     include: projectInclude,
   })
-  return project ? formatProjectSubcategories(project) : null
+
+  if (!project) {
+    return { error: 'PROJECT_NOT_FOUND' }
+  }
+
+  return formatProjectSubcategories(project)
 }
 
 export async function updateProject(
   id: string,
   data: UpdateProjectDTO,
-): Promise<ProjectWithSubcategories | { error: string }> {
-  const existingProject = await getProjectById(id)
+): Promise<ServiceResult<ProjectWithSubcategories, 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_CODE_IN_USE'>> {
+  const existingResult = await getProjectById(id)
 
-  if (!existingProject) {
-    return { error: phrases.NOT_FOUND }
+  if ('error' in existingResult) {
+    return existingResult
   }
 
+  const existingProject = existingResult
+
   if (!existingProject.isActive) {
-    return { error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED }
+    return { error: 'PROJECT_ARCHIVED' }
   }
 
   if (data.subcategories && (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES)) {
-    return { error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT }
+    return { error: 'INVALID_SUBCATEGORIES' }
   }
 
   if (data.subcategories && !await validateSubcategoriesExist(data.subcategories)) {
-    return { error: PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND }
+    return { error: 'INVALID_SUBCATEGORIES' }
   }
 
   if (data.code && data.code !== existingProject.code) {
     const codeExists = await getProjectByCode(data.code)
-    if (codeExists) {
-      return { error: phrases.CONFLICT }
+    if (!('error' in codeExists)) {
+      return { error: 'PROJECT_CODE_IN_USE' }
     }
   }
 
@@ -152,11 +164,11 @@ export async function updateProject(
 
 export async function deleteProject(
   id: string,
-): Promise<ProjectWithSubcategories | { error: string }> {
-  const existingProject = await getProjectById(id)
+): Promise<ServiceResult<ProjectWithSubcategories, 'PROJECT_NOT_FOUND'>> {
+  const existingResult = await getProjectById(id)
 
-  if (!existingProject) {
-    return { error: phrases.NOT_FOUND }
+  if ('error' in existingResult) {
+    return existingResult
   }
 
   const project = await prisma.project.update({

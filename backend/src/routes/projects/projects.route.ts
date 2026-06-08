@@ -2,10 +2,10 @@ import type { UserRole } from '@/generated/prisma/enums'
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
-import { createMessageObjectSchema } from 'stoker/openapi/schemas'
+import { registryResponses, standardResponses } from '@/lib/problems'
 import { requireAuth, requireRole } from '@/middlewares'
 import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectSchema } from '@/schemas/project.schema'
-import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
+import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Projects']
 const ADMIN_ONLY: UserRole[] = ['ADMIN']
@@ -23,12 +23,11 @@ export const index = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: ListProjectQuerySchema },
   summary: 'List all projects',
-  description: 'Retorna a lista completa de projetos cadastrados no sistema, incluindo orçamentos e metadados.',
+  description: 'Returns the complete list of projects registered in the system, including budgets and metadata.',
   tags,
   responses: {
-    [codes.OK]: jsonContent(ListProjectResponseSchema, 'Lista de projetos retornada com sucesso.'),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.OK]: jsonContent(ListProjectResponseSchema, 'Project list retrieved successfully.'),
+    ...standardResponses,
   },
 })
 
@@ -39,23 +38,15 @@ export const create = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'Create a new project',
   description: `
-    Permite criar um novo projeto definindo um código único de identificação, orçamento total e categorias.
-    A criação inicial define o orçamento utilizado como zero e o status como ativo por padrão.
+    Allows creating a new project by defining a unique identification code, total budget, and categories.
+    Initial creation sets the used budget to zero and status as active by default.
   `,
   tags,
-  request: { body: jsonContentRequired(CreateProjectSchema, 'Dados do projeto') },
+  request: { body: jsonContentRequired(CreateProjectSchema, 'Project data') },
   responses: {
-    [codes.CREATED]: jsonContent(ProjectResponseSchema, 'Projeto criado com sucesso.'),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Subcategorias inválidas'),
-      'Uma ou mais subcategorias enviadas não existem no banco de dados.',
-    ),
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Código já utilizado'),
-      'Já existe um projeto cadastrado com o código informado.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.CREATED]: jsonContent(ProjectResponseSchema, 'Project created successfully.'),
+    ...standardResponses,
+    ...registryResponses('INVALID_SUBCATEGORIES', 'PROJECT_CODE_IN_USE'),
   },
 })
 
@@ -65,17 +56,12 @@ export const read = createRoute({
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
   summary: 'Get project by ID',
-  description: 'Busca os detalhes de um projeto específico, apresentando o balanço entre orçamento total, utilizado e disponível.',
+  description: 'Retrieves details of a specific project, presenting the balance between total, used, and available budget.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
-    [codes.OK]: jsonContent(ProjectResponseSchema, 'Detalhes do projeto localizados.'),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Projeto não encontrado'),
-      'Nenhum projeto foi localizado com o ID informado no banco de dados.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.OK]: jsonContent(ProjectResponseSchema, 'Project details found.'),
+    ...registryResponses('PROJECT_NOT_FOUND', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
 
@@ -86,30 +72,18 @@ export const update = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'Update project',
   description: `
-    Permite atualizar informações cadastrais e financeiras do projeto. 
-    Caso o código seja alterado, o sistema validará se o novo valor já não pertence a outro projeto existente.
+    Allows updating project registration and financial information.
+    If the code is changed, the system will validate that the new value does not already belong to another existing project.
   `,
   tags,
   request: {
     params: z.object({ id: IdSchema }),
-    body: jsonContentRequired(UpdateProjectSchema, 'Dados para atualização'),
+    body: jsonContentRequired(UpdateProjectSchema, 'Data for update'),
   },
   responses: {
-    [codes.OK]: jsonContent(ProjectResponseSchema, 'Projeto atualizado com sucesso.'),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Subcategorias inválidas'),
-      'Uma ou mais subcategorias enviadas não existem no banco de dados.',
-    ),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Projeto não encontrado'),
-      'Projeto inexistente ou não localizado para edição.',
-    ),
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Código já utilizado'),
-      'A tentativa de alterar o código falhou pois o novo valor já está em uso por outro projeto.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.OK]: jsonContent(ProjectResponseSchema, 'Project updated successfully.'),
+    ...standardResponses,
+    ...registryResponses('INVALID_SUBCATEGORIES', 'PROJECT_NOT_FOUND', 'PROJECT_CODE_IN_USE'),
   },
 })
 
@@ -120,18 +94,13 @@ export const remove = createRoute({
   security: [{ bearerAuth: [] }],
   summary: 'Archive project (Soft Delete)',
   description: `
-    Realiza o arquivamento lógico do projeto (isActive=false).
-    O projeto deixará de aceitar novas despesas, mas seus dados históricos permanecem preservados para auditoria.
+    Performs logical archiving of the project (isActive=false).
+    The project will no longer accept new expenses, but its historical data remains preserved for audit purposes.
   `,
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
-    [codes.NO_CONTENT]: { description: 'Projeto arquivado com sucesso.' },
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Projeto não encontrado'),
-      'O projeto informado não existe ou já se encontra arquivado.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.NO_CONTENT]: { description: 'Project archived successfully.' },
+    ...registryResponses('PROJECT_NOT_FOUND', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
