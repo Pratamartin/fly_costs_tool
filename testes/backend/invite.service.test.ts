@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { INVITE_ERRORS, INVITE_STATUS } from '@/constants/invite.constant'
+import { INVITE_STATUS } from '@/constants/invite.constant'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ vi.mock('@/env', () => ({
 // dayjs não é mockado — usamos datas reais (passado/futuro) para controlar validade
 import {
   createInvite,
-  findActiveInvite,
+  findInviteByCode,
   mapInviteStatus,
   revokeInvite,
   validateAndConsume,
@@ -123,52 +123,54 @@ describe('createInvite — T3.2.1 (unit)', () => {
   })
 })
 
-// ─── T3.2.1 — findActiveInvite ────────────────────────────────────────────────
+// ─── T3.2.1 — findInviteByCode ───────────────────────────────────────────────
 
-describe('findActiveInvite — T3.2.1 (unit)', () => {
+describe('findInviteByCode — T3.2.1 (unit)', () => {
   beforeEach(() => {
     prismaMock.inviteCode.findUnique.mockReset()
   })
 
-  it('retorna null quando convite não existe', async () => {
+  it('retorna erro quando convite não existe', async () => {
     prismaMock.inviteCode.findUnique.mockResolvedValue(null)
 
-    const result = await findActiveInvite('NAO-EXISTE')
+    const result = await findInviteByCode('NAO-EXISTE')
 
-    expect(result).toBeNull()
+    expect('error' in result && result.error).toBe('INVITE_NOT_FOUND')
     expect(prismaMock.inviteCode.findUnique).toHaveBeenCalledWith({
       where: { code: 'NAO-EXISTE' },
     })
   })
 
-  it('retorna null quando convite está expirado', async () => {
+  it('retorna erro quando convite está expirado', async () => {
     prismaMock.inviteCode.findUnique.mockResolvedValue(
       inviteRow({ expiresAt: PAST, usedById: null }),
     )
 
-    const result = await findActiveInvite('EXPIRED-CODE')
+    const result = await findInviteByCode('EXPIRED-CODE')
 
-    expect(result).toBeNull()
+    expect('error' in result && result.error).toBe('INVITE_ALREADY_EXPIRED')
   })
 
-  it('retorna null quando convite já foi utilizado', async () => {
+  it('retorna erro quando convite já foi utilizado', async () => {
     prismaMock.inviteCode.findUnique.mockResolvedValue(
       inviteRow({ usedById: 'outro-user-id', expiresAt: FUTURE }),
     )
 
-    const result = await findActiveInvite('USED-CODE')
+    const result = await findInviteByCode('USED-CODE')
 
-    expect(result).toBeNull()
+    expect('error' in result && result.error).toBe('INVITE_ALREADY_USED')
   })
 
   it('retorna o convite quando válido e não utilizado', async () => {
     const activeInvite = inviteRow({ expiresAt: FUTURE, usedById: null })
     prismaMock.inviteCode.findUnique.mockResolvedValue(activeInvite)
 
-    const result = await findActiveInvite('VALID-CODE')
+    const result = await findInviteByCode('VALID-CODE')
 
-    expect(result).not.toBeNull()
-    expect(result!.id).toBe(INVITE_ID)
+    expect('error' in result).toBe(false)
+    if (!('error' in result)) {
+      expect(result.id).toBe(INVITE_ID)
+    }
   })
 })
 
@@ -258,7 +260,7 @@ describe('revokeInvite — T3.2.1 (unit)', () => {
 
     const result = await revokeInvite(INVITE_ID)
 
-    expect('error' in result && result.error).toBe(INVITE_ERRORS.ALREADY_USED)
+    expect('error' in result && result.error).toBe('INVITE_ALREADY_USED')
     expect(prismaMock.inviteCode.update).not.toHaveBeenCalled()
   })
 
@@ -269,7 +271,7 @@ describe('revokeInvite — T3.2.1 (unit)', () => {
 
     const result = await revokeInvite(INVITE_ID)
 
-    expect('error' in result && result.error).toBe(INVITE_ERRORS.ALREADY_EXPIRED)
+    expect('error' in result && result.error).toBe('INVITE_ALREADY_EXPIRED')
     expect(prismaMock.inviteCode.update).not.toHaveBeenCalled()
   })
 
@@ -310,10 +312,10 @@ describe('isInviteCodeValid — T3.2.2 (unit / deprecated)', () => {
     expect(prismaMock.inviteCode.findUnique).not.toHaveBeenCalled()
   })
 
-  it('findActiveInvite consulta o banco (substituto real do deprecated)', async () => {
+  it('findInviteByCode consulta o banco (substituto real do deprecated)', async () => {
     prismaMock.inviteCode.findUnique.mockResolvedValue(null)
 
-    await findActiveInvite('QUALQUER-CODE')
+    await findInviteByCode('QUALQUER-CODE')
 
     expect(prismaMock.inviteCode.findUnique).toHaveBeenCalledWith({
       where: { code: 'QUALQUER-CODE' },

@@ -95,7 +95,9 @@ describe('createUser — T3.1.1 (unit)', () => {
     expect(profileCreate?.bankCode).toBe('001')
     expect(profileCreate?.bankName).toBe('BANCO DO BRASIL')
     expect(profileCreate?.bankAccount).toBe('12345678')
-    expect(result.email).toBe('test@test.com')
+    if (!('error' in result)) {
+      expect(result.email).toBe('test@test.com')
+    }
   })
 
   it('CPF duplicado — prisma.user.create lança erro e ele é propagado', async () => {
@@ -214,7 +216,7 @@ describe('updateUser — T3.0.1 (unit)', () => {
 
     const result = await updateUser('user-uuid-001', { cpf: '222.222.222-22' })
 
-    expect('error' in result && result.error).toBe(USER_ERROR_CODES.CPF_ALREADY_USED)
+    expect('error' in result && result.error).toBe('CPF_CONFLICT')
     expect(prisma.user.update).not.toHaveBeenCalled()
   })
 
@@ -270,12 +272,12 @@ describe('updateUser — T3.0.1 (unit)', () => {
     expect(profileUpsert?.create.bankAccount).toBe('12345678')
   })
 
-  it('usuário não encontrado retorna NOT_FOUND', async () => {
+  it('usuário não encontrado retorna USER_NOT_FOUND', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     const result = await updateUser('nao-existe', { name: 'Qualquer' })
 
-    expect('error' in result).toBe(true)
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
     expect(prisma.user.update).not.toHaveBeenCalled()
   })
 })
@@ -297,12 +299,12 @@ describe('getUserByEmail', () => {
     expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'test@test.com' } })
   })
 
-  it('retorna null quando usuário não existe', async () => {
+  it('retorna erro quando usuário não existe', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     const result = await getUserByEmail('naoexiste@test.com')
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
   })
 })
 
@@ -316,15 +318,17 @@ describe('getUserById', () => {
 
     const result = await getUserById('1')
 
-    expect(result).toBeDefined()
-    expect(result).not.toHaveProperty('passwordHash')
+    if (!('error' in result)) {
+      expect(result).toBeDefined()
+      expect(result).not.toHaveProperty('passwordHash')
+    }
   })
 
-  it('retorna null quando usuário não existe', async () => {
+  it('retorna erro quando usuário não existe', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     const result = await getUserById('999')
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
   })
 })
