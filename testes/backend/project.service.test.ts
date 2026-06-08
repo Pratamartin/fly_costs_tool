@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES, PROJECT_ERROR_CODES } from '@/constants/project.constant'
+import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES } from '@/constants/project.constant'
 import { createProject, deleteProject, getProjectById, updateProject } from '@/services/project.service'
 import { Prisma } from '@/generated/prisma/client'
 
@@ -97,7 +97,7 @@ describe('project.service CRUD', () => {
     )
   })
 
-  it('validação: menos que MIN_SUBCATEGORIES retorna INVALID_SUBCATEGORIES_COUNT', async () => {
+  it('validação: menos que MIN_SUBCATEGORIES retorna INVALID_SUBCATEGORIES', async () => {
     prismaMock.project.findUnique.mockResolvedValue(null)
 
     const result = await createProject({
@@ -107,7 +107,7 @@ describe('project.service CRUD', () => {
       subcategories: [],
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT)
+    expect('error' in result && result.error).toBe('INVALID_SUBCATEGORIES')
   })
 
   it('validação: mais que MAX_SUBCATEGORIES retorna erro', async () => {
@@ -121,12 +121,12 @@ describe('project.service CRUD', () => {
       subcategories: many,
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT)
+    expect('error' in result && result.error).toBe('INVALID_SUBCATEGORIES')
     expect(many.length).toBeGreaterThan(MAX_SUBCATEGORIES)
     expect(MIN_SUBCATEGORIES).toBeGreaterThanOrEqual(1)
   })
 
-  it('subcategorias inexistentes retorna SUBCATEGORIES_NOT_FOUND', async () => {
+  it('subcategorias inexistentes retorna INVALID_SUBCATEGORIES', async () => {
     prismaMock.project.findUnique.mockResolvedValue(null)
     vi.mocked(validateSubcategoriesExist).mockResolvedValueOnce(false)
 
@@ -137,7 +137,7 @@ describe('project.service CRUD', () => {
       subcategories: ['fantasma'],
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.SUBCATEGORIES_NOT_FOUND)
+    expect('error' in result && result.error).toBe('INVALID_SUBCATEGORIES')
   })
 
   it('usedBudget na resposta reflete valor comprometido persistido', async () => {
@@ -147,8 +147,9 @@ describe('project.service CRUD', () => {
 
     const project = await getProjectById(PID)
 
-    expect(project).not.toBeNull()
-    expect(Number(project!.usedBudget)).toBe(7500.25)
-    expect(Number(project!.budget)).toBe(50_000)
+    expect('error' in project).toBe(false)
+    if ('error' in project) return
+    expect(Number(project.usedBudget)).toBe(7500.25)
+    expect(Number(project.budget)).toBe(50_000)
   })
 })

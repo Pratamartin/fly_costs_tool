@@ -45,24 +45,25 @@ describe('isInviteCodeValid', () => {
 // ─── verifyCredentials ────────────────────────────────────────────────────────
 
 describe('verifyCredentials', () => {
-  it('retorna null quando usuário não existe', async () => {
-    vi.mocked(userService.getUserByEmail).mockResolvedValue(null)
+  it('retorna erro quando usuário não existe', async () => {
+    vi.mocked(userService.getUserByEmail).mockResolvedValue({ error: 'USER_NOT_FOUND' })
 
     const result = await verifyCredentials({
       email: 'naoexiste@test.com',
       password: 'senha123',
     })
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'INVALID_CREDENTIALS' })
   })
 
-  it('retorna null quando senha está incorreta', async () => {
+  it('retorna erro quando senha está incorreta', async () => {
     vi.mocked(userService.getUserByEmail).mockResolvedValue({
       id: '1',
       email: 'test@test.com',
       passwordHash: '$2a$10$invalidhash',
       name: 'Test',
       role: 'ALUNO',
+      isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -72,7 +73,7 @@ describe('verifyCredentials', () => {
       password: 'senhaerrada',
     })
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'INVALID_CREDENTIALS' })
   })
 })
 

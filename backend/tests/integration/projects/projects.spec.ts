@@ -74,6 +74,10 @@ describe('[Projects] - Gestão de Projetos', () => {
   it('[SUCESSO]: Deve listar projetos ativos', async () => {
     const res = await client.projects.$get({ query: { isActive: true } }, { headers: adminHeaders })
 
+    if (res.status !== status.OK) {
+      console.error('[DEBUG] PROJECTS LIST FAIL:', res.status, await res.json())
+    }
+
     expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
 

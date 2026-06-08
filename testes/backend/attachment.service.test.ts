@@ -4,7 +4,6 @@
  * key gerada inclui expenseId
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 
@@ -29,7 +28,7 @@ const storageMock = vi.hoisted(() => ({
 vi.mock('@/lib/storage', () => storageMock)
 
 vi.mock('@/services/preference-survey.service', () => ({
-  validateAnswers: vi.fn().mockResolvedValue(null),
+  validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
@@ -117,38 +116,32 @@ describe('attachMemorandumToExpense — T3.3.2 (unit)', () => {
   it('arquivo muito grande (>5 MB) retorna erro de tamanho', async () => {
     const bigFile = makeFile(6 * 1024 * 1024 + 1, 'grande.pdf')
     prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
-    storageMock.validatePDF.mockResolvedValue({ valid: false, error: 'Arquivo excede o tamanho máximo de 5MB' })
+    storageMock.validatePDF.mockResolvedValue({ valid: false, error: 'File size exceeds limit' })
 
     const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, bigFile)
 
-    expect('error' in result).toBe(true)
-    if ('error' in result) {
-      expect(result.error).toMatch(/tamanho|5MB|size/i)
-    }
+    expect('error' in result && result.error).toBe('FILE_TOO_LARGE')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 
   it('tipo não permitido (não-PDF) retorna erro de validação', async () => {
     const imageFile = makeFile(512, 'foto.jpg', false)
     prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
-    storageMock.validatePDF.mockResolvedValue({ valid: false, error: 'Arquivo não é um PDF válido' })
+    storageMock.validatePDF.mockResolvedValue({ valid: false, error: 'Invalid type' })
 
     const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, imageFile)
 
-    expect('error' in result).toBe(true)
-    if ('error' in result) {
-      expect(result.error).toMatch(/PDF|válido/i)
-    }
+    expect('error' in result && result.error).toBe('UNSUPPORTED_MEDIA_TYPE')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 
-  it('storage não configurado retorna STORAGE_NOT_CONFIGURED', async () => {
+  it('storage não configurado retorna STORAGE_UNAVAILABLE', async () => {
     storageMock.isStorageConfigured.mockReturnValue(false)
     const file = makeFile(512)
 
     const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, file)
 
-    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED)
+    expect('error' in result && result.error).toBe('STORAGE_UNAVAILABLE')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 
@@ -158,7 +151,7 @@ describe('attachMemorandumToExpense — T3.3.2 (unit)', () => {
 
     const result = await attachMemorandumToExpense(EXPENSE_ID, STUDENT_ID, file)
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('FORBIDDEN')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 
@@ -226,23 +219,23 @@ describe('uploadCostBreakdownReceipt — T3.3.2 (unit)', () => {
     expect(call.prefix).toBe(CATEGORY_NAME)
   })
 
-  it('storage não configurado retorna STORAGE_NOT_CONFIGURED', async () => {
+  it('storage não configurado retorna STORAGE_UNAVAILABLE', async () => {
     storageMock.isStorageConfigured.mockReturnValue(false)
     const file = new File([new Uint8Array(256)], 'r.jpg', { type: 'image/jpeg' })
 
     const result = await uploadCostBreakdownReceipt(EXPENSE_ID, BREAKDOWN_ID, file)
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('STORAGE_UNAVAILABLE')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 
-  it('breakdown inexistente retorna NOT_FOUND', async () => {
+  it('breakdown inexistente retorna COST_BREAKDOWN_NOT_FOUND', async () => {
     prismaMock.costBreakdown.findFirst.mockResolvedValue(null)
     const file = new File([new Uint8Array(256)], 'r.jpg', { type: 'image/jpeg' })
 
     const result = await uploadCostBreakdownReceipt(EXPENSE_ID, 'nao-existe', file)
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('COST_BREAKDOWN_NOT_FOUND')
     expect(storageMock.uploadFile).not.toHaveBeenCalled()
   })
 })

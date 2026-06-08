@@ -187,6 +187,7 @@ describe('markAsRead', () => {
     expect(prismaMock.notification.update).toHaveBeenCalledWith({
       where: { id: NOTIFICATION_ID, userId: USER_ID },
       data: { isRead: true },
+      select: { id: true },
     })
   })
 

@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import * as phrases from 'stoker/http-status-phrases'
-import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { Prisma } from '@/generated/prisma/client'
 
 const createCostBreakdownMock = vi.fn()
@@ -43,46 +41,46 @@ describe('createCostBreakdown (discriminação de custos - mockado)', () => {
   })
 
   it('subcategoria fora do projeto retorna erro', async () => {
-    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT })
+    createCostBreakdownMock.mockResolvedValue({ error: 'INVALID_SUBCATEGORIES' })
 
     const result = await createCostBreakdownMock('exp-3', {
       subcategoryName: 'hotel_inexistente',
       amount: 50,
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INVALID_SUBCATEGORIES_COUNT)
+    expect('error' in result && result.error).toBe('INVALID_SUBCATEGORIES')
   })
 
-  it('valor acima do disponível retorna INSUFFICIENT_FUNDS', async () => {
-    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS })
+  it('valor acima do disponível retorna PROJECT_INSUFFICIENT_FUNDS', async () => {
+    createCostBreakdownMock.mockResolvedValue({ error: 'PROJECT_INSUFFICIENT_FUNDS' })
 
     const result = await createCostBreakdownMock('exp-4', {
       subcategoryName: 'passagem',
       amount: 100,
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS)
+    expect('error' in result && result.error).toBe('PROJECT_INSUFFICIENT_FUNDS')
   })
 
   it('projeto arquivado retorna PROJECT_ARCHIVED', async () => {
-    createCostBreakdownMock.mockResolvedValue({ error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED })
+    createCostBreakdownMock.mockResolvedValue({ error: 'PROJECT_ARCHIVED' })
 
     const result = await createCostBreakdownMock('exp-5', {
       subcategoryName: 'passagem',
       amount: 10,
     })
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.PROJECT_ARCHIVED)
+    expect('error' in result && result.error).toBe('PROJECT_ARCHIVED')
   })
 
-  it('despesa sem projeto retorna NOT_FOUND', async () => {
-    createCostBreakdownMock.mockResolvedValue({ error: phrases.NOT_FOUND })
+  it('despesa sem projeto retorna PROJECT_NOT_FOUND', async () => {
+    createCostBreakdownMock.mockResolvedValue({ error: 'PROJECT_NOT_FOUND' })
 
     const result = await createCostBreakdownMock('exp-6', {
       subcategoryName: 'passagem',
       amount: 10,
     })
 
-    expect('error' in result && result.error).toBe(phrases.NOT_FOUND)
+    expect('error' in result && result.error).toBe('PROJECT_NOT_FOUND')
   })
 })

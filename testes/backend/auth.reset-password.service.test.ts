@@ -61,10 +61,12 @@ describe('createPasswordResetToken — geração e hash do token', () => {
       return mockActiveUser({ passwordResetToken: savedHash })
     })
 
-    const plainToken = await createPasswordResetToken(USER_EMAIL)
+    const result = await createPasswordResetToken(USER_EMAIL)
 
-    expect(plainToken).not.toBeNull()
-    expect(plainToken).not.toBe(savedHash)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.token).not.toBeNull()
+    expect(result.token).not.toBe(savedHash)
   })
 
   it('SHA-256 do plainToken corresponde ao hash salvo no banco', async () => {
@@ -75,8 +77,11 @@ describe('createPasswordResetToken — geração e hash do token', () => {
       return mockActiveUser({ passwordResetToken: savedHash })
     })
 
-    const plainToken = await createPasswordResetToken(USER_EMAIL)
-    const expectedHash = crypto.createHash('sha256').update(plainToken!).digest('hex')
+    const result = await createPasswordResetToken(USER_EMAIL)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    
+    const expectedHash = crypto.createHash('sha256').update(result.token).digest('hex')
 
     expect(savedHash).toBe(expectedHash)
   })
@@ -96,29 +101,30 @@ describe('createPasswordResetToken — geração e hash do token', () => {
     vi.mocked(userService.getUserByEmail).mockResolvedValue(mockActiveUser() as any)
     prismaMock.user.update.mockResolvedValue(mockActiveUser())
 
-    const token1 = await createPasswordResetToken(USER_EMAIL)
-    const token2 = await createPasswordResetToken(USER_EMAIL)
+    const res1 = await createPasswordResetToken(USER_EMAIL)
+    const res2 = await createPasswordResetToken(USER_EMAIL)
 
-    expect(token1).not.toBe(token2)
+    if ('error' in res1 || 'error' in res2) return
+    expect(res1.token).not.toBe(res2.token)
   })
 
-  it('e-mail inexistente retorna null sem chamar prisma.user.update', async () => {
-    vi.mocked(userService.getUserByEmail).mockResolvedValue(null)
+  it('e-mail inexistente retorna USER_NOT_FOUND sem chamar prisma.user.update', async () => {
+    vi.mocked(userService.getUserByEmail).mockResolvedValue({ error: 'USER_NOT_FOUND' })
 
     const result = await createPasswordResetToken('naoexiste@test.com')
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
     expect(prismaMock.user.update).not.toHaveBeenCalled()
   })
 
-  it('usuário inativo retorna null', async () => {
+  it('usuário inativo retorna USER_NOT_FOUND', async () => {
     vi.mocked(userService.getUserByEmail).mockResolvedValue(
       mockActiveUser({ isActive: false }) as any,
     )
 
     const result = await createPasswordResetToken(USER_EMAIL)
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
   })
 })
 
@@ -161,12 +167,12 @@ describe('resetPassword — redefinição de senha', () => {
     expect(valid).toBe(true)
   })
 
-  it('token expirado/inválido — findFirst retorna null → erro INVALID_OR_EXPIRED_TOKEN', async () => {
+  it('token expirado/inválido — findFirst retorna null → erro INVALID_TOKEN', async () => {
     prismaMock.user.findFirst.mockResolvedValue(null)
 
     const result = await resetPassword('expired-or-invalid-token', 'NovaSenha@123')
 
-    expect(result).toEqual({ error: AUTH_ERROR_CODES.INVALID_OR_EXPIRED_TOKEN })
+    expect(result).toEqual({ error: 'INVALID_TOKEN' })
     expect(prismaMock.user.update).not.toHaveBeenCalled()
   })
 
