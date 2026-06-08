@@ -26,7 +26,7 @@ export const ProfileSchema = z.object({
 
   address: z.string()
     .trim()
-    .min(5, 'O endereço deve ter pelo menos 5 caracteres.')
+    .min(5, 'Address must be at least 5 characters long.')
     .nullish()
     .openapi({ example: MOCK_PROFILE.address }),
 
@@ -36,7 +36,7 @@ export const ProfileSchema = z.object({
   bankName: z.string()
     .trim()
     .toUpperCase()
-    .min(2, 'O nome do banco deve ter pelo menos 2 caracteres.')
+    .min(2, 'Bank name must be at least 2 characters long.')
     .nullish()
     .openapi({ example: MOCK_PROFILE.bankName }),
 
