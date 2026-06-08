@@ -1,48 +1,12 @@
 import type { InviteStatus } from '@/constants/invite.constant'
 import type { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { z } from '@hono/zod-openapi'
-import countries from 'i18n-iso-countries'
-import iso31662 from 'iso-3166-2'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { ALLOWED_RECEIPT_MIME_TYPES } from '@/constants/file.constant'
 import { INVITE_STATUS } from '@/constants/invite.constant'
 import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
 import { getInviteMinExpiry } from '@/services/invite.service'
-
-export const validStateCheck = z.refine<{ state?: string }>(
-  value => !value.state || iso31662.subdivision(value.state) !== null,
-  { message: 'Código de estado/província inexistente. Utilize um código válido (ex: \'BR-SP\').' },
-)
-
-export const validCountryCheck = z.refine<{ country?: string }>(
-  value => !value.country || countries.isValid(value.country),
-  { message: 'Código de país inexistente. Utilize uma sigla ISO válida (ex: \'BR\').' },
-)
-
-export const stateBelongsToCountryCheck = z.refine<{ state?: string, country?: string }>(
-  (value) => {
-    if (!value.state || !value.country)
-      return true
-    return value.state.startsWith(`${value.country}-`)
-  },
-  {
-    message: 'O estado informado não pertence ao país selecionado.',
-    path: ['state'],
-  },
-)
-
-export const returnDateAfterDepartureDateCheck = z.refine<{ returnDate?: Date, departureDate?: Date }>(
-  (value) => {
-    if (!value.returnDate || !value.departureDate)
-      return true
-    return value.returnDate >= value.departureDate
-  },
-  {
-    message: 'A data de retorno não pode ser anterior à data de partida',
-    path: ['returnDate'],
-  },
-)
 
 export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reason?: string | null }>(
   (value) => {
@@ -53,7 +17,7 @@ export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reas
     return !!value.reason && value.reason.length > 0
   },
   {
-    message: 'O motivo é obrigatório para o status selecionado',
+    message: 'Reason is required for the selected status',
     path: ['reason'],
     params: { requiredForStatuses: STATUSES_WHERE_REASON_REQUIRED },
   },
@@ -182,12 +146,12 @@ export function minExpiryThresholdCheck() {
     const minExpiry = getInviteMinExpiry()
 
     if (value.expiresAt && dayjs(value.expiresAt).isBefore(minExpiry)) {
-      const dataFormatada = dayjs.utc(value.expiresAt).format('LT')
-      const limiteFormatado = dayjs.utc(minExpiry).format('LT')
+      const formattedDate = dayjs.utc(value.expiresAt).format('LT')
+      const formattedLimit = dayjs.utc(minExpiry).format('LT')
 
       ctx.addIssue({
         code: 'custom',
-        message: `A data ${dataFormatada} é inválida. O mínimo aceitável é às ${limiteFormatado}.`,
+        message: `The date ${formattedDate} is invalid. The minimum acceptable is ${formattedLimit}.`,
         path: ['expiresAt'],
         params: { minExpiry: minExpiry.toISOString() },
       })
@@ -207,7 +171,7 @@ export const usedInviteFieldsRequired = z.refine<{
     return !!value.usedById && !!value.usedAt
   },
   {
-    message: 'Dados de utilização (quem e quando) são obrigatórios para convites usados',
+    message: 'Usage data (who and when) are required for used invites',
     path: ['status'],
     params: { requiredForStatus: INVITE_STATUS.USED },
   },

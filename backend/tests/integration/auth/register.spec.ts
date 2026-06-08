@@ -9,6 +9,7 @@ import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { auth } from '@/routes'
 import { seedInviteCodes } from '@/seeds'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(auth))
 
@@ -48,10 +49,7 @@ describe('[Auth] Cadastro de usuário', () => {
 
     const res = await endpoint.$post({ json: basePayload })
 
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
-
-    expect(json).toHaveProperty('message')
+    await expectProblem(res, 'EMAIL_ALREADY_EXISTS')
   })
 
   it('deve retornar erro ao tentar cadastrar com código de convite inválido', async () => {
@@ -63,10 +61,7 @@ describe('[Auth] Cadastro de usuário', () => {
 
     const res = await endpoint.$post({ json: payloadConviteInvalido })
 
-    assert(res.status === status.BAD_REQUEST)
-    const json = await res.json()
-
-    expect(json).toHaveProperty('message')
+    await expectProblem(res, 'INVALID_INVITE_CODE')
   })
 
   describe('validações Semânticas (RFC 9457)', () => {

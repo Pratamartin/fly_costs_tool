@@ -4,44 +4,44 @@ import { renderEmailHtml } from '@/lib/email/util'
 import { logger } from '@/lib/logger'
 
 async function testEmail() {
-  logger.info('Iniciando teste de e-mail...')
+  logger.info('Starting email test...')
 
   const provider = new EtherealProvider()
 
   const emailHtml = renderEmailHtml(
     await BaseEmail({
-      title: 'Teste de Integração SGDA',
+      title: 'SGDA Integration Test',
       children: (
-        <p>Este é um e-mail de teste enviado pelo script de verificação do SGDA. Se você está vendo isso, o sistema de templates e o provedor de e-mail estão funcionando corretamente.</p>
+        <p>This is a test email sent by the SGDA verification script. If you are seeing this, the template system and email provider are working correctly.</p>
       ),
     })!,
   )
 
-  logger.info('Enviando e-mail de teste via Ethereal...')
+  logger.info('Sending test email via Ethereal...')
 
   try {
     const result = await provider.send({
-      to: 'sucesso@sgda.com',
-      subject: 'SGDA - Teste de Funcionamento',
+      to: 'success@sgda.com',
+      subject: 'SGDA - Functionality Test',
       html: emailHtml,
-      text: 'Este é o conteúdo em texto simples do e-mail de teste do SGDA.',
+      text: 'This is the plain text content of the SGDA test email.',
     })
 
     if (result.success && 'previewUrl' in result) {
-      logger.info('✅ E-mail enviado com sucesso!')
-      logger.info(`🔗 URL de visualização: ${result.previewUrl}`)
-      logger.info('Abra o link acima no seu navegador para ver como o e-mail ficou.')
+      logger.info('✅ Email sent successfully!')
+      logger.info(`🔗 Preview URL: ${result.previewUrl}`)
+      logger.info('Open the link above in your browser to see how the email looks.')
     }
     else {
-      logger.error(`❌ Falha ao enviar e-mail`)
+      logger.error(`❌ Failed to send email`)
     }
   }
   catch (error) {
-    logger.error(error, '❌ Erro inesperado durante o teste de e-mail')
+    logger.error(error, '❌ Unexpected error during email test')
   }
 }
 
 testEmail().catch((err) => {
-  logger.error(err, 'Erro fatal no script de teste')
+  logger.error(err, 'Fatal error in test script')
   process.exit(1)
 })
