@@ -1,10 +1,11 @@
 import type { z } from '@hono/zod-openapi'
+import type { ServiceResult } from '@/lib/problems'
 import type { AppAuthPayload } from '@/lib/type'
 import type { LoginSchema } from '@/schemas/auth.schema'
 import crypto from 'node:crypto'
 import bcrypt, { compare } from 'bcryptjs'
 import { sign } from 'hono/jwt'
-import { AUTH_ERROR_CODES, PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant'
+import { PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant'
 import { mockInviteCode } from '@/constants/invite.constant'
 import env from '@/env'
 import { dayjs } from '@/lib/date'
@@ -18,12 +19,14 @@ export function isInviteCodeValid(inviteCode: string): boolean {
 
 export async function verifyCredentials(
   data: z.infer<typeof LoginSchema>,
-): Promise<AppAuthPayload | null> {
-  const user = await getUserByEmail(data.email)
+): Promise<ServiceResult<AppAuthPayload, 'INVALID_CREDENTIALS'>> {
+  const result = await getUserByEmail(data.email)
 
-  if (!user || !user.isActive || !(await compare(data.password, user.passwordHash))) {
-    return null
+  if ('error' in result || !result.isActive || !(await compare(data.password, result.passwordHash))) {
+    return { error: 'INVALID_CREDENTIALS' }
   }
+
+  const user = result
 
   return {
     sub: user.id,
@@ -43,11 +46,14 @@ export async function generateAccessToken(payload: AppAuthPayload, secret: strin
   return token
 }
 
-export async function createPasswordResetToken(email: string): Promise<string | null> {
-  const user = await getUserByEmail(email)
-  if (!user || !user.isActive) {
-    return null
+export async function createPasswordResetToken(email: string): Promise<ServiceResult<{ token: string }, 'USER_NOT_FOUND'>> {
+  const result = await getUserByEmail(email)
+
+  if ('error' in result || !result.isActive) {
+    return { error: 'USER_NOT_FOUND' }
   }
+
+  const user = result
 
   const plainToken = crypto.randomBytes(32).toString('hex')
   const hashedToken = crypto.createHash('sha256').update(plainToken)
@@ -63,10 +69,10 @@ export async function createPasswordResetToken(email: string): Promise<string | 
     },
   })
 
-  return plainToken
+  return { token: plainToken }
 }
 
-export async function resetPassword(token: string, newPassword: string): Promise<{ success: boolean } | { error: string }> {
+export async function resetPassword(token: string, newPassword: string): Promise<ServiceResult<{ success: true }, 'INVALID_TOKEN'>> {
   const hashedToken = crypto.createHash('sha256').update(token)
     .digest('hex')
 
@@ -78,7 +84,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
   })
 
   if (!user) {
-    return { error: AUTH_ERROR_CODES.INVALID_OR_EXPIRED_TOKEN }
+    return { error: 'INVALID_TOKEN' }
   }
 
   const newPasswordHash = await bcrypt.hash(newPassword, env.SALT_ROUNDS)

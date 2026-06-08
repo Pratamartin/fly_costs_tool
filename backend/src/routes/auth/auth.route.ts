@@ -2,8 +2,8 @@ import { createRoute } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
+import { registryResponses } from '@/lib/problems'
 import { ForgotPasswordSchema, LoginSchema, LoginSuccessSchema, RegisterSchema, RegisterSuccessSchema, ResetPasswordSchema } from '@/schemas/auth.schema'
-import { UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Auth']
 
@@ -16,24 +16,15 @@ export const register = createRoute({
   path: '/register',
   method: 'post',
   summary: 'Register user',
-  description: 'Registra um novo usuário no sistema. O payload exigido varia de acordo com o papel: Alunos devem enviar dados de perfil completos. Coordenadores e Admins exigem apenas credenciais básicas.',
+  description: 'Registers a new user in the system. The required payload varies by role: Students must provide complete profile data. Coordinators and Admins require only basic credentials.',
   tags,
   request: { body: jsonContentRequired(RegisterSchema, 'User credentials') },
   responses: {
     [codes.CREATED]: jsonContent(
       RegisterSuccessSchema,
-      'Usuário criado com sucesso',
+      'User created successfully',
     ),
-
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('E-mail já cadastrado'),
-      'Erro: Conflito de dados',
-    ),
-
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Código de convite inválido'),
-      'Erro: O código de convite fornecido não é válido ou expirou.',
-    ),
+    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVALID_INVITE_CODE', 'VALIDATION_ERROR'),
   },
 })
 
@@ -41,15 +32,15 @@ export const login = createRoute({
   path: '/login',
   method: 'post',
   summary: 'Authenticate user',
-  description: 'Logar usuário no sistema.',
+  description: 'Login user into the system.',
   tags,
   request: { body: jsonContentRequired(LoginSchema, 'User credentials') },
   responses: {
     [codes.OK]: jsonContent(
       LoginSuccessSchema,
-      'Autenticação bem-sucedida. O access token é retornado no corpo da resposta.',
+      'Authentication successful. The access token is returned in the response body.',
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
   },
 })
 
@@ -57,14 +48,15 @@ export const forgotPassword = createRoute({
   path: '/forgot-password',
   method: 'post',
   summary: 'Request password reset',
-  description: 'Envia um e-mail com instruções para recuperação de senha.',
+  description: 'Sends an email with password recovery instructions.',
   tags,
   request: { body: jsonContentRequired(ForgotPasswordSchema, 'User email') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.'),
-      'Sucesso genérico para evitar enumeração de usuários.',
+      createMessageObjectSchema('If the email is registered, you will receive instructions to reset your password.'),
+      'Generic success response to prevent user enumeration.',
     ),
+    ...registryResponses('VALIDATION_ERROR'),
   },
 })
 
@@ -72,17 +64,14 @@ export const resetPassword = createRoute({
   path: '/reset-password',
   method: 'post',
   summary: 'Reset password',
-  description: 'Redefine a senha do usuário utilizando um token válido.',
+  description: 'Resets user password using a valid token.',
   tags,
   request: { body: jsonContentRequired(ResetPasswordSchema, 'New password and token') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Senha redefinida com sucesso.'),
-      'Senha alterada com sucesso.',
+      createMessageObjectSchema('Password reset successfully.'),
+      'Password changed successfully.',
     ),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Token inválido ou expirado.'),
-      'Erro na redefinição de senha.',
-    ),
+    ...registryResponses('INVALID_TOKEN', 'VALIDATION_ERROR'),
   },
 })

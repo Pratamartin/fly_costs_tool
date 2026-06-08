@@ -9,6 +9,7 @@ import prisma from '@/lib/orm'
 import { admin, auth } from '@/routes'
 import { seedUsers } from '@/seeds'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const adminClient = testClient(createTestApp(admin))
 const authClient = testClient(createTestApp(auth))
@@ -49,8 +50,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       { headers: studentHeaders },
     )
 
-    expect(res.status).toBe(status.FORBIDDEN)
-    assert(res.status === status.FORBIDDEN)
+    await expectProblem(res, 'FORBIDDEN')
   })
 
   it('[Passo 3] ADMIN visualiza o convite criado na listagem', async () => {
@@ -97,7 +97,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
     expect(inviteInDb.usedAt).toBeDefined()
   })
 
-  it('[Passo 5] Tentativa de usar o mesmo código novamente retorna 400', async () => {
+  it('[Passo 5] Tentativa de usar o mesmo código novamente retorna 409', async () => {
     const res = await authClient.auth.register.$post({
       json: {
         ...MOCK_PROFILE,
@@ -111,11 +111,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       },
     })
 
-    expect(res.status).toBe(status.BAD_REQUEST)
-    assert(res.status === status.BAD_REQUEST)
-
-    const json = await res.json()
-    expect(json.message).toMatch(/inválido ou expirado/i)
+    await expectProblem(res, 'INVITE_ALREADY_USED')
   })
 
   it('[Passo 6] ADMIN não pode revogar um convite já utilizado', async () => {
@@ -127,11 +123,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       { headers: adminHeaders },
     )
 
-    expect(res.status).toBe(status.CONFLICT)
-    assert(res.status === status.CONFLICT)
-
-    const json = await res.json()
-    expect(json.message).toMatch(/já foi utilizado/i)
+    await expectProblem(res, 'INVITE_ALREADY_USED')
   })
 
   it('[Passo 7] ADMIN revoga um convite ATIVO e ele se torna inutilizável', async () => {
@@ -159,10 +151,6 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       },
     })
 
-    expect(registerRes.status).toBe(status.BAD_REQUEST)
-    assert(registerRes.status === status.BAD_REQUEST)
-
-    const json = await registerRes.json()
-    expect(json.message).toMatch(/inválido ou expirado/i)
+    await expectProblem(registerRes, 'INVITE_ALREADY_EXPIRED')
   })
 })
