@@ -113,7 +113,7 @@ export const UpdateExpenseStatusSchema = z.object({
   reason: z.string().nullable()
     .optional()
     .openapi({
-      description: `Motivo da alteração. **Obrigatório** se o status for: ${STATUSES_WHERE_REASON_REQUIRED.join(' ou ')}.`,
+      description: `Reason for change. **Required** if status is: ${STATUSES_WHERE_REASON_REQUIRED.join(' or ')}.`,
       example: 'Documentação pendente: Realize o ajuste necessário.',
     }),
 }).check(reasonFieldRequired)
@@ -133,7 +133,7 @@ export const UpdateExpenseSchema = BaseSchema
   })
   .partial()
   .extend({
-    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
+    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Select at least one preference to continue.' })
       .optional(),
   })
 

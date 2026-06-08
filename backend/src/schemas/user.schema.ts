@@ -3,7 +3,7 @@ import { zodValidator } from 'cpf-cnpj-validator/zod'
 
 import { MOCK_PROFILE, MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
-import { maskBankAccountTransform, validBankCode, validBirthDate } from './schema.refine'
+import { maskBankAccountTransform, validBankAccount, validBankAgency, validBankCode, validBirthDate, validIdentityDoc } from './schema.refine'
 import { IdSchema, TimestampSchema } from './shared.schema'
 
 const { cpf: zCpf } = zodValidator(z)
@@ -13,10 +13,7 @@ export const ProfileSchema = z.object({
     .nullish()
     .openapi({ example: MOCK_PROFILE.cpf }),
 
-  rgPassaporte: z.string()
-    .trim()
-    .toUpperCase()
-    .nullish()
+  rgPassaporte: validIdentityDoc.nullish()
     .openapi({ example: MOCK_PROFILE.rgPassaporte }),
 
   birthDate: validBirthDate.nullish()
@@ -43,16 +40,10 @@ export const ProfileSchema = z.object({
     .nullish()
     .openapi({ example: MOCK_PROFILE.bankName }),
 
-  bankAgency: z.string()
-    .trim()
-    .toUpperCase()
-    .nullish()
+  bankAgency: validBankAgency.nullish()
     .openapi({ example: MOCK_PROFILE.bankAgency }),
 
-  bankAccount: z.string()
-    .trim()
-    .toUpperCase()
-    .nullish()
+  bankAccount: validBankAccount.nullish()
     .openapi({ example: MOCK_PROFILE.bankAccount }),
 })
 

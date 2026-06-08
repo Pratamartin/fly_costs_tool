@@ -49,7 +49,7 @@ const EnvSchema = z.object({
           expected: 'string',
           received: 'undefined',
           path: [field],
-          message: `Deve estar presente quando NODE_ENV é 'production'`,
+          message: `Must be present when NODE_ENV is 'production'`,
         })
       }
     })

@@ -23,7 +23,7 @@
     "jobs:ui": "cross-env PORT=5001 pg-boss-dashboard"
   },
   "dependencies": {
-    "prisma": "^7.5.0",
+    "@apideck/better-ajv-errors": "^0.3.7",
     "@aws-sdk/client-s3": "^3.939.0",
     "@aws-sdk/lib-storage": "^3.939.0",
     "@aws-sdk/s3-request-presigner": "^3.939.0",
@@ -34,11 +34,9 @@
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "@scalar/hono-api-reference": "^0.10.5",
-    "@types/iso-3166-2": "^1.0.4",
     "ajv": "^8.20.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
-    "ajv-i18n": "^4.2.0",
     "bcryptjs": "^3.0.3",
     "cpf-cnpj-validator": "^2.1.0",
     "cross-env": "^10.1.0",
@@ -48,12 +46,12 @@
     "googleapis": "^171.4.0",
     "hono": "^4.12.9",
     "hono-pino": "^0.10.3",
-    "i18n-iso-countries": "^7.14.0",
-    "iso-3166-2": "^1.0.0",
+    "hono-problem-details": "^0.8.1",
     "nodemailer": "^8.0.7",
     "pdfmake": "^0.3.9",
     "pg": "^8.20.0",
     "pg-boss": "^12.18.2",
+    "prisma": "^7.5.0",
     "stoker": "^2.0.1"
   },
   "devDependencies": {

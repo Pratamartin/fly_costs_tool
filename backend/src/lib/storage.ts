@@ -130,7 +130,7 @@ export async function validatePDF(file: File, maxSizeInMB: number = 5): Promise<
   if (file.size > maxSizeBytes) {
     return {
       valid: false,
-      error: `Arquivo excede o tamanho máximo de ${maxSizeInMB}MB`,
+      error: `File exceeds the maximum size of ${maxSizeInMB}MB`,
     }
   }
 
@@ -138,7 +138,7 @@ export async function validatePDF(file: File, maxSizeInMB: number = 5): Promise<
   if (pdfSignature !== '%PDF') {
     return {
       valid: false,
-      error: 'Arquivo não é um PDF válido',
+      error: 'File is not a valid PDF',
     }
   }
 

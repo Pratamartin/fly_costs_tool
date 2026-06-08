@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception'
 import { jwt } from 'hono/jwt'
 import * as codes from 'stoker/http-status-codes'
 import env from '@/env'
+import { problems } from '@/lib/problems'
 
 export default createMiddleware<AppContext>(async (c, next) => {
   const jwtMiddleware = jwt({
@@ -16,11 +17,9 @@ export default createMiddleware<AppContext>(async (c, next) => {
   }
   catch (error) {
     if (error instanceof HTTPException && error.status === codes.UNAUTHORIZED) {
-      c.get('logger').warn(`Falha de Autenticação [401]: ${error.message}`)
-      return c.json(
-        { message: 'Acesso negado. É necessário estar autenticado para continuar.' },
-        codes.UNAUTHORIZED,
-      )
+      c.get('logger').warn(`Authentication Failure [401]: ${error.message}`)
+
+      throw problems.create('UNAUTHORIZED', { detail: 'Access denied. You must be authenticated to continue.' })
     }
     throw error
   }
