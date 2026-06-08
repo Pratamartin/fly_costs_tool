@@ -136,8 +136,6 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const hugeJson = await expectProblem(uploadHugeRes, 'FILE_TOO_LARGE')
     expect(hugeJson).toMatchObject({ maxSizeMB: MEMORANDUM_UPLOAD_MAX_SIZE_MB })
 
-
-
     // 8. Conclui com sucesso
     const concludeSuccess = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
     expect(concludeSuccess.status).toBe(status.OK)
