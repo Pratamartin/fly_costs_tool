@@ -1,5 +1,5 @@
 import { testClient } from 'hono/testing'
-import { afterAll, beforeAll, describe, it } from 'vitest'
+import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
 import { ID_ALUNO, ID_PROJ_IA } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
@@ -13,9 +13,10 @@ import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
-describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
+describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
   let adminHeaders: { Authorization: string }
   let expenseId: string
+  const category = dummyExpenseCategories[0]!
 
   beforeAll(async () => {
     await seedUsers()
@@ -27,11 +28,11 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
 
     const expense = await prisma.expenseRequest.create({
       data: {
-        title: 'Despesa para projeto arquivado',
+        title: 'Despesa para Validação de Custos',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
         event: {
-          name: 'Evento Teste',
-          location: 'Local Teste',
+          name: 'Evento de Teste',
+          location: 'Local de Teste',
         },
         article: { classification: 'Sem Qualis' },
         projectId: ID_PROJ_IA,
@@ -40,11 +41,6 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
     })
 
     expenseId = expense.id
-
-    await prisma.project.update({
-      where: { id: ID_PROJ_IA },
-      data: { isActive: false },
-    })
   })
 
   afterAll(async () => {
@@ -57,20 +53,40 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
     await prisma.user.deleteMany()
   })
 
-  it('não permite criar cost breakdown para projeto arquivado', async () => {
+  it('deve retornar erro de validação para valor zero ou negativo (too_small)', async () => {
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: expenseId },
+        json: {
+          amount: 0,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    const json = await expectProblem(res, 'VALIDATION_ERROR')
+    const errorField = json.errors.find(e => e.field === 'amount')
+    assert(errorField)
+    expect(errorField.code).toBe('too_small')
+    expect(errorField.params).toMatchObject({
+      minimum: 0,
+      inclusive: false,
+    })
+  })
+
+  it('deve retornar erro de validação para subcategoria inexistente', async () => {
     const res = await client.expenses[':id']['cost-breakdowns'].$post(
       {
         param: { id: expenseId },
         json: {
           amount: 100,
-          subcategoryName: dummyExpenseCategories[0]!.normalizedName,
-          attachmentKey: 'key/abc.pdf',
+          subcategoryName: 'CATEGORIA_QUE_NAO_EXISTE',
         },
-
       },
       { headers: adminHeaders },
     )
 
-    await expectProblem(res, 'PROJECT_ARCHIVED')
+    await expectProblem(res, 'INVALID_SUBCATEGORIES')
   })
 })

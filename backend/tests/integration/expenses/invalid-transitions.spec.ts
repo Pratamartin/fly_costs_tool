@@ -8,6 +8,7 @@ import { expenses } from '@/routes'
 import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -56,6 +57,7 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       { headers: alunoHeaders },
     )
 
+    expect(res.status).toBe(status.CREATED)
     assert(res.status === status.CREATED)
 
     const json = await res.json()
@@ -78,9 +80,11 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       { headers: adminHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
-    expect(json.message).toContain('não está com status APROVADO')
+    const json = await expectProblem(res, 'INVALID_EXPENSE_STATE')
+    expect(json.resourceState).toMatchObject({
+      current: ExpenseRequestStatus.PENDENTE,
+      required: [ExpenseRequestStatus.APROVADO],
+    })
   })
 
   it('[PROIBIDO]: PENDENTE -> EM_EDICAO (Necessário aprovar)', async () => {
@@ -97,14 +101,18 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       { headers: adminHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
+    const json = await expectProblem(res, 'INVALID_TRANSITION')
+    expect(json.resourceState).toMatchObject({
+      current: ExpenseRequestStatus.PENDENTE,
+      allowed: expect.arrayContaining([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO]),
+    })
   })
 
   it('[PROIBIDO]: REJEITADO -> APROVADO (Rejeição é definitiva)', async () => {
     const id = await createPendingExpense()
 
     // 1. Rejeita
-    await client.expenses[':id'].status.$patch(
+    const rejectRes = await client.expenses[':id'].status.$patch(
       {
         param: { id },
         json: {
@@ -114,6 +122,7 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       },
       { headers: coordenadorHeaders },
     )
+    assert(rejectRes.status === status.OK)
 
     // 2. Tenta aprovar
     const res = await client.expenses[':id'].status.$patch(
@@ -124,20 +133,25 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       { headers: coordenadorHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
+    const json = await expectProblem(res, 'INVALID_TRANSITION')
+    expect(json.resourceState).toMatchObject({
+      current: ExpenseRequestStatus.REJEITADO,
+      allowed: [],
+    })
   })
 
   it('[PROIBIDO]: EM_PROCESSAMENTO -> EM_EDICAO (Solicitação já corrigida)', async () => {
     const id = await createPendingExpense()
 
     // 1. Aprova
-    await client.expenses[':id'].status.$patch(
+    const approveRes = await client.expenses[':id'].status.$patch(
       {
         param: { id },
         json: { status: ExpenseRequestStatus.APROVADO },
       },
       { headers: coordenadorHeaders },
     )
+    assert(approveRes.status === status.OK)
 
     // 2. Move para Em Processamento (Simula via DB para facilitar setup de projeto)
     await prisma.expenseRequest.update({
@@ -157,6 +171,37 @@ describe('[Expense Status] - Integridade de transição de status', () => {
       { headers: adminHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
+    const json = await expectProblem(res, 'INVALID_TRANSITION')
+    expect(json.resourceState).toMatchObject({
+      current: ExpenseRequestStatus.EM_PROCESSAMENTO,
+      allowed: expect.arrayContaining([ExpenseRequestStatus.CONCLUIDO]),
+    })
+  })
+
+  it('[PROIBIDO]: COORDENADOR tenta mover para EM_EDICAO (Apenas ADMIN pode)', async () => {
+    const id = await createPendingExpense()
+
+    // 1. Aprova
+    await client.expenses[':id'].status.$patch(
+      {
+        param: { id },
+        json: { status: ExpenseRequestStatus.APROVADO },
+      },
+      { headers: coordenadorHeaders },
+    )
+
+    // 2. Coordenador tenta mover para EM_EDICAO
+    const res = await client.expenses[':id'].status.$patch(
+      {
+        param: { id },
+        json: {
+          status: ExpenseRequestStatus.EM_EDICAO,
+          reason: 'tentativa proibida',
+        },
+      },
+      { headers: coordenadorHeaders },
+    )
+
+    await expectProblem(res, 'FORBIDDEN')
   })
 })

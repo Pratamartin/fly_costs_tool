@@ -1,11 +1,12 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
+import { registryResponses } from '@/lib/problems'
 import { sseContent } from '@/lib/util'
 import { requireAuth } from '@/middlewares'
 import { ExpenseReportQuerySchema } from '@/schemas/expense.schema'
 import { ReportEventDataSchema, ReportEventEnumSchema } from '@/schemas/report.schema'
-import { IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
+import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Expenses - Reports']
 
@@ -19,14 +20,14 @@ export const requestReport = createRoute({
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
   summary: 'Request expense report generation',
-  description: 'Inicia a geração assíncrona do relatório PDF e retorna um jobId.',
+  description: 'Starts asynchronous PDF report generation and returns a jobId.',
   request: { query: ExpenseReportQuerySchema },
   responses: {
     [codes.ACCEPTED]: jsonContent(
       z.object({ jobId: z.string().uuid() }),
-      'Geração de relatório iniciada.',
+      'Report generation started.',
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
   },
 })
 
@@ -37,14 +38,14 @@ export const reportStatus = createRoute({
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
   summary: 'Monitor report generation status (SSE)',
-  description: 'Acompanha o progresso da geração via Server-Sent Events. Envia eventos nomeados como `report-update`, `report-finished` e `report-error`.',
+  description: 'Monitors generation progress via Server-Sent Events. Sends events named `report-update`, `report-finished`, and `report-error`.',
   request: { params: z.object({ jobId: IdSchema }) },
   responses: {
     [codes.OK]: sseContent(
       ReportEventDataSchema,
-      'Stream de eventos SSE. Utilize addEventListener para capturar os eventos específicos.',
+      'SSE event stream. Use addEventListener to capture specific events.',
       ReportEventEnumSchema,
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('UNAUTHORIZED'),
   },
 })

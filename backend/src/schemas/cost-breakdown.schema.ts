@@ -10,14 +10,14 @@ const BaseSchema = z.object({
   id: IdSchema,
   subcategoryName: z.string().transform(val => normalizeCategoryName(val))
     .openapi({
-      description: 'Nome da subcategoria de despesa',
+      description: 'Expense subcategory name',
       example: dummyExpenseCategories.at(0)?.normalizedName,
     }),
   amount: z.number().positive()
     .openapi({ example: 150.50 }),
   attachmentKey: z.string().nullable()
     .optional()
-    .openapi({ description: 'Chave do comprovante no armazenamento R2. Pode ser usado no cadastro para reaproveitar um arquivo já enviado anteriormente.' }),
+    .openapi({ description: 'Receipt key in R2 storage. Can be used during registration to reuse a previously uploaded file.' }),
 })
 
 export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true })
@@ -37,19 +37,19 @@ export const UploadReceiptSchema = z.object({
     .openapi({
       type: 'string',
       format: 'binary',
-      description: `Arquivo de comprovante (PDF, JPG, PNG). Tamanho máximo permitido: ${RECEIPT_UPLOAD_MAX_SIZE_MB}MB.`,
+      description: `Receipt file (PDF, JPG, PNG). Maximum size allowed: ${RECEIPT_UPLOAD_MAX_SIZE_MB}MB.`,
     }),
 })
 
 export const ReceiptDownloadUrlSchema = z.object({
   url: z.url()
     .openapi({
-      description: 'URL assinada para download do comprovante',
+      description: 'Signed URL for receipt download',
       example: 'https://r2.example.com/comprovantes/inscricao_uuid_receipt.pdf?token=...',
     }),
   expiresIn: z.number()
     .openapi({
-      description: 'Tempo de expiração da URL em segundos',
+      description: 'URL expiration time in seconds',
       example: COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS,
     }),
 })

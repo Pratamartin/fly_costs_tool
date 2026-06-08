@@ -7,6 +7,7 @@ import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
 import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -63,6 +64,7 @@ describe('[Expense Visibility] - Role-based isolation', () => {
 
   it('aluno visualiza apenas suas próprias despesas', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: alunoHeaders })
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
     expect(json).toHaveLength(5) // Todas as 5 criadas no beforeAll são do alunoId
@@ -70,6 +72,7 @@ describe('[Expense Visibility] - Role-based isolation', () => {
 
   it('coordenador visualiza despesas PENDENTE, APROVADO, REJEITADO', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: coordenadorHeaders })
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -83,6 +86,7 @@ describe('[Expense Visibility] - Role-based isolation', () => {
 
   it('admin visualiza despesas APROVADO, EM_EDICAO, EM_PROCESSAMENTO, CONCLUIDO', async () => {
     const res = await client.expenses.$get({ query: {} }, { headers: adminHeaders })
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -118,6 +122,6 @@ describe('[Expense Visibility] - Role-based isolation', () => {
 
     // Tenta acessar via ID
     const res = await client.expenses[':id'].$get({ param: { id: despesaOutro.id } }, { headers: alunoHeaders })
-    assert(res.status === status.NOT_FOUND) // Handler retorna NOT_FOUND se não for do aluno
+    await expectProblem(res, 'FORBIDDEN')
   })
 })

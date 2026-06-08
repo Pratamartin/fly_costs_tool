@@ -1,6 +1,7 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest'
+import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
@@ -10,6 +11,7 @@ import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -67,6 +69,7 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
         ],
       },
     }, { headers: alunoHeaders })
+    expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
@@ -75,6 +78,7 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
       param: { id: expenseId },
       json: { status: ExpenseRequestStatus.APROVADO },
     }, { headers: coordenadorHeaders })
+    expect(approveRes.status).toBe(status.OK)
     assert(approveRes.status === status.OK)
 
     // 3. Admin vincula projeto (move para EM_PROCESSAMENTO)
@@ -82,14 +86,12 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
       param: { id: expenseId },
       json: { projectId },
     }, { headers: adminHeaders })
+    expect(assignRes.status).toBe(status.OK)
     assert(assignRes.status === status.OK)
 
-    // 4. Tenta concluir sem breakdowns -> Deve falhar (BAD_REQUEST)
+    // 4. Tenta concluir sem breakdowns -> Deve falhar (MISSING_BREAKDOWNS)
     const concludeFail1 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    assert(concludeFail1.status === status.BAD_REQUEST)
-
-    const err1 = await concludeFail1.json()
-    expect(err1.message).toContain('não possui custos registrados')
+    await expectProblem(concludeFail1, 'MISSING_BREAKDOWNS')
 
     // 5. Adiciona breakdown sem comprovante
     const breakdownRes = await client.expenses[':id']['cost-breakdowns'].$post({
@@ -99,15 +101,13 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
         subcategoryName,
       },
     }, { headers: adminHeaders })
+    expect(breakdownRes.status).toBe(status.CREATED)
     assert(breakdownRes.status === status.CREATED)
     const { id: breakdownId } = await breakdownRes.json()
 
-    // 6. Tenta concluir com breakdown sem comprovante -> Deve falhar (BAD_REQUEST)
+    // 6. Tenta concluir com breakdown sem comprovante -> Deve falhar (MISSING_RECEIPTS)
     const concludeFail2 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    assert(concludeFail2.status === status.BAD_REQUEST)
-
-    const err2 = await concludeFail2.json()
-    expect(err2.message).toContain('custos sem comprovantes')
+    await expectProblem(concludeFail2, 'MISSING_RECEIPTS')
 
     // 7. Simula upload de comprovante via DB
     await prisma.costBreakdown.update({
@@ -115,8 +115,32 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
       data: { attachmentKey: 'fake-key' },
     })
 
+    // [VALIDAÇÃO]: Testar falha de upload (MIME Type)
+    const badFile = new File(['fake'], 'memo.txt', { type: 'text/plain' })
+    const uploadBadMimeRes = await client.expenses[':id'].memorandum.$post({
+      param: { id: expenseId },
+      form: { file: badFile },
+    }, { headers: alunoHeaders })
+
+    const badMimeJson = await expectProblem(uploadBadMimeRes, 'UNSUPPORTED_MEDIA_TYPE')
+    expect(badMimeJson).toHaveProperty('allowedMimeTypes')
+
+    // [VALIDAÇÃO]: Testar falha de upload (Size)
+    const hugeSize = (MEMORANDUM_UPLOAD_MAX_SIZE_MB + 1) * 1024 * 1024
+    const hugeFile = new File([new ArrayBuffer(hugeSize)], 'huge.pdf', { type: 'application/pdf' })
+    const uploadHugeRes = await client.expenses[':id'].memorandum.$post({
+      param: { id: expenseId },
+      form: { file: hugeFile },
+    }, { headers: alunoHeaders })
+
+    const hugeJson = await expectProblem(uploadHugeRes, 'FILE_TOO_LARGE')
+    expect(hugeJson).toMatchObject({ maxSizeMB: MEMORANDUM_UPLOAD_MAX_SIZE_MB })
+
+
+
     // 8. Conclui com sucesso
     const concludeSuccess = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
+    expect(concludeSuccess.status).toBe(status.OK)
     assert(concludeSuccess.status === status.OK)
 
     const finalExpense = await concludeSuccess.json()
@@ -140,26 +164,29 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
         ],
       },
     }, { headers: alunoHeaders })
+    expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
-    await client.expenses[':id'].status.$patch({
+    const approveRes = await client.expenses[':id'].status.$patch({
       param: { id: expenseId },
       json: { status: ExpenseRequestStatus.APROVADO },
     }, { headers: coordenadorHeaders })
+    assert(approveRes.status === status.OK)
 
-    await client.expenses[':id']['assign-project'].$patch({
+    const assignRes = await client.expenses[':id']['assign-project'].$patch({
       param: { id: expenseId },
       json: { projectId },
     }, { headers: adminHeaders })
+    assert(assignRes.status === status.OK)
 
     // Tenta como Aluno
     const resAluno = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: alunoHeaders })
-    assert(resAluno.status === status.FORBIDDEN)
+    await expectProblem(resAluno, 'FORBIDDEN')
 
     // Tenta como Coordenador
     const resCoord = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: coordenadorHeaders })
-    assert(resCoord.status === status.FORBIDDEN)
+    await expectProblem(resCoord, 'FORBIDDEN')
   })
 
   it('[CONFLITO]: Não pode concluir se não estiver em EM_PROCESSAMENTO', async () => {
@@ -179,10 +206,11 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
         ],
       },
     }, { headers: alunoHeaders })
+    expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
     const res = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
-    assert(res.status === status.CONFLICT)
+    await expectProblem(res, 'INVALID_EXPENSE_STATE')
   })
 })

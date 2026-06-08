@@ -1,10 +1,9 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
+import type { ServiceResult } from '@/lib/problems'
 import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
-import * as phrases from 'stoker/http-status-phrases'
-import { EXPENSE_ERROR_CODES, EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
-import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
@@ -60,12 +59,12 @@ export type ExpenseWithRelations = Prisma.ExpenseRequestGetPayload<{
   include: typeof expenseInclude
 }>
 
-export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ExpenseWithRelations | { error: string }> {
+export async function createExpenseRequest(userId: string, data: CreateExpenseDTO): Promise<ServiceResult<ExpenseWithRelations, 'VALIDATION_ERROR' | 'INTERNAL_SERVER_ERROR'>> {
   const { surveyAnswers, event, article, ...rest } = data
 
-  const validationError = await validateAnswers(surveyAnswers)
-  if (validationError) {
-    return { error: validationError }
+  const validationResult = await validateAnswers(surveyAnswers)
+  if ('error' in validationResult) {
+    return validationResult
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -88,55 +87,60 @@ export async function createExpenseRequest(userId: string, data: CreateExpenseDT
       )
     }
 
-    const finalExpense = await tx.expenseRequest.findUnique({
+    return tx.expenseRequest.findUnique({
       where: { id: expense.id },
       include: expenseInclude,
     })
-
-    if (!finalExpense) {
-      throw new Error('Falha ao recuperar a despesa após criação.')
-    }
-
-    return finalExpense
   })
 
-  return result as ExpenseWithRelations
+  if (!result) {
+    return { error: 'INTERNAL_SERVER_ERROR' }
+  }
+
+  return result
 }
 
 export async function getAllExpenseRequests(
   userId: string,
   role: UserRole,
   filters: z.infer<typeof ExpenseListQuerySchema>,
-) {
+): Promise<ServiceResult<Prisma.ExpenseRequestGetPayload<object>[], 'UNAUTHORIZED'>> {
   const visibility: Prisma.ExpenseRequestWhereInput
     = role === UserRole.ALUNO
       ? { studentId: userId }
       : { status: { in: EXPENSE_VISIBILITY_BY_ROLE[role] } }
 
-  return prisma.expenseRequest.findMany({
+  const data = await prisma.expenseRequest.findMany({
     where: { AND: [filters, visibility] },
     orderBy: { createdAt: 'desc' },
   })
+
+  return data
 }
 
 export async function getExpenseById(
   id: string,
   userId: string,
   role: UserRole,
-): Promise<ExpenseWithRelations | null> {
-  const where: Prisma.ExpenseRequestWhereInput = { id }
-
-  if (role === UserRole.ALUNO) {
-    where.studentId = userId
-  }
-  else {
-    where.status = { in: EXPENSE_VISIBILITY_BY_ROLE[role] }
-  }
-
-  return prisma.expenseRequest.findFirst({
-    where,
+): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN'>> {
+  const expense = await prisma.expenseRequest.findUnique({
+    where: { id },
     include: expenseInclude,
   })
+
+  if (!expense) {
+    return { error: 'EXPENSE_NOT_FOUND' }
+  }
+
+  if (role === UserRole.ALUNO && expense.studentId !== userId) {
+    return { error: 'FORBIDDEN' }
+  }
+
+  if (role !== UserRole.ADMIN && role !== UserRole.ALUNO && !EXPENSE_VISIBILITY_BY_ROLE[role].includes(expense.status)) {
+    return { error: 'FORBIDDEN' }
+  }
+
+  return expense
 }
 
 export async function updateExpenseStatus(
@@ -144,24 +148,32 @@ export async function updateExpenseStatus(
   newStatus: ExpenseRequestStatus,
   userRole: UserRole,
   reason?: string | null,
-): Promise<ExpenseWithRelations | { error: string }> {
+): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'INVALID_TRANSITION' | 'FORBIDDEN' | 'MISSING_REASON'>> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
   if (newStatus === ExpenseRequestStatus.EM_EDICAO && userRole !== UserRole.ADMIN) {
-    return { error: phrases.FORBIDDEN }
+    return { error: 'FORBIDDEN' }
   }
 
   const allowedStatuses = EXPENSE_STATUS_TRANSITIONS[existingRequest.status]
   if (!allowedStatuses.includes(newStatus)) {
-    return { error: phrases.CONFLICT }
+    return {
+      error: 'INVALID_TRANSITION',
+      context: {
+        resourceState: {
+          current: existingRequest.status,
+          allowed: allowedStatuses,
+        },
+      },
+    }
   }
 
   if (STATUSES_WHERE_REASON_REQUIRED.includes(newStatus) && !reason) {
-    return { error: EXPENSE_ERROR_CODES.REASON_REQUIRED }
+    return { error: 'MISSING_REASON' }
   }
 
   const updateData: Prisma.ExpenseRequestUpdateInput = { status: newStatus }
@@ -194,28 +206,38 @@ export async function updateExpenseStatus(
   return updatedRequest
 }
 
-export async function assignProjectToExpense(expenseId: string, projectId: string): Promise<ExpenseWithRelations | { error: string }> {
+export async function assignProjectToExpense(expenseId: string, projectId: string): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'PROJECT_INSUFFICIENT_FUNDS'>> {
   const expense = await prisma.expenseRequest.findUnique({ where: { id: expenseId } })
   if (!expense) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
   const allowedNext = EXPENSE_STATUS_TRANSITIONS[expense.status]
   if (!allowedNext.includes(ExpenseRequestStatus.EM_PROCESSAMENTO)) {
-    return { error: phrases.CONFLICT }
+    return {
+      error: 'INVALID_EXPENSE_STATE',
+      context: {
+        resourceState: {
+          current: expense.status,
+          required: [ExpenseRequestStatus.APROVADO],
+        },
+      },
+    }
   }
 
-  const budgetMetrics = await getProjectBudgetMetrics(projectId)
-  if ('error' in budgetMetrics) {
-    return { error: budgetMetrics.error }
+  const result = await getProjectBudgetMetrics(projectId)
+  if ('error' in result) {
+    return { error: result.error }
   }
+
+  const budgetMetrics = result
 
   if (!budgetMetrics.isActive) {
-    return { error: PROJECT_ERROR_CODES.PROJECT_ARCHIVED }
+    return { error: 'PROJECT_ARCHIVED' }
   }
 
   if (budgetMetrics.available.lessThanOrEqualTo(0)) {
-    return { error: PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS }
+    return { error: 'PROJECT_INSUFFICIENT_FUNDS' }
   }
 
   const updatedExpense = await prisma.expenseRequest.update({
@@ -235,30 +257,32 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
 
   return updatedExpense
 }
-
 export async function attachMemorandumToExpense(
   expenseId: string,
   userId: string,
   file: File,
-): Promise<ExpenseWithRelations | { error: string }> {
+): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'STORAGE_UNAVAILABLE' | 'FORBIDDEN' | 'INVALID_EXPENSE_STATE' | 'FILE_TOO_LARGE' | 'UNSUPPORTED_MEDIA_TYPE'>> {
   if (!isStorageConfigured()) {
-    return { error: EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED }
+    return { error: 'STORAGE_UNAVAILABLE' }
   }
 
   const expense = await prisma.expenseRequest.findUnique({ where: { id: expenseId } })
   if (!expense) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
   if (expense.studentId !== userId) {
-    return { error: phrases.FORBIDDEN }
+    return { error: 'FORBIDDEN' }
   }
   if (expense.status !== ExpenseRequestStatus.PENDENTE) {
-    return { error: phrases.CONFLICT }
+    return { error: 'INVALID_EXPENSE_STATE' }
   }
 
   const validation = await validatePDF(file)
   if (!validation.valid) {
-    return { error: validation.error ?? 'INVALID_FILE' }
+    if (validation.error?.includes('size')) {
+      return { error: 'FILE_TOO_LARGE' }
+    }
+    return { error: 'UNSUPPORTED_MEDIA_TYPE' }
   }
 
   if (expense.attachmentKey) {
@@ -287,9 +311,9 @@ export async function getMemorandumDownloadUrl(
   expenseId: string,
   userId: string,
   role: UserRole,
-): Promise<{ url: string, expiresIn: number } | { error: string }> {
+): Promise<ServiceResult<{ url: string, expiresIn: number }, 'EXPENSE_NOT_FOUND' | 'STORAGE_UNAVAILABLE' | 'MISSING_MEMO' | 'FORBIDDEN'>> {
   if (!isStorageConfigured()) {
-    return { error: EXPENSE_ERROR_CODES.STORAGE_NOT_CONFIGURED }
+    return { error: 'STORAGE_UNAVAILABLE' }
   }
 
   const expense = await prisma.expenseRequest.findUnique({
@@ -301,15 +325,15 @@ export async function getMemorandumDownloadUrl(
   })
 
   if (!expense) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
   if (!expense.attachmentKey) {
-    return { error: EXPENSE_ERROR_CODES.MEMORANDUM_MISSING }
+    return { error: 'MISSING_MEMO' }
   }
 
   if (role === UserRole.ALUNO && expense.studentId !== userId) {
-    return { error: phrases.FORBIDDEN }
+    return { error: 'FORBIDDEN' }
   }
 
   const url = await getSignedDownloadUrl(expense.attachmentKey, MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS)
@@ -323,27 +347,27 @@ export async function updateExpense(
   id: string,
   studentId: string,
   data: UpdateExpenseDTO,
-): Promise<ExpenseWithRelations | { error: string }> {
+): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_EXPENSE_STATE' | 'VALIDATION_ERROR'>> {
   const existingRequest = await prisma.expenseRequest.findUnique({ where: { id } })
 
   if (!existingRequest) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
   if (existingRequest.studentId !== studentId) {
-    return { error: phrases.FORBIDDEN }
+    return { error: 'FORBIDDEN' }
   }
 
   if (existingRequest.status !== ExpenseRequestStatus.EM_EDICAO) {
-    return { error: phrases.CONFLICT }
+    return { error: 'INVALID_EXPENSE_STATE' }
   }
 
   const { surveyAnswers, event, article, ...rest } = data
 
   if (surveyAnswers) {
-    const validationError = await validateAnswers(surveyAnswers)
-    if (validationError) {
-      return { error: validationError }
+    const validationResult = await validateAnswers(surveyAnswers)
+    if ('error' in validationResult) {
+      return validationResult
     }
   }
 
@@ -380,37 +404,37 @@ export async function updateExpense(
     })
   })
 
-  return result as ExpenseWithRelations
+  return result
 }
 
 export async function concludeExpenseRequest(
   id: string,
   userRole: UserRole,
-): Promise<ExpenseWithRelations | { error: string }> {
+): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_EXPENSE_STATE' | 'MISSING_BREAKDOWNS' | 'MISSING_RECEIPTS'>> {
   const expense = await prisma.expenseRequest.findUnique({
     where: { id },
     include: { costBreakdowns: true },
   })
 
   if (!expense) {
-    return { error: phrases.NOT_FOUND }
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
   if (userRole !== UserRole.ADMIN) {
-    return { error: phrases.FORBIDDEN }
+    return { error: 'FORBIDDEN' }
   }
 
   if (expense.status !== ExpenseRequestStatus.EM_PROCESSAMENTO) {
-    return { error: phrases.CONFLICT }
+    return { error: 'INVALID_EXPENSE_STATE' }
   }
 
   if (expense.costBreakdowns.length === 0) {
-    return { error: EXPENSE_ERROR_CODES.MISSING_BREAKDOWNS }
+    return { error: 'MISSING_BREAKDOWNS' }
   }
 
   const missingReceipts = expense.costBreakdowns.some(cb => !cb.attachmentKey)
   if (missingReceipts) {
-    return { error: EXPENSE_ERROR_CODES.MISSING_RECEIPTS }
+    return { error: 'MISSING_RECEIPTS' }
   }
 
   const updatedExpense = await prisma.expenseRequest.update({
