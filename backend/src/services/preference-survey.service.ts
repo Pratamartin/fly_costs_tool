@@ -1,6 +1,7 @@
 import type { AnySchema, ValidateFunction } from 'ajv'
 import type { Prisma } from '@/generated/prisma/client'
-import { PREFERENCE_SURVEY_ERROR_CODES } from '@/constants/preference-survey.constant'
+import type { ServiceResult } from '@/lib/problems'
+import { ZodIssueCode } from 'zod'
 import ajv from '@/lib/json-schema-validator'
 import prisma from '@/lib/orm'
 
@@ -34,9 +35,18 @@ export async function getActiveSurveyByCategoryId(categoryId: string) {
   })
 }
 
-export async function validateAnswers(answers: { expenseCategoryId: string, data: Record<string, unknown> }[]) {
+export async function validateAnswers(answers: { expenseCategoryId: string, data: Record<string, unknown> }[]): Promise<ServiceResult<{ success: true }, 'VALIDATION_ERROR'>> {
   if (!answers || !Array.isArray(answers) || answers.length === 0) {
-    return PREFERENCE_SURVEY_ERROR_CODES.AT_LEAST_ONE_ANSWER_REQUIRED
+    return {
+      error: 'VALIDATION_ERROR',
+      context: {
+        errors: [{
+          field: 'surveyAnswers',
+          message: 'AT_LEAST_ONE_ANSWER_REQUIRED',
+          code: ZodIssueCode.custom,
+        }],
+      },
+    }
   }
 
   // Otimização: Busca em lote para evitar N+1 queries
@@ -52,7 +62,16 @@ export async function validateAnswers(answers: { expenseCategoryId: string, data
     const survey = surveys.find(s => s.expenseCategoryId === answer.expenseCategoryId)
 
     if (!survey) {
-      return PREFERENCE_SURVEY_ERROR_CODES.SURVEY_NOT_FOUND
+      return {
+        error: 'VALIDATION_ERROR',
+        context: {
+          errors: [{
+            field: 'surveyAnswers',
+            message: 'SURVEY_NOT_FOUND',
+            code: ZodIssueCode.custom,
+          }],
+        },
+      }
     }
 
     // Otimização: Uso de cache para o validador compilado
@@ -66,10 +85,19 @@ export async function validateAnswers(answers: { expenseCategoryId: string, data
 
     if (!valid) {
       const error = validate.errors?.[0]
-      return error?.message || PREFERENCE_SURVEY_ERROR_CODES.INVALID_SURVEY_DATA
+      return {
+        error: 'VALIDATION_ERROR',
+        context: {
+          errors: [{
+            field: `surveyAnswers.${answer.expenseCategoryId}`,
+            message: error?.message || 'INVALID_SURVEY_DATA',
+            code: ZodIssueCode.custom,
+          }],
+        },
+      }
     }
   }
-  return null
+  return { success: true }
 }
 
 export async function createSurveyAnswer(
@@ -81,7 +109,7 @@ export async function createSurveyAnswer(
   const survey = await getActiveSurveyByCategoryId(categoryId)
 
   if (!survey) {
-    throw new Error(PREFERENCE_SURVEY_ERROR_CODES.SURVEY_NOT_FOUND)
+    throw new Error('SURVEY_NOT_FOUND')
   }
 
   return tx.preferenceSurveyAnswer.create({
