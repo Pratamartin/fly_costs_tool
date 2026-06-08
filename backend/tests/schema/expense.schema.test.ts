@@ -113,6 +113,7 @@ describe('updateExpenseStatusSchema', () => {
     assert(issue)
     expect(issue.path).toContain('reason')
     expect(issue.code).toBe('custom')
+    // @ts-expect-error - params is available on custom issues but not always reflected in Zod's base type
     expect(issue.params).toHaveProperty('requiredForStatuses')
   })
 })
