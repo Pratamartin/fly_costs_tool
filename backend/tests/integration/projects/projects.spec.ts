@@ -18,6 +18,7 @@ describe('[Projects] - Gestão de Projetos', () => {
   const subcategory = dummyExpenseCategories[0]!.normalizedName
 
   beforeAll(async () => {
+    await prisma.project.deleteMany()
     await seedUsers()
     await seedExpenseCategories()
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')

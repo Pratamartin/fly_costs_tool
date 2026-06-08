@@ -127,7 +127,7 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     // [VALIDAÇÃO]: Testar falha de upload (Size)
     const hugeSize = (MEMORANDUM_UPLOAD_MAX_SIZE_MB + 1) * 1024 * 1024
-    const hugeFile = new File([new ArrayBuffer(hugeSize)], 'huge.pdf', { type: 'application/pdf' })
+    const hugeFile = new File([new Uint8Array(hugeSize)], 'huge.pdf', { type: 'application/pdf' })
     const uploadHugeRes = await client.expenses[':id'].memorandum.$post({
       param: { id: expenseId },
       form: { file: hugeFile },
@@ -135,8 +135,6 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     const hugeJson = await expectProblem(uploadHugeRes, 'FILE_TOO_LARGE')
     expect(hugeJson).toMatchObject({ maxSizeMB: MEMORANDUM_UPLOAD_MAX_SIZE_MB })
-
-
 
     // 8. Conclui com sucesso
     const concludeSuccess = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
