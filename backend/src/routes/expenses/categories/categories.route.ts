@@ -1,6 +1,7 @@
 import { createRoute } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
+import { registryResponses } from '@/lib/problems'
 import { ListExpenseCategoryQuerySchema, ListExpenseCategoryResponseSchema } from '@/schemas/expense.category.schema'
 
 export type IndexRoute = typeof index
@@ -14,7 +15,8 @@ export const index = createRoute({
   responses: {
     [codes.OK]: jsonContent(
       ListExpenseCategoryResponseSchema,
-      'Lista de categorias retornada com sucesso',
+      'List of categories retrieved successfully.',
     ),
+    ...registryResponses('VALIDATION_ERROR'),
   },
 })

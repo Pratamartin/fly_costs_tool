@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
+import type { ServiceResult } from '@/lib/problems'
 import type { NotificationQuerySchema } from '@/schemas/notification.schema'
 import prisma from '@/lib/orm'
 
@@ -42,14 +43,20 @@ export async function getUserNotifications(
   })
 }
 
-export async function markAsRead(id: string, userId: string) {
-  return prisma.notification.update({
-    where: {
-      id,
-      userId,
-    },
-    data: { isRead: true },
-  })
+export async function markAsRead(id: string, userId: string): Promise<ServiceResult<{ id: string }, 'NOTIFICATION_NOT_FOUND'>> {
+  try {
+    return await prisma.notification.update({
+      where: {
+        id,
+        userId,
+      },
+      data: { isRead: true },
+      select: { id: true },
+    })
+  }
+  catch {
+    return { error: 'NOTIFICATION_NOT_FOUND' }
+  }
 }
 
 export async function markAllAsRead(userId: string) {

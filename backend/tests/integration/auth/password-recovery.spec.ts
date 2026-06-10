@@ -9,6 +9,7 @@ import { dayjs } from '@/lib/date'
 import prisma from '@/lib/orm'
 import { auth } from '@/routes'
 import seedUsers, { dummyUsers } from '@/seeds/user.seed'
+import { expectProblem } from '../../util/assertions'
 
 vi.mock('@/lib/email/providers', () => ({
   createEmailProvider: () => ({
@@ -162,7 +163,7 @@ describe('[Autenticação] Fluxo de Recuperação de Senha', () => {
         },
       })
 
-      expect(res.status).toBe(status.BAD_REQUEST)
+      await expectProblem(res, 'INVALID_TOKEN')
     })
 
     it('[Passo 6] deve retornar 400 para um token inválido', async () => {
@@ -173,7 +174,7 @@ describe('[Autenticação] Fluxo de Recuperação de Senha', () => {
         },
       })
 
-      expect(res.status).toBe(status.BAD_REQUEST)
+      await expectProblem(res, 'INVALID_TOKEN')
     })
   })
 })

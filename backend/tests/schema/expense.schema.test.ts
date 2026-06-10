@@ -44,7 +44,7 @@ describe('createExpenseSchema', () => {
     assert(result.error)
     const issue = result.error.issues.find(i => i.path.includes('surveyAnswers'))
     assert(issue)
-    expect(issue.message).toBe('Selecione pelo menos uma preferência para continuar.')
+    expect(issue.message).toBe('Select at least one preference to continue.')
   })
 
   it('deve falhar quando uma categoria não for um UUID válido', () => {
@@ -109,9 +109,11 @@ describe('updateExpenseStatusSchema', () => {
     const result = UpdateExpenseStatusSchema.safeParse(missingReasonWhenRejectedPayload)
     expect(result.success).toBe(false)
     assert(result.error)
-    const issue = result.error.issues.find(i => i.message.includes('motivo é obrigatório'))
+    const issue = result.error.issues.find(i => i.message.includes('Reason is required'))
     assert(issue)
     expect(issue.path).toContain('reason')
     expect(issue.code).toBe('custom')
+    // @ts-expect-error - params is available on custom issues but not always reflected in Zod's base type
+    expect(issue.params).toHaveProperty('requiredForStatuses')
   })
 })

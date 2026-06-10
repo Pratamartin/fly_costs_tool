@@ -18,7 +18,9 @@ export const EXPENSE_STATUS_TRANSITIONS: Record<ExpenseRequestStatus, ExpenseReq
     ExpenseRequestStatus.APROVADO,
   ],
   [ExpenseRequestStatus.REJEITADO]: [],
-  [ExpenseRequestStatus.EM_PROCESSAMENTO]: [],
+  [ExpenseRequestStatus.EM_PROCESSAMENTO]: [
+    ExpenseRequestStatus.CONCLUIDO,
+  ],
   [ExpenseRequestStatus.CONCLUIDO]: [],
 } as const
 
@@ -36,12 +38,3 @@ export const EXPENSE_VISIBILITY_BY_ROLE: Record<UserRole, ExpenseRequestStatus[]
     ExpenseRequestStatus.CONCLUIDO,
   ],
 }
-
-export const EXPENSE_ERROR_CODES = {
-  REASON_REQUIRED: 'REASON_REQUIRED',
-  RETURN_BEFORE_DEPARTURE: 'RETURN_DATE_BEFORE_DEPARTURE',
-  STORAGE_NOT_CONFIGURED: 'STORAGE_NOT_CONFIGURED',
-  MEMORANDUM_MISSING: 'MEMORANDUM_MISSING',
-  MISSING_BREAKDOWNS: 'MISSING_BREAKDOWNS',
-  MISSING_RECEIPTS: 'MISSING_RECEIPTS',
-} as const

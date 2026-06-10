@@ -7,8 +7,6 @@ vi.mock('@/lib/storage', () => ({
   deleteFile: vi.fn(),
   getSignedDownloadUrl: vi.fn(),
 }))
-import * as phrases from 'stoker/http-status-phrases'
-import { PROJECT_ERROR_CODES } from '@/constants/project.constant'
 import { assignProjectToExpense } from '@/services/expense.service'
 import { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus as E } from '@/generated/prisma/enums'
@@ -26,7 +24,7 @@ const prismaMock = vi.hoisted(() => ({
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
 vi.mock('@/services/preference-survey.service', () => ({
-  validateAnswers: vi.fn().mockResolvedValue(null),
+  validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
@@ -75,7 +73,7 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
     expect(result.projectId).toBe(PROJECT_ID)
   })
 
-  it('não-APROVADO retorna CONFLICT', async () => {
+  it('não-APROVADO retorna INVALID_EXPENSE_STATE', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       id: EXPENSE_ID,
       status: E.PENDENTE,
@@ -83,10 +81,10 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
 
     const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
 
-    expect('error' in result && result.error).toBe(phrases.CONFLICT)
+    expect('error' in result && result.error).toBe('INVALID_EXPENSE_STATE')
   })
 
-  it('validação de budget: saldo 0 retorna INSUFFICIENT_FUNDS', async () => {
+  it('validação de budget: saldo 0 retorna PROJECT_INSUFFICIENT_FUNDS', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       id: EXPENSE_ID,
       status: E.APROVADO,
@@ -95,7 +93,7 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
 
     const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.INSUFFICIENT_FUNDS)
+    expect('error' in result && result.error).toBe('PROJECT_INSUFFICIENT_FUNDS')
   })
 
   it('projeto arquivado retorna PROJECT_ARCHIVED', async () => {
@@ -110,6 +108,6 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
 
     const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
 
-    expect('error' in result && result.error).toBe(PROJECT_ERROR_CODES.PROJECT_ARCHIVED)
+    expect('error' in result && result.error).toBe('PROJECT_ARCHIVED')
   })
 })

@@ -9,6 +9,7 @@ import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { auth } from '@/routes'
 import { seedInviteCodes } from '@/seeds'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(auth))
 
@@ -48,10 +49,7 @@ describe('[Auth] Cadastro de usuário', () => {
 
     const res = await endpoint.$post({ json: basePayload })
 
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
-
-    expect(json).toHaveProperty('message')
+    await expectProblem(res, 'EMAIL_ALREADY_EXISTS')
   })
 
   it('deve retornar erro ao tentar cadastrar com código de convite inválido', async () => {
@@ -63,9 +61,55 @@ describe('[Auth] Cadastro de usuário', () => {
 
     const res = await endpoint.$post({ json: payloadConviteInvalido })
 
-    assert(res.status === status.BAD_REQUEST)
-    const json = await res.json()
+    await expectProblem(res, 'INVALID_INVITE_CODE')
+  })
 
-    expect(json).toHaveProperty('message')
+  describe('validações Semânticas (RFC 9457)', () => {
+    it('deve retornar erro de validação para role inválida (invalid_union)', async () => {
+      const res = await endpoint.$post({
+        json: {
+          ...basePayload,
+          role: 'PRESIDENTE' as any,
+        },
+      })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const errorField = json.errors.find(e => e.field === 'role')
+      expect(errorField).toBeDefined()
+      assert(errorField)
+      expect(errorField.code).toBe('invalid_union')
+      expect(errorField.params).toHaveProperty('discriminator', 'role')
+    })
+
+    it('deve retornar erro de validação para conta bancária inválida (regex custom)', async () => {
+      const res = await endpoint.$post({
+        json: {
+          ...basePayload,
+          email: 'regex@test.com',
+          bankAccount: 'lixo-corrente',
+        },
+      })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const errorField = json.errors.find(e => e.field === 'bankAccount')
+      assert(errorField)
+      expect(errorField.code).toBe('custom')
+      expect(errorField.params).toMatchObject({ format: 'brazilian_account' })
+    })
+
+    it('deve retornar erro de validação para idade insuficiente (minAge)', async () => {
+      const res = await endpoint.$post({
+        json: {
+          ...basePayload,
+          email: 'kid@test.com',
+          birthDate: new Date('2020-01-01'),
+        },
+      })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const errorField = json.errors.find(e => e.field === 'birthDate')
+      assert(errorField)
+      expect(errorField.params).toMatchObject({ minAge: 18 })
+    })
   })
 })

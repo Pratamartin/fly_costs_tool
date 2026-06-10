@@ -1,6 +1,7 @@
 import type { GetNotificationsRoute, MarkAllReadRoute, MarkReadRoute } from './notifications.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
+import { problems } from '@/lib/problems'
 import * as service from '@/services/notifications'
 
 export const getNotifications: AppRouteHandler<GetNotificationsRoute> = async (c) => {
@@ -15,18 +16,18 @@ export const markRead: AppRouteHandler<MarkReadRoute> = async (c) => {
 
   const { id } = c.req.valid('param')
 
-  try {
-    await service.markAsRead(id, jwt.sub)
-    return c.json({ message: 'Notificação marcada como lida' }, codes.OK)
+  const result = await service.markAsRead(id, jwt.sub)
+
+  if ('error' in result) {
+    throw problems.create(result.error)
   }
-  catch {
-    return c.json({ message: 'Notificação não encontrada' }, codes.NOT_FOUND)
-  }
+
+  return c.json({ message: 'Notification marked as read' }, codes.OK)
 }
 
 export const markAllRead: AppRouteHandler<MarkAllReadRoute> = async (c) => {
   const jwt = c.get('jwtPayload')
 
   await service.markAllAsRead(jwt.sub)
-  return c.json({ message: 'Todas as notificações foram marcadas como lidas' }, codes.OK)
+  return c.json({ message: 'All notifications marked as read' }, codes.OK)
 }

@@ -8,13 +8,13 @@ const RegisterBaseSchema = z.object({
   name: z.string().openapi({ example: MOCK_USER.name }),
   email: z.email().meta({ example: MOCK_USER.email }),
   password: z.string()
-    .min(8, 'A senha deve ter pelo menos 8 caracteres')
-    .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula')
-    .regex(/[a-z]/, 'A senha deve conter pelo menos uma letra minúscula')
-    .regex(/\d/, 'A senha deve conter pelo menos um número')
-    .regex(/[^A-Z0-9]/i, 'A senha deve conter pelo menos um caractere especial')
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number')
+    .regex(/[^A-Z0-9]/i, 'Password must contain at least one special character')
     .openapi({
-      description: 'A senha do usuário deve ter no mínimo 8 caracteres, 1 letra maiúscula, 1 número e 1 caractere especial.',
+      description: 'User password must have at least 8 characters, 1 uppercase letter, 1 number, and 1 special character.',
       example: MOCK_USER.password,
     }),
   role: z.enum(UserRole).openapi({ examples: Object.values(UserRole) }),
@@ -46,7 +46,7 @@ export const LoginSchema = RegisterBaseSchema.pick({
 
 export const LoginSuccessSchema = z.object({
   accessToken: z.string().openapi({
-    description: 'JWT (JSON Web Token) para ser utilizado no header de autorização.',
+    description: 'JWT (JSON Web Token) to be used in the authorization header.',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   }),
 })

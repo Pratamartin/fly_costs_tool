@@ -32,17 +32,22 @@ export async function sendStatusChangeEmail(
   tx?: Prisma.TransactionClient,
 ) {
   try {
-    const user = await getUserById(userId, tx)
-    if (!user) {
-      logger.warn({ userId }, 'User not found when trying to send status change email')
+    const userResult = await getUserById(userId, tx)
+    if ('error' in userResult) {
+      logger.warn({
+        userId,
+        error: userResult.error,
+      }, 'User not found when trying to send status change email')
       return
     }
+
+    const user = userResult
 
     const date = dayjs(expense.updatedAt).format('DD [de] MMMM [de] YYYY')
     const reason = getStatusChangeReason(newStatus, expense, extra)
     const detailPage = getExpenseDetailUrl(expense.id, newStatus)
 
-    const result = await emailService.send({
+    const emailResult = await emailService.send({
       to: user.email,
       subject: `SGDA: Atualização de Status - ${expense.title}`,
       template: {
@@ -63,11 +68,11 @@ export async function sendStatusChangeEmail(
       singletonKey: `status_change_${expense.id}_${newStatus}`,
     })
 
-    if (!result.success) {
+    if (!emailResult.success) {
       logger.error({
         userId,
         expenseId: expense.id,
-        error: result.error,
+        error: emailResult.error,
       }, 'Failed to queue status change email')
     }
   }
