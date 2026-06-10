@@ -79,10 +79,13 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       }, { headers: alunoHeaders })
 
       const json = await expectProblem(res, 'VALIDATION_ERROR')
-      const error = json.errors.find(e => e.field === 'event')
+      const error = json.errors.find(e => e.field === 'event.name')
       assert(error)
       expect(error.code).toBe('invalid_type')
-      expect(error.params).toMatchObject({ missingProperty: 'name' })
+      expect(error.params).toMatchObject({
+        expected: 'any',
+        received: 'undefined',
+      })
     })
 
     it('deve falhar se o tamanho mínimo for violado no evento (name < 3)', async () => {
@@ -105,7 +108,7 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       const error = json.errors.find(e => e.field === 'event.name')
       assert(error)
       expect(error.code).toBe('too_small')
-      expect(error.params).toMatchObject({ min: 3 })
+      expect(error.params).toMatchObject({ minimum: 3 })
     })
   })
 
