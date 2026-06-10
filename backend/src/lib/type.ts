@@ -9,6 +9,7 @@ import type { ValidationErrorItem } from '@/schemas/shared.schema'
 export type AppAuthPayload = {
   sub: string
   role: UserRole
+  jti?: string
 }
 
 export type AppContext = {

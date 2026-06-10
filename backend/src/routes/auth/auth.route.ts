@@ -1,4 +1,4 @@
-import { createRoute } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
@@ -11,6 +11,8 @@ export type RegisterRoute = typeof register
 export type LoginRoute = typeof login
 export type ForgotPasswordRoute = typeof forgotPassword
 export type ResetPasswordRoute = typeof resetPassword
+export type RefreshRoute = typeof refresh
+export type LogoutRoute = typeof logout
 
 export const register = createRoute({
   path: '/register',
@@ -36,11 +38,55 @@ export const login = createRoute({
   tags,
   request: { body: jsonContentRequired(LoginSchema, 'User credentials') },
   responses: {
+    [codes.OK]: {
+      content: { 'application/json': { schema: LoginSuccessSchema } },
+      description: 'Authentication successful. The access token is returned in the response body, and a refresh token is set in an httpOnly cookie.',
+      headers: z.object({
+        'Set-Cookie': z.string().openapi({
+          description: 'The refresh token in an httpOnly cookie.',
+          example: 'refreshToken=...; HttpOnly; SameSite=Lax',
+        }),
+      }),
+    },
+    ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
+  },
+})
+
+export const refresh = createRoute({
+  path: '/refresh',
+  method: 'post',
+  summary: 'Refresh access token',
+  description: 'Issues a new access token using a valid refresh token from cookies.',
+  tags,
+  request: {},
+  responses: {
     [codes.OK]: jsonContent(
       LoginSuccessSchema,
-      'Authentication successful. The access token is returned in the response body.',
+      'New access token issued.',
     ),
-    ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
+    ...registryResponses('UNAUTHORIZED'),
+  },
+})
+
+export const logout = createRoute({
+  path: '/logout',
+  method: 'post',
+  summary: 'Logout user',
+  description: 'Invalidates the current session and clears the refresh token cookie.',
+  tags,
+  request: {},
+  responses: {
+    [codes.OK]: {
+      description: 'User logged out successfully.',
+      headers: z.object({
+        'Set-Cookie': z.string().openapi({
+          description: 'Clears the refresh token cookie.',
+          example: 'refreshToken=; Max-Age=0; Path=/; HttpOnly',
+        }),
+      }),
+      content: { 'application/json': { schema: createMessageObjectSchema('Logged out successfully.') } },
+    },
+    ...registryResponses('UNAUTHORIZED'),
   },
 })
 

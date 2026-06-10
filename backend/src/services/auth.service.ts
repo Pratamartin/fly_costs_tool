@@ -1,13 +1,15 @@
-import type { z } from '@hono/zod-openapi'
+import type { Prisma, UserSession } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
 import type { AppAuthPayload } from '@/lib/type'
 import type { LoginSchema } from '@/schemas/auth.schema'
-import crypto from 'node:crypto'
+import crypto, { randomUUID } from 'node:crypto'
+import { z } from '@hono/zod-openapi'
 import bcrypt, { compare } from 'bcryptjs'
-import { sign } from 'hono/jwt'
+import { sign, verify } from 'hono/jwt'
 import { PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant'
 import { mockInviteCode } from '@/constants/invite.constant'
 import env from '@/env'
+import { UserRole } from '@/generated/prisma/client'
 import { dayjs } from '@/lib/date'
 import prisma from '@/lib/orm'
 import { getUserByEmail } from './user.service'
@@ -44,6 +46,95 @@ export async function generateAccessToken(payload: AppAuthPayload, secret: strin
   )
 
   return token
+}
+
+export const sessionInclude = { user: true } satisfies Prisma.UserSessionInclude
+
+export type SessionWithUser = Prisma.UserSessionGetPayload<{
+  include: typeof sessionInclude
+}>
+
+export async function createSession(userId: string): Promise<UserSession> {
+  const jti = randomUUID()
+  const expiresAt = dayjs().add(env.REFRESH_TOKEN_EXPIRES_DAYS, 'day')
+    .toDate()
+
+  return prisma.userSession.create({
+    data: {
+      jti,
+      userId,
+      expiresAt,
+    },
+  })
+}
+
+export async function generateRefreshToken(payload: AppAuthPayload, jti: string): Promise<string> {
+  const token = await sign(
+    {
+      ...payload,
+      jti,
+      exp: dayjs().add(env.REFRESH_TOKEN_EXPIRES_DAYS, 'day')
+        .unix(),
+    },
+    env.JWT_REFRESH_SECRET,
+  )
+
+  return token
+}
+
+export async function verifyRefreshToken(token: string): Promise<ServiceResult<AppAuthPayload & { jti: string }, 'UNAUTHORIZED'>> {
+  try {
+    const rawPayload = await verify(token, env.JWT_REFRESH_SECRET, 'HS256')
+    const payload = z.object({
+      sub: z.string(),
+      role: z.enum(UserRole),
+      jti: z.string(),
+    }).parse(rawPayload)
+
+    return payload as AppAuthPayload & { jti: string }
+  }
+  catch {
+    return { error: 'UNAUTHORIZED' }
+  }
+}
+
+export async function validateSession(jti: string): Promise<ServiceResult<SessionWithUser, 'UNAUTHORIZED'>> {
+  const session = await prisma.userSession.findUnique({
+    where: { jti },
+    include: sessionInclude,
+  })
+
+  if (!session || session.revokedAt || dayjs().isAfter(session.expiresAt) || !session.user.isActive) {
+    return { error: 'UNAUTHORIZED' }
+  }
+
+  return session
+}
+export async function extendSession(jti: string): Promise<ServiceResult<UserSession, 'UNAUTHORIZED'>> {
+  try {
+    const expiresAt = dayjs().add(env.REFRESH_TOKEN_EXPIRES_DAYS, 'day')
+      .toDate()
+
+    return await prisma.userSession.update({
+      where: { jti },
+      data: { expiresAt },
+    })
+  }
+  catch {
+    return { error: 'UNAUTHORIZED' }
+  }
+}
+export async function revokeSession(jti: string): Promise<ServiceResult<{ success: true }, 'UNAUTHORIZED'>> {
+  const result = await prisma.userSession.updateMany({
+    where: { jti },
+    data: { revokedAt: new Date() },
+  })
+
+  if (result.count === 0) {
+    return { error: 'UNAUTHORIZED' }
+  }
+
+  return { success: true }
 }
 
 export async function createPasswordResetToken(email: string): Promise<ServiceResult<{ token: string }, 'USER_NOT_FOUND'>> {
