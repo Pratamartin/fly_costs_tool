@@ -13,6 +13,12 @@ export const PROBLEM_DEFINITIONS = {
     type: 'urn:sgda:auth:security:unauthorized',
     detail: 'Access denied. You must be authenticated to continue.',
   },
+  SESSION_EXPIRED: {
+    status: 401,
+    title: 'Session Expired',
+    type: 'urn:sgda:auth:security:session-expired',
+    detail: 'Your access token has expired. Please refresh your session.',
+  },
   INVALID_CREDENTIALS: {
     status: 401,
     title: 'Invalid credentials',

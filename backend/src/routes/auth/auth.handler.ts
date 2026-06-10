@@ -1,11 +1,13 @@
-import type { ForgotPasswordRoute, LoginRoute, RegisterRoute, ResetPasswordRoute } from './auth.route'
+import type { ForgotPasswordRoute, LoginRoute, LogoutRoute, RefreshRoute, RegisterRoute, ResetPasswordRoute } from './auth.route'
 import type { AppRouteHandler } from '@/lib/type'
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import * as codes from 'stoker/http-status-codes'
+import { getRefreshTokenCookieOptions } from '@/constants/auth.constant'
 import env from '@/env'
 import { emailService } from '@/lib/email/service'
 import prisma from '@/lib/orm'
 import { problems } from '@/lib/problems'
-import { createPasswordResetToken, generateAccessToken, resetPassword as resetPasswordService, verifyCredentials } from '@/services/auth.service'
+import { createPasswordResetToken, createSession, extendSession, generateAccessToken, generateRefreshToken, resetPassword as resetPasswordService, revokeSession, validateSession, verifyCredentials, verifyRefreshToken } from '@/services/auth.service'
 import { findInviteByCode, validateAndConsume } from '@/services/invite.service'
 import { createUser, getUserByEmail } from '@/services/user.service'
 
@@ -55,7 +57,65 @@ export const login: AppRouteHandler<LoginRoute> = async (c) => {
 
   const accessToken = await generateAccessToken(result, env.JWT_SECRET)
 
+  const session = await createSession(result.sub)
+  const refreshToken = await generateRefreshToken(result, session.jti)
+
+  setCookie(c, 'refreshToken', refreshToken, getRefreshTokenCookieOptions())
+
   return c.json({ accessToken }, codes.OK)
+}
+
+export const refresh: AppRouteHandler<RefreshRoute> = async (c) => {
+  const refreshToken = getCookie(c, 'refreshToken')
+
+  if (!refreshToken) {
+    throw problems.create('UNAUTHORIZED')
+  }
+
+  const result = await verifyRefreshToken(refreshToken)
+
+  if ('error' in result) {
+    throw problems.create(result.error)
+  }
+
+  const sessionResult = await validateSession(result.jti)
+
+  if ('error' in sessionResult) {
+    throw problems.create(sessionResult.error)
+  }
+
+  // Sliding Session: Estende a sessão no banco e rotaciona o cookie
+  const extensionResult = await extendSession(result.jti)
+  if ('error' in extensionResult) {
+    throw problems.create(extensionResult.error)
+  }
+
+  const newRefreshToken = await generateRefreshToken({
+    sub: sessionResult.userId,
+    role: sessionResult.user.role,
+  }, result.jti)
+
+  setCookie(c, 'refreshToken', newRefreshToken, getRefreshTokenCookieOptions())
+
+  const accessToken = await generateAccessToken({
+    sub: sessionResult.userId,
+    role: sessionResult.user.role,
+  }, env.JWT_SECRET)
+
+  return c.json({ accessToken }, codes.OK)
+}
+
+export const logout: AppRouteHandler<LogoutRoute> = async (c) => {
+  const refreshToken = deleteCookie(c, 'refreshToken', getRefreshTokenCookieOptions())
+
+  if (refreshToken) {
+    const result = await verifyRefreshToken(refreshToken)
+    if (!('error' in result)) {
+      await revokeSession(result.jti)
+    }
+  }
+
+  return c.json({ message: 'Logged out successfully.' }, codes.OK)
 }
 
 export const forgotPassword: AppRouteHandler<ForgotPasswordRoute> = async (c) => {

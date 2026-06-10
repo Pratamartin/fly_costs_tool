@@ -46,29 +46,13 @@
       ```env
       DATABASE_URL="postgresql://user:password@localhost:5432/flycostsdb"
       ```
+   **JWT_SECRET**: Chave p/ Access Token. Gere com: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
 
-   **JWT_SECRET**:
-    - Chave mestra utilizada para assinar e validar os tokens de autenticação (JWT).
-    - **Geração:** Gere uma chave segura executando o comando no terminal:
-      ```bash
-      node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-      ```
-    - Atribua o valor gerado ao seu `.env`:
-      ```env
-      JWT_SECRET="seu_token_gerado_aqui"
-      ```
+   **JWT_REFRESH_SECRET**: Chave p/ Refresh Token. Gere outra chave com o mesmo comando.
 
-   **JWT_EXPIRE_AT**:
-    - Define o tempo de vida útil do token, em segundos, a partir do momento da emissão.
-    - **Formato:** Valor numérico inteiro representando o total de segundos.
-    - **Exemplos comuns:**
-        - `3600` (1 hora)
-        - `86400` (1 dia)
-        - `604800` (1 semana)
-    - Atribua o valor desejado (exemplo de 1 dia):
-      ```env
-      JWT_EXPIRE_AT=86400
-      ```
+   **JWT_EXPIRES_IN**: Duração do Access Token (s). Ex: `1800` (30m).
+
+   **REFRESH_TOKEN_EXPIRES_DAYS**: Duração da sessão deslizante (dias). Ex: `14`.
 
 4. **Iniciando a aplicação:**
     ```bash
