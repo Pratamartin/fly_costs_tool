@@ -2,7 +2,7 @@ import type { AnySchema, ValidateFunction } from 'ajv'
 import type { Prisma } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
 import { ZodIssueCode } from 'zod'
-import ajv from '@/lib/json-schema-validator'
+import ajv, { formatAjvErrors } from '@/lib/json-schema-validator'
 import prisma from '@/lib/orm'
 
 /**
@@ -58,7 +58,8 @@ export async function validateAnswers(answers: { expenseCategoryId: string, data
     },
   })
 
-  for (const answer of answers) {
+  for (let i = 0; i < answers.length; i++) {
+    const answer = answers[i]!
     const survey = surveys.find(s => s.expenseCategoryId === answer.expenseCategoryId)
 
     if (!survey) {
@@ -66,7 +67,7 @@ export async function validateAnswers(answers: { expenseCategoryId: string, data
         error: 'VALIDATION_ERROR',
         context: {
           errors: [{
-            field: 'surveyAnswers',
+            field: `surveyAnswers.${i}.expenseCategoryId`,
             message: 'SURVEY_NOT_FOUND',
             code: ZodIssueCode.custom,
           }],
@@ -83,17 +84,17 @@ export async function validateAnswers(answers: { expenseCategoryId: string, data
 
     const valid = validate(answer.data)
 
-    if (!valid) {
-      const error = validate.errors?.[0]
+    if (!valid && validate.errors) {
+      const errors = formatAjvErrors({
+        errors: validate.errors,
+        schema: survey.schema as AnySchema,
+        data: answer.data,
+        basePath: `surveyAnswers.${i}.data`,
+      })
+
       return {
         error: 'VALIDATION_ERROR',
-        context: {
-          errors: [{
-            field: `surveyAnswers.${answer.expenseCategoryId}`,
-            message: error?.message || 'INVALID_SURVEY_DATA',
-            code: ZodIssueCode.custom,
-          }],
-        },
+        context: { errors },
       }
     }
   }

@@ -1,7 +1,6 @@
 import type { BetterAjvErrorsOptions } from '@apideck/better-ajv-errors'
 import type { DefinedError } from 'ajv'
 import type { ValidationErrorItem } from '@/schemas/shared.schema'
-import { betterAjvErrors } from '@apideck/better-ajv-errors'
 import Ajv from 'ajv'
 import addErrors from 'ajv-errors'
 import addFormats from 'ajv-formats'
@@ -46,9 +45,7 @@ export default ajv
 // --- AJV ERROR FORMATTING ---
 
 /**
- * Mapeia keywords do AJV para códigos do Zod (ZodIssueCode)
- * para manter compatibilidade com o contrato ValidationErrorResponse.
- * Usamos os literais exatos do Zod v4.
+ * Mapeia keywords do AJV para códigos do Zod (ZodIssueCode).
  */
 const AJV_TO_ZOD_CODE_MAP: Record<string, typeof ZodIssueCode[keyof typeof ZodIssueCode]> = {
   required: ZodIssueCode.invalid_type,
@@ -64,57 +61,118 @@ const AJV_TO_ZOD_CODE_MAP: Record<string, typeof ZodIssueCode[keyof typeof ZodIs
   format: ZodIssueCode.invalid_format,
   pattern: ZodIssueCode.invalid_format,
   additionalProperties: ZodIssueCode.unrecognized_keys,
+  dateAfter: ZodIssueCode.custom,
 }
 
 const SLASH_START_REGEX = /^\//
 const SLASH_GLOBAL_REGEX = /\//g
 
 /**
- * Formata erros do AJV para o padrão da aplicação.
- * Utiliza @apideck/better-ajv-errors para conversão robusta para Dot Notation.
+ * Formata erros do AJV para o padrão da aplicação de forma determinística.
+ * Aborda diretamente os erros brutos para garantir performance O(N) e caminhos precisos.
  */
 export function formatAjvErrors(options: BetterAjvErrorsOptions): ValidationErrorItem[] {
-  const { errors } = options
+  const { errors, basePath } = options
 
   if (!errors)
     return []
 
-  // 1. Utiliza a biblioteca para converter caminhos e limpar mensagens
-  // O betterAjvErrors já cuida da Dot Notation e de mapear 'required' corretamente.
-  const betterErrors = betterAjvErrors(options)
+  // Cast único para DefinedError para habilitar o Type Narrowing automático do TS no switch
+  return (errors as DefinedError[]).map((err) => {
+    const keyword = err.keyword
 
-  // 2. Mapeia para o nosso contrato final (ValidationErrorItem)
-  return betterErrors.map((err, index) => {
-    // Recupera a keyword do erro original correspondente para manter o código correto
-    const originalError = errors[index] as DefinedError | undefined
-    const code = originalError
-      ? (AJV_TO_ZOD_CODE_MAP[originalError.keyword] || ZodIssueCode.custom)
-      : ZodIssueCode.custom
+    // CONSTRUÇÃO DO DOT NOTATION:
+    // AJV usa "/caminho/do/campo". Convertemos para "caminho.do.campo"
+    let fieldPath = err.instancePath
+      .replace(SLASH_START_REGEX, '')
+      .replace(SLASH_GLOBAL_REGEX, '.')
 
     let params: Record<string, any> | undefined
 
-    if (originalError && 'params' in originalError) {
-      params = { ...originalError.params }
-      // Normalize AJV limits to Zod min/max
-      if (['minLength', 'minItems', 'minimum', 'exclusiveMinimum'].includes(originalError.keyword)) {
-        if (params && 'limit' in params) {
-          params.min = params.limit
-          delete params.limit
+    // TYPE NARROWING: O TS "abre" o tipo do params baseado na keyword
+    switch (keyword) {
+      case 'required': {
+        const missing = err.params.missingProperty
+        fieldPath = fieldPath ? `${fieldPath}.${missing}` : missing
+        params = {
+          expected: 'any',
+          received: 'undefined',
         }
+        break
       }
-      if (['maxLength', 'maxItems', 'maximum', 'exclusiveMaximum'].includes(originalError.keyword)) {
-        if (params && 'limit' in params) {
-          params.max = params.limit
-          delete params.limit
+
+      case 'type':
+        params = { expected: err.params.type }
+        break
+
+      case 'enum':
+        params = { options: err.params.allowedValues }
+        break
+
+      case 'const':
+        params = { expected: err.params.allowedValue }
+        break
+
+      case 'minLength':
+      case 'maxLength': {
+        const isMin = keyword === 'minLength'
+        params = {
+          [isMin ? 'minimum' : 'maximum']: err.params.limit,
+          inclusive: true,
+          type: 'string',
         }
+        break
       }
+
+      case 'minItems':
+      case 'maxItems': {
+        const isMin = keyword === 'minItems'
+        params = {
+          [isMin ? 'minimum' : 'maximum']: err.params.limit,
+          inclusive: true,
+          type: 'array',
+        }
+        break
+      }
+
+      case 'minimum':
+      case 'maximum': {
+        const isMin = keyword === 'minimum'
+        params = {
+          [isMin ? 'minimum' : 'maximum']: err.params.limit,
+          inclusive: true,
+          type: 'number',
+        }
+        break
+      }
+
+      case 'format':
+        params = { validation: err.params.format }
+        break
+
+      case 'pattern':
+        params = { validation: 'regex' }
+        break
+
+      case 'additionalProperties':
+        params = { keys: [err.params.additionalProperty] }
+        break
+
+      default:
+        // Caso para keywords customizadas (ex: dateAfter) ou não mapeadas
+        params = (keyword as string) === 'dateAfter'
+          ? { validation: 'dateAfter' }
+          : (Object.keys(err.params).length > 0 ? err.params : undefined)
     }
 
+    // Se houver um prefixo de contexto (ex: de um middleware), nós o preservamos
+    const field = basePath ? `${basePath}.${fieldPath}` : fieldPath
+
     return {
-      field: err.path.replace(SLASH_START_REGEX, '').replace(SLASH_GLOBAL_REGEX, '.'),
-      message: err.message,
-      code,
-      params: params && Object.keys(params).length > 0 ? params : undefined,
+      field,
+      message: err.message || 'Invalid value',
+      code: AJV_TO_ZOD_CODE_MAP[keyword] || ZodIssueCode.custom,
+      params,
     }
   })
 }
