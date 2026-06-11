@@ -1,5 +1,5 @@
 import type { z } from '@hono/zod-openapi'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma, UserRole } from '@/generated/prisma/client'
 import type { ProfileCreateWithoutUserInput } from '@/generated/prisma/models'
 import type { ServiceResult } from '@/lib/problems'
 import type { RegisterSchema } from '@/schemas/auth.schema'
@@ -68,6 +68,24 @@ export async function getUserById(id: string, tx: Prisma.TransactionClient = pri
   }
 
   return user
+}
+
+export async function getUsersByRoles(
+  roles: UserRole[],
+  tx: Prisma.TransactionClient = prisma,
+) {
+  return tx.user.findMany({
+    where: {
+      role: { in: roles },
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  })
 }
 
 export async function updateUser(id: string, data: UpdateUserDTO): Promise<ServiceResult<UserWithProfile, 'USER_NOT_FOUND' | 'FORBIDDEN' | 'CPF_CONFLICT' | 'PROFILE_NOT_ALLOWED'>> {

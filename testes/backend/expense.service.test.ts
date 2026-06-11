@@ -30,6 +30,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   user: {
     findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   $transaction: vi.fn((cb) => cb(prismaMock)),
 }))

@@ -2,7 +2,7 @@ import type { Job } from 'pg-boss'
 import type { SendEmailInput } from '@/lib/email/type'
 import { EMAIL_ERROR_CODES } from '@/constants/email.constant'
 import { createEmailProvider } from '@/lib/email/providers'
-import { PasswordRecoveryEmail, StatusChangeEmail } from '@/lib/email/templates'
+import { PasswordRecoveryEmail, StaffNotificationEmail, StatusChangeEmail } from '@/lib/email/templates'
 import { renderEmailHtml } from '@/lib/email/util'
 import { BaseJob } from '@/lib/jobs'
 import { logger } from '@/lib/logger'
@@ -43,6 +43,19 @@ export class SendEmailJob extends BaseJob<EmailJobData, void> {
         }
         case 'password-recovery': {
           const component = await PasswordRecoveryEmail(template.props)
+          if (!component) {
+            return {
+              success: false,
+              error: EMAIL_ERROR_CODES.FAILED_TO_RENDER_TEMPLATE,
+            }
+          }
+          return {
+            success: true,
+            html: renderEmailHtml(component.toString()),
+          }
+        }
+        case 'staff-notification': {
+          const component = await StaffNotificationEmail(template.props)
           if (!component) {
             return {
               success: false,

@@ -16,6 +16,18 @@ export async function createInAppNotification(data: {
   })
 }
 
+export async function createManyInAppNotifications(
+  data: { userIds: string[], expenseRequestId: string },
+  tx: Prisma.TransactionClient = prisma,
+) {
+  const notifications = data.userIds.map(userId => ({
+    userId,
+    expenseRequestId: data.expenseRequestId,
+  }))
+
+  return tx.notification.createMany({ data: notifications })
+}
+
 export async function getUserNotifications(
   userId: string,
   filters: z.infer<typeof NotificationQuerySchema> = {},

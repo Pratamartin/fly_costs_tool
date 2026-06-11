@@ -5,6 +5,7 @@ import { createInAppNotification } from './in-app.notification'
 
 export * from './email.notification'
 export * from './in-app.notification'
+export * from './staff.notification'
 
 export async function notifyStatusChange(
   userId: string,
