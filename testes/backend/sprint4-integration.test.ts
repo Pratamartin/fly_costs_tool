@@ -40,6 +40,7 @@ vi.mock('@/services/preference-survey.service', () => ({
 vi.mock('@/services/user.service', () => ({
   getUserByEmail: vi.fn(),
   getUserById: vi.fn(),
+  getUsersByRoles: vi.fn().mockResolvedValue([]),
 }))
 
 const prismaMock = vi.hoisted(() => ({
@@ -59,6 +60,7 @@ const prismaMock = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   $transaction: vi.fn((cb: any) => cb(prismaMock)),
@@ -137,6 +139,8 @@ describe('US 4.0 — notifyStatusChange spy em updateExpenseStatus', () => {
       STUDENT_ID,
       expect.objectContaining({ id: EXPENSE_ID }),
       ExpenseRequestStatus.APROVADO,
+      null,
+      prismaMock,
     )
   })
 

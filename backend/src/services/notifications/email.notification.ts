@@ -1,6 +1,9 @@
 import type { ExpenseRequest, Prisma, Project } from '@/generated/prisma/client'
+import { FRONTEND_PATH_BY_STATUS } from '@/constants/expense.constant'
+import { ROLE_FRONTEND_SLUG } from '@/constants/user.constant'
 import env from '@/env'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
+import { UserRole } from '@/generated/prisma/enums'
 import { dayjs } from '@/lib/date'
 import { emailService } from '@/lib/email/service'
 import { logger } from '@/lib/logger'
@@ -17,11 +20,9 @@ function getStatusChangeReason(status: ExpenseRequestStatus, expense: Pick<Expen
 }
 
 function getExpenseDetailUrl(expenseId: string, status: ExpenseRequestStatus) {
-  const baseUrl = `${env.FRONTEND_URL}/dashboard/student/expenses`
-  if (status === ExpenseRequestStatus.EM_EDICAO) {
-    return `${baseUrl}/edit/${expenseId}`
-  }
-  return `${baseUrl}/detail/${expenseId}`
+  const slug = ROLE_FRONTEND_SLUG[UserRole.ALUNO]
+  const path = FRONTEND_PATH_BY_STATUS[status] ?? 'detail'
+  return `${env.FRONTEND_URL}/dashboard/${slug}/expenses/${path}/${expenseId}`
 }
 
 export async function sendStatusChangeEmail(

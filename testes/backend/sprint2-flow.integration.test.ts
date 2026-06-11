@@ -35,6 +35,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   user: {
     findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   $transaction: vi.fn((cb) => cb(prismaMock)),
 }))
@@ -59,7 +60,10 @@ const txMock = {
   costBreakdown: { create: vi.fn() },
   project: { update: vi.fn() },
   notification: { create: vi.fn() },
-  user: { findUnique: vi.fn() },
+  user: {
+    findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
 }
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'

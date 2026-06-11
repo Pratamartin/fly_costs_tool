@@ -2,7 +2,7 @@ import type { z } from '@hono/zod-openapi'
 import type { Prisma } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
 import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
-import { EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, REQUIRED_ROLE_FOR_STATUS, STAFF_NOTIFICATION_TARGETS_BY_STATUS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
@@ -10,6 +10,7 @@ import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import { getProjectBudgetMetrics } from './budget.service'
 import { notifyStatusChange } from './notifications'
+import { notifyStaffOnStatusChange } from './notifications/staff.notification'
 
 import { createSurveyAnswer, validateAnswers } from './preference-survey.service'
 
@@ -50,7 +51,12 @@ export const expenseInclude = {
       id: true,
       data: true,
       surveyId: true,
-      survey: { select: { schema: true } },
+      survey: {
+        select: {
+          schema: true,
+          expenseCategory: { select: { name: true } },
+        },
+      },
     },
   },
 } satisfies Prisma.ExpenseRequestInclude
@@ -87,10 +93,24 @@ export async function createExpenseRequest(userId: string, data: CreateExpenseDT
       )
     }
 
-    return tx.expenseRequest.findUnique({
+    const result = await tx.expenseRequest.findUnique({
       where: { id: expense.id },
       include: expenseInclude,
     })
+
+    if (result) {
+      const staffTargets = STAFF_NOTIFICATION_TARGETS_BY_STATUS[ExpenseRequestStatus.PENDENTE]
+      if (staffTargets) {
+        await notifyStaffOnStatusChange(
+          result,
+          ExpenseRequestStatus.PENDENTE,
+          staffTargets,
+          tx,
+        )
+      }
+    }
+
+    return result
   })
 
   if (!result) {
@@ -155,7 +175,8 @@ export async function updateExpenseStatus(
     return { error: 'EXPENSE_NOT_FOUND' }
   }
 
-  if (newStatus === ExpenseRequestStatus.EM_EDICAO && userRole !== UserRole.ADMIN) {
+  const requiredRoles = REQUIRED_ROLE_FOR_STATUS[newStatus]
+  if (requiredRoles && !requiredRoles.includes(userRole)) {
     return { error: 'FORBIDDEN' }
   }
 
@@ -191,19 +212,33 @@ export async function updateExpenseStatus(
       break
   }
 
-  const updatedRequest = await prisma.expenseRequest.update({
-    where: { id },
-    data: updateData,
-    include: expenseInclude,
+  return prisma.$transaction(async (tx) => {
+    const updatedRequest = await tx.expenseRequest.update({
+      where: { id },
+      data: updateData,
+      include: expenseInclude,
+    })
+
+    await notifyStatusChange(
+      updatedRequest.studentId,
+      updatedRequest,
+      updatedRequest.status,
+      null,
+      tx,
+    )
+
+    const staffTargets = STAFF_NOTIFICATION_TARGETS_BY_STATUS[newStatus]
+    if (staffTargets) {
+      await notifyStaffOnStatusChange(
+        updatedRequest,
+        newStatus,
+        staffTargets,
+        tx,
+      )
+    }
+
+    return updatedRequest
   })
-
-  await notifyStatusChange(
-    updatedRequest.studentId,
-    updatedRequest,
-    updatedRequest.status,
-  )
-
-  return updatedRequest
 }
 
 export async function assignProjectToExpense(expenseId: string, projectId: string): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'PROJECT_INSUFFICIENT_FUNDS'>> {
@@ -397,11 +432,23 @@ export async function updateExpense(
     if (article)
       updateData.article = article as Prisma.InputJsonValue
 
-    return tx.expenseRequest.update({
+    const result = await tx.expenseRequest.update({
       where: { id },
       data: updateData,
       include: expenseInclude,
     })
+
+    const staffTargets = STAFF_NOTIFICATION_TARGETS_BY_STATUS[ExpenseRequestStatus.APROVADO]
+    if (staffTargets) {
+      await notifyStaffOnStatusChange(
+        result,
+        ExpenseRequestStatus.APROVADO,
+        staffTargets,
+        tx,
+      )
+    }
+
+    return result
   })
 
   return result

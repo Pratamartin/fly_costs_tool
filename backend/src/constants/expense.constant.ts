@@ -38,3 +38,26 @@ export const EXPENSE_VISIBILITY_BY_ROLE: Record<UserRole, ExpenseRequestStatus[]
     ExpenseRequestStatus.CONCLUIDO,
   ],
 }
+
+/**
+ * Mapeia se o aluno deve ser enviado para a página de Detalhes ou Edição.
+ * Por padrão é 'detail', mas EM_EDICAO exige 'edit'.
+ */
+export const FRONTEND_PATH_BY_STATUS: Partial<Record<ExpenseRequestStatus, 'detail' | 'edit'>> = { [ExpenseRequestStatus.EM_EDICAO]: 'edit' }
+
+/**
+ * Restrições extras de cargo para transições específicas.
+ * Ex: Apenas ADMIN pode colocar uma despesa em EM_EDICAO.
+ */
+export const REQUIRED_ROLE_FOR_STATUS: Partial<Record<ExpenseRequestStatus, UserRole[]>> = { [ExpenseRequestStatus.EM_EDICAO]: [UserRole.ADMIN] }
+
+/**
+ * Mapeia quais cargos do staff devem ser notificados baseado no novo status da despesa.
+ *
+ * PENDENTE -> Coordenadores (para avaliação)
+ * APROVADO -> Admins (para processamento financeiro)
+ */
+export const STAFF_NOTIFICATION_TARGETS_BY_STATUS: Partial<Record<ExpenseRequestStatus, UserRole[]>> = {
+  [ExpenseRequestStatus.PENDENTE]: [UserRole.COORDENADOR],
+  [ExpenseRequestStatus.APROVADO]: [UserRole.ADMIN],
+}

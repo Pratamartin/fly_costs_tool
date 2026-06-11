@@ -1,4 +1,5 @@
 export * from './base.layout'
 export * from './components'
 export * from './password-recovery'
+export * from './staff-notification'
 export * from './status-change'
