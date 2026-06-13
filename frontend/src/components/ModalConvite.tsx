@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createInvite, buildInviteLink, type Invite, type InviteRole } from "@/services/invites";
+import { getToken } from "@/lib/getToken";
 
 type Etapa = "configurar" | "gerado";
 
@@ -60,7 +61,7 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
   }
 
   async function handleGerar() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
 
     setErroGerar(null);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { listCategories } from "@/services/categories";
 import type { ExpenseCategory } from "@/services/categories";
+import { getToken } from "@/lib/getToken";
 
 const MIN_TOPICS = 1;
 
@@ -30,7 +31,7 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
 
   useEffect(() => {
     setCarregandoCategorias(true);
-    const token = localStorage.getItem("accessToken") ?? undefined;
+    const token = getToken() || undefined;
     listCategories(undefined, token).then((result) => {
       if (result.ok) {
         setCategorias(result.data);

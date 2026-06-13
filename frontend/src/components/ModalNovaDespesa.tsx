@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { listSurveys, uploadSurveyFile, type Survey } from "@/services/surveys";
+import { getToken } from "@/lib/getToken";
 
 const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
 
@@ -195,7 +196,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken") ?? "";
+    const token = getToken();
     listSurveys(token).then((result) => {
       if (result.ok) setSurveys(result.data);
       setLoadingSurveys(false);
@@ -251,7 +252,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       return setErroLocal("O memorando é obrigatório.");
     }
 
-    const token = localStorage.getItem("accessToken") ?? "";
+    const token = getToken();
     setUploadingFiles(true);
 
     try {
