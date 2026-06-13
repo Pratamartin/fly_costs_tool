@@ -1,6 +1,6 @@
 import type { Readable } from 'node:stream'
 import crypto from 'node:crypto'
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { FILENAME_SANITIZE_REGEX } from '@/constants/file.constant'
@@ -16,7 +16,7 @@ export function isStorageConfigured(): boolean {
 
 let _client: S3Client | null = null
 
-function getClient(): S3Client {
+export function getClient(): S3Client {
   if (!r2Configured()) {
     throw new Error('STORAGE_NOT_CONFIGURED')
   }
@@ -122,6 +122,24 @@ export async function deleteFile(fileKey: string): Promise<void> {
   })
 
   await getClient().send(command)
+}
+
+/**
+ * Deleta múltiplos objetos do bucket R2 em lote (até 1000 por chamada).
+ * Aceita lista vazia (no-op) para evitar chamadas desnecessárias.
+ */
+export async function deleteObjects(keys: string[]): Promise<void> {
+  if (keys.length === 0)
+    return
+
+  const BATCH_SIZE = 1000
+  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+    const batch = keys.slice(i, i + BATCH_SIZE)
+    await getClient().send(new DeleteObjectsCommand({
+      Bucket: env.R2_BUCKET_NAME!,
+      Delete: { Objects: batch.map(Key => ({ Key })) },
+    }))
+  }
 }
 
 export async function validatePDF(file: File, maxSizeInMB: number = 5): Promise<{ valid: boolean, error?: string }> {

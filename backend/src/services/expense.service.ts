@@ -7,7 +7,7 @@ import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constan
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
-import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
+import { deleteFile, deleteObjects, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
 import { getProjectBudgetMetrics } from './budget.service'
 import { notifyStatusChange } from './notifications'
 import { notifyStaffOnStatusChange } from './notifications/staff.notification'
@@ -497,4 +497,46 @@ export async function concludeExpenseRequest(
   )
 
   return updatedExpense
+}
+
+export async function deleteExpenseRequest(
+  id: string,
+  userId: string,
+  role: UserRole,
+): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'STORAGE_UNAVAILABLE'>> {
+  const expense = await prisma.expenseRequest.findUnique({
+    where: { id },
+    select: {
+      studentId: true,
+      attachmentKey: true,
+      costBreakdowns: { select: { attachmentKey: true } },
+    },
+  })
+
+  if (!expense) {
+    return { error: 'EXPENSE_NOT_FOUND' }
+  }
+
+  if (role !== UserRole.ADMIN && expense.studentId !== userId) {
+    return { error: 'FORBIDDEN' }
+  }
+
+  const keys = [
+    expense.attachmentKey,
+    ...expense.costBreakdowns.map(cb => cb.attachmentKey),
+  ].filter((k): k is string => k !== null)
+
+  if (keys.length > 0 && !isStorageConfigured()) {
+    return { error: 'STORAGE_UNAVAILABLE' }
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (keys.length > 0) {
+      await deleteObjects(keys)
+    }
+
+    await tx.expenseRequest.delete({ where: { id } })
+
+    return { success: true }
+  })
 }

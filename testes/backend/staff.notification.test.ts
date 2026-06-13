@@ -9,9 +9,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // ─── Mocks para evitar crash do addFormats no json-schema-validator ──────────
 
+const compiledValidatorMock = vi.hoisted(() => vi.fn(() => true))
+
 vi.mock('@/lib/json-schema-validator', () => ({
   default: {
-    compile: vi.fn(() => vi.fn(() => true)),
+    compile: vi.fn(() => compiledValidatorMock),
   },
   formatAjvErrors: vi.fn(),
 }))
@@ -309,10 +311,7 @@ describe('notifyStaffOnStatusChange', () => {
   })
 
   it('lida com evento inválido (fallback texto genérico)', async () => {
-    const compileMock = vi.fn(() => vi.fn(() => false))
-    // Precisa reimportar - o mock de json-schema-validator precisa retornar false na validação
-    vi.mocked(await import('@/lib/json-schema-validator')).default.compile = compileMock as any
-
+    compiledValidatorMock.mockReturnValueOnce(false)
     const coord = mockStaffMember(UserRole.COORDENADOR)
     getUsersByRolesMock.mockResolvedValue([coord])
     createManyInAppMock.mockResolvedValue({ count: 1 })
@@ -323,7 +322,6 @@ describe('notifyStaffOnStatusChange', () => {
       [UserRole.COORDENADOR],
     )
 
-    // Como o mock sempre retorna true, esse teste verifica o comportamento com fallback
     expect(emailServiceMock.send).toHaveBeenCalled()
   })
 })

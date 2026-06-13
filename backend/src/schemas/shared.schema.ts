@@ -77,3 +77,5 @@ export const FileUploadErrorSchema = z.object({
 })
 
 export type FileUploadError = z.infer<typeof FileUploadErrorSchema>
+
+export const DeleteExpenseResponseSchema = z.object({ success: z.literal(true) }).openapi({ description: 'Standard success response for delete operations.' })

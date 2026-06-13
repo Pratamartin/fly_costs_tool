@@ -10,6 +10,17 @@ const prismaMock = vi.hoisted(() => ({
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  expenseRequest: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  costBreakdown: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  $transaction: vi.fn((cb: any) => cb(prismaMock)),
+}))
+
+vi.mock('@/lib/storage', () => ({
+  deleteObjects: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))

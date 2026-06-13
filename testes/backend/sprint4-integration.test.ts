@@ -32,6 +32,10 @@ vi.mock('@/services/notifications', () => ({
   createInAppNotification: vi.fn(),
 }))
 
+vi.mock('@/services/notifications/staff.notification', () => ({
+  notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('@/services/preference-survey.service', () => ({
   validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),

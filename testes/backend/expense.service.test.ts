@@ -10,6 +10,7 @@ vi.mock('@/lib/storage', () => ({
   validatePDF: () => ({ valid: false, error: 'STORAGE_NOT_CONFIGURED' }),
   uploadFile: async () => ({ fileKey: '', fileName: '', fileSize: 0 }),
   deleteFile: async () => {},
+  deleteObjects: async () => {},
   getSignedDownloadUrl: async () => '',
 }))
 

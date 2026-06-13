@@ -8,7 +8,7 @@ import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole, validateJsonSchema } from '@/middlewares'
 import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
-import { IdSchema } from '@/schemas/shared.schema'
+import { DeleteExpenseResponseSchema, IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
 
@@ -21,6 +21,7 @@ export type AssignProjectRoute = typeof assignProject
 export type UploadMemorandumRoute = typeof uploadMemorandum
 export type GetMemorandumDownloadRoute = typeof getMemorandumDownload
 export type ConcludeRoute = typeof conclude
+export type RemoveRoute = typeof remove
 
 const ALLOWED_ROLES: UserRole[] = ['ALUNO']
 
@@ -206,6 +207,26 @@ export const getMemorandumDownload = createRoute({
       'URL generated.',
     ),
     ...registryResponses('BAD_REQUEST', 'FORBIDDEN', 'EXPENSE_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'UNAUTHORIZED'),
+  },
+})
+
+export const remove = createRoute({
+  path: '/{id}',
+  method: 'delete',
+  middleware: [requireAuth, requireRole([UserRole.ALUNO, UserRole.ADMIN])],
+  security: [{ bearerAuth: [] }],
+  summary: 'Delete expense request',
+  description: `
+    Permanently deletes an expense request and all associated files from R2.
+    ALUNO can only delete their own expenses. ADMIN can delete any.
+    All cost breakdown receipts and memorandum files are removed from storage.
+  `,
+  tags,
+  request: { params: z.object({ id: IdSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(DeleteExpenseResponseSchema, 'Expense deleted successfully.'),
+    ...standardResponses,
+    ...registryResponses('EXPENSE_NOT_FOUND', 'FORBIDDEN', 'STORAGE_UNAVAILABLE'),
   },
 })
 

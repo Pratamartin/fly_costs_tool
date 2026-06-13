@@ -146,6 +146,9 @@ model ExpenseRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// Data em que os arquivos R2 foram removidos (purge de despesas rejeitadas)
+  purgedAt DateTime?
 }
 
 model Project {

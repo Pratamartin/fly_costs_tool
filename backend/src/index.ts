@@ -1,14 +1,17 @@
 import { serve } from '@hono/node-server'
 import app from './app'
 import env from './env'
-import { jobManager } from './jobs'
+import { boss, jobManager } from './jobs'
 import { logger } from './lib/logger'
 
 try {
   await jobManager.start()
 
+  // Agenda jobs de limpeza
   if (env.CLEANUP_ENABLED) {
     await jobManager.boss.schedule('cleanup-system-data', env.CLEANUP_CRON_SCHEDULE)
+    await boss.schedule('orphan-cleanup', env.CLEANUP_CRON_SCHEDULE)
+    await boss.schedule('rejected-purge', env.CLEANUP_CRON_SCHEDULE)
   }
 
   const server = serve({
