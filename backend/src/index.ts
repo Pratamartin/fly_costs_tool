@@ -7,6 +7,10 @@ import { logger } from './lib/logger'
 try {
   await jobManager.start()
 
+  if (env.CLEANUP_ENABLED) {
+    await jobManager.boss.schedule('cleanup-system-data', env.CLEANUP_CRON_SCHEDULE)
+  }
+
   const server = serve({
     fetch: app.fetch,
     port: env.PORT,
