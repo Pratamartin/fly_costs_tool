@@ -1,0 +1,30 @@
+TABELA 1 — Contagem de testes por arquivo,,
+Arquivo,Testes,Resultado
+notification.service.test.ts,13,PASSOU
+in-app.notification.service.test.ts,15,PASSOU
+auth.reset-password.service.test.ts,12,PASSOU
+report.service.test.ts,19,PASSOU
+sprint4-integration.test.ts,17,PASSOU
+TOTAL Sprint 4,76,76 PASSOU / 0 FALHOU
+
+TABELA 2 — ERRATA: Observacoes de implementacao,
+Item,Detalhe
+E2E Frontend (US 4.2 / 4.1 / 4.4),"Frontend nao possui runner de testes configurado (sem Jest/Vitest + React Testing Library). Os fluxos E2E de Axios interceptor, ProtectedRoute e badge de notificacao foram cobertos via testes de servico equivalentes"
+isRead no banco,"O campo real no Prisma e isRead (nao read). O valor default false e definido pelo schema do banco — nao e enviado no data do create"
+notifyStatusChange,"Funcao orquestradora em services/notifications/index.ts que chama createInAppNotification + sendStatusChangeEmail em sequencia"
+singletonKey do e-mail,"Formato: status_change_{expenseId}_{newStatus} — evita duplicidade de jobs no pg-boss"
+@aws-sdk/lib-storage,"Pacote nao estava instalado no ambiente de testes. Instalado durante a sprint 4 via npm install e adicionado ao package.json"
+PrismaDecimal mock incompleto,"O stub em mocks/prisma-client.ts nao possuia .add() / .toNumber() / .comparedTo(). Falha so aparecia no CI (Prisma real nao disponivel). Mock atualizado com os 3 metodos"
+attachment.service.test.ts / project-assignment.service.test.ts,"Faltava vi.mock('@/services/preference-survey.service') — modulo carregava ajv-formats v3 com API incompativel. Corrigido com o mesmo padrao de report.service.test.ts"
+
+TABELA 3 — Resumo dos testes da Sprint 4,,,,,
+User Story,ID,Tipo,Arquivo,Testes,Resultado
+US 4.0 — sendStatusChangeEmail,T4.0.1,unit,notification.service.test.ts,13,PASSOU
+US 4.0 — status change integration,T4.0.2,integration,sprint4-integration.test.ts,4,PASSOU
+US 4.4 — in-app notifications,T4.4.1,unit,in-app.notification.service.test.ts,15,PASSOU
+US 4.4 — notifications integration,T4.4.2,integration,sprint4-integration.test.ts,6,PASSOU
+US 4.1 — password reset token,T4.1.1,unit,auth.reset-password.service.test.ts,12,PASSOU
+US 4.1 — forgot/reset flow,T4.1.2,integration,sprint4-integration.test.ts,4,PASSOU
+US 4.2 — auth / route protection,T4.2.1,integration,sprint4-integration.test.ts,3,PASSOU
+US 4.3 — report analytics/PDF,T4.3.1,unit,report.service.test.ts,19,PASSOU
+Total Sprint 4,,,, 76,76 PASSOU / 0 FALHOU
