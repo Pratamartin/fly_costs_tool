@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalSolicitarCorrecao from "@/components/ModalSolicitarCorrecao";
@@ -328,7 +330,7 @@ export default function ExpenseDetalhe() {
   const [concluindo, setConcluindo] = useState(false);
 
   async function handleDownloadMemorandum() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoMemorandum(true);
     setErroMemorandum(null);
@@ -347,7 +349,7 @@ export default function ExpenseDetalhe() {
   }
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     if (!id || typeof id !== "string") return;
     carregarDados(token, id);
@@ -369,6 +371,7 @@ export default function ExpenseDetalhe() {
         setCarregandoCategorias(false);
       }
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "NOT_FOUND") {
@@ -380,7 +383,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleAprovar() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setAprovando(true);
     setErro(null);
@@ -397,7 +400,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleSolicitarCorrecao(note: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setSolicitandoCorrecao(true);
     const result = await updateExpenseStatus(token, expense.id, "EM_EDICAO", note);
@@ -412,7 +415,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleRejeitar(motivo: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setRejeitando(true);
     const result = await updateExpenseStatus(token, expense.id, "REJEITADO", motivo);
@@ -427,7 +430,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleVincularProjeto() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense || !selectedProjectId) return;
     setVinculando(true);
     setErroVincular(null);
@@ -449,7 +452,7 @@ export default function ExpenseDetalhe() {
 
   async function handleAdicionarCusto(e: React.FormEvent) {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     const amount = parseFloat(cbValor);
     if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0 || !cbAnexo) return;
@@ -481,7 +484,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleConcluir() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setConcluindo(true);
     setErro(null);
@@ -491,6 +494,7 @@ export default function ExpenseDetalhe() {
       setExpense(result.data);
       setShowModalConcluir(false);
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "UNPROCESSABLE") {
@@ -503,7 +507,7 @@ export default function ExpenseDetalhe() {
   }
 
   async function handleBaixarComprovante(breakdownId: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoComprovante(breakdownId);
     const result = await getCostBreakdownReceiptDownloadUrl(token, expense.id, breakdownId);

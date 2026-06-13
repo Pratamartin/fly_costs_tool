@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 import { getAdminDashboard, getTopProjects, type AdminDashboard, type TopProject } from "@/services/analytics";
@@ -59,7 +61,7 @@ export default function DashboardAdmin() {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     carregarDados(token);
   }, [router]);
@@ -78,6 +80,7 @@ export default function DashboardAdmin() {
       (!dashResult.ok && dashResult.error === "UNAUTHORIZED") ||
       (!expResult.ok && expResult.error === "UNAUTHORIZED")
     ) {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     }
@@ -85,7 +88,7 @@ export default function DashboardAdmin() {
   }
 
   async function handleCriarProjeto(data: NovoDadosProjeto) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setCriando(true);
     setErroCriar(null);

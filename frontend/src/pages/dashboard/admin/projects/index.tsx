@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 import { listProjects, createProject, deleteProject, type Project } from "@/services/projects";
@@ -52,7 +54,7 @@ export default function AdminProjects() {
   const [erroCriar, setErroCriar] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     carregarProjetos(token);
   }, [router]);
@@ -63,6 +65,7 @@ export default function AdminProjects() {
     if (result.ok) {
       setProjects(result.data);
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else {
@@ -72,7 +75,7 @@ export default function AdminProjects() {
   }
 
   async function handleCriarProjeto(data: NovoDadosProjeto) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setCriando(true);
     setErroCriar(null);
@@ -95,7 +98,7 @@ export default function AdminProjects() {
   }
 
   async function handleArquivar(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     const result = await deleteProject(token, id);
     if (result.ok) {

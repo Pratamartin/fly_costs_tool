@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getExpenseById, updateExpense, type Expense } from "@/services/expenses";
 import { getMe, type UserProfile } from "@/services/user";
@@ -27,7 +29,7 @@ export default function EditarDespesa() {
   const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     if (!id || typeof id !== "string") return;
     carregarDados(token, id);
@@ -42,6 +44,7 @@ export default function EditarDespesa() {
 
     if (meResult.ok) setUserProfile(meResult.data);
     else if (meResult.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
       return;
@@ -60,6 +63,7 @@ export default function EditarDespesa() {
       setEventLocation(exp.event?.location ?? "");
       setArticleClassification(exp.article?.classification ?? "");
     } else if (expResult.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
       return;
@@ -73,7 +77,7 @@ export default function EditarDespesa() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
 
     if (!title.trim() || !eventName.trim() || !eventLocation.trim() || !articleClassification) {
@@ -94,6 +98,7 @@ export default function EditarDespesa() {
     if (result.ok) {
       router.push("/dashboard/student?toast=correctionSubmitted");
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "VALIDATION_ERROR") {
@@ -104,6 +109,7 @@ export default function EditarDespesa() {
   }
 
   function handleLogout() {
+    useAuthStore.getState().clearToken();
     localStorage.removeItem("accessToken");
     router.push("/login");
   }

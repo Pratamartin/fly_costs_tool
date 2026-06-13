@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import { getProjectById, updateProject, type Project, type UpdateProjectPayload } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
@@ -151,7 +153,7 @@ export default function DashboardAdminProjectDetalhe() {
   const [erroEdit, setErroEdit] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     const id = router.query.id as string | undefined;
     if (!id) return;
@@ -161,6 +163,7 @@ export default function DashboardAdminProjectDetalhe() {
       if (result.ok) {
         setProject(result.data);
       } else if (result.error === "UNAUTHORIZED") {
+        useAuthStore.getState().clearToken();
         localStorage.removeItem("accessToken");
         router.push("/login");
       } else if (result.error === "NOT_FOUND") {
@@ -182,7 +185,7 @@ export default function DashboardAdminProjectDetalhe() {
 
     if (categoriasApi.length === 0) {
       setCarregandoCat(true);
-      const token = localStorage.getItem("accessToken") ?? undefined;
+      const token = getToken() || undefined;
       listCategories(undefined, token).then((r) => {
         if (r.ok) setCategoriasApi(r.data);
         setCarregandoCat(false);
@@ -192,7 +195,7 @@ export default function DashboardAdminProjectDetalhe() {
 
   async function handleSalvarEdicao() {
     if (!project) return;
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setSalvando(true);
     setErroEdit(null);

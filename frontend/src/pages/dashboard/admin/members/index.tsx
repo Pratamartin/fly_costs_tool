@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalConvite from "@/components/ModalConvite";
 import {
@@ -93,14 +95,14 @@ export default function AdminMembers() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") ?? "" : "";
+  const token = getToken();
   const [userName, setUserName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const t = localStorage.getItem("accessToken");
+    const t = getToken();
     if (!t) { router.push("/login"); return; }
     getMe(t).then((r) => {
-      if (!r.ok) { localStorage.removeItem("accessToken"); router.push("/login"); }
+      if (!r.ok) { useAuthStore.getState().clearToken(); localStorage.removeItem("accessToken"); router.push("/login"); }
       else setUserName(r.data.name);
     });
   }, []);

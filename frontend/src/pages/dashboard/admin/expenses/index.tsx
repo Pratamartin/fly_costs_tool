@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
@@ -66,7 +68,7 @@ export default function AdminExpenses() {
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     carregarDespesas(token);
     listProjects(token).then((r) => {
@@ -80,6 +82,7 @@ export default function AdminExpenses() {
     if (result.ok) {
       setExpenses(result.data);
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else {
@@ -89,7 +92,7 @@ export default function AdminExpenses() {
   }
 
   async function handleApprove(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     const result = await updateExpenseStatus(token, id, "APROVADO");
     if (result.ok) {
@@ -100,7 +103,7 @@ export default function AdminExpenses() {
   }
 
   async function handleReject(id: string, motivo: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     const result = await updateExpenseStatus(token, id, "REJEITADO", motivo);
     if (result.ok) {
@@ -112,7 +115,7 @@ export default function AdminExpenses() {
   }
 
   async function handleExport(filters: ReportFilters) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setExporting(true);
     try {
