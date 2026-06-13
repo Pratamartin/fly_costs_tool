@@ -213,7 +213,7 @@ export const getMemorandumDownload = createRoute({
 export const remove = createRoute({
   path: '/{id}',
   method: 'delete',
-  middleware: [requireAuth],
+  middleware: [requireAuth, requireRole([UserRole.ALUNO, UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
   summary: 'Delete expense request',
   description: `
@@ -226,7 +226,7 @@ export const remove = createRoute({
   responses: {
     [codes.OK]: jsonContent(DeleteExpenseResponseSchema, 'Expense deleted successfully.'),
     ...standardResponses,
-    ...registryResponses('EXPENSE_NOT_FOUND', 'FORBIDDEN'),
+    ...registryResponses('EXPENSE_NOT_FOUND', 'FORBIDDEN', 'STORAGE_UNAVAILABLE'),
   },
 })
 

@@ -517,7 +517,7 @@ export async function deleteExpenseRequest(
     return { error: 'EXPENSE_NOT_FOUND' }
   }
 
-  if (role === UserRole.ALUNO && expense.studentId !== userId) {
+  if (role !== UserRole.ADMIN && expense.studentId !== userId) {
     return { error: 'FORBIDDEN' }
   }
 
@@ -525,6 +525,10 @@ export async function deleteExpenseRequest(
     expense.attachmentKey,
     ...expense.costBreakdowns.map(cb => cb.attachmentKey),
   ].filter((k): k is string => k !== null)
+
+  if (keys.length > 0 && !isStorageConfigured()) {
+    return { error: 'STORAGE_UNAVAILABLE' }
+  }
 
   return prisma.$transaction(async (tx) => {
     if (keys.length > 0) {

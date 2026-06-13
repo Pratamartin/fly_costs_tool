@@ -9,9 +9,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // ─── Mocks para evitar crash do addFormats no json-schema-validator ──────────
 
+const compiledValidatorMock = vi.hoisted(() => vi.fn(() => true))
+
 vi.mock('@/lib/json-schema-validator', () => ({
   default: {
-    compile: vi.fn(() => vi.fn(() => true)),
+    compile: vi.fn(() => compiledValidatorMock),
   },
   formatAjvErrors: vi.fn(),
 }))
@@ -309,6 +311,7 @@ describe('notifyStaffOnStatusChange', () => {
   })
 
   it('lida com evento inválido (fallback texto genérico)', async () => {
+    compiledValidatorMock.mockReturnValueOnce(false)
     const coord = mockStaffMember(UserRole.COORDENADOR)
     getUsersByRolesMock.mockResolvedValue([coord])
     createManyInAppMock.mockResolvedValue({ count: 1 })

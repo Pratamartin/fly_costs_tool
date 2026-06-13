@@ -9,8 +9,9 @@ try {
 
   // Agenda jobs de limpeza
   if (env.CLEANUP_ENABLED) {
-    await boss.schedule('orphan-cleanup-cron', '0 4 * * *', { type: 'orphan-cleanup' }, {})
-    await boss.schedule('rejected-purge-cron', '0 4 * * *', { type: 'rejected-purge' }, {})
+    await jobManager.boss.schedule('cleanup-system-data', env.CLEANUP_CRON_SCHEDULE)
+    await boss.schedule('orphan-cleanup', env.CLEANUP_CRON_SCHEDULE)
+    await boss.schedule('rejected-purge', env.CLEANUP_CRON_SCHEDULE)
   }
 
   const server = serve({

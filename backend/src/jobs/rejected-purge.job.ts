@@ -4,7 +4,7 @@ import { dayjs } from '@/lib/date'
 import { BaseJob } from '@/lib/jobs'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
-import { deleteObjects } from '@/lib/storage'
+import { deleteObjects, isStorageConfigured } from '@/lib/storage'
 
 const PURGE_DAYS = 90
 
@@ -17,6 +17,14 @@ export class RejectedPurgeJob extends BaseJob<object, PurgeStats> {
   readonly type = 'rejected-purge' as const
 
   async work(_job: Job<object>): Promise<PurgeStats> {
+    if (!isStorageConfigured()) {
+      logger.warn('Storage not configured, skipping rejected purge')
+      return {
+        processed: 0,
+        filesDeleted: 0,
+      }
+    }
+
     const cutoff = dayjs().subtract(PURGE_DAYS, 'days')
       .toDate()
 

@@ -4,7 +4,7 @@ import env from '@/env'
 import { BaseJob } from '@/lib/jobs'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
-import { deleteObjects, getClient } from '@/lib/storage'
+import { deleteObjects, getClient, isStorageConfigured } from '@/lib/storage'
 
 type CleanupStats = {
   orphanDbRefs: number
@@ -18,6 +18,16 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
 
   async work(_job: Job<object>): Promise<CleanupStats> {
     logger.info('Starting orphan cleanup...')
+
+    if (!isStorageConfigured()) {
+      logger.warn('Storage not configured, skipping orphan cleanup')
+      return {
+        orphanDbRefs: 0,
+        orphanR2Objs: 0,
+        dbKeysChecked: 0,
+        r2KeysChecked: 0,
+      }
+    }
 
     // 1. Coleciona todas as attachmentKeys do banco
     const [expenseKeys, breakdownKeys] = await Promise.all([
@@ -87,8 +97,12 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
     }
 
     // 4. Detecta objetos órfãos no R2 (existem no bucket mas não no banco)
+    // IMPORTANTE: restringe a limpeza apenas às pastas gerenciadas por ExpenseRequest/CostBreakdown.
+    const TRACKED_PREFIXES = ['memorandos/', 'comprovantes/'] as const
     const orphanR2Keys: string[] = []
     for (const key of r2Keys) {
+      if (!TRACKED_PREFIXES.some(prefix => key.startsWith(prefix)))
+        continue
       if (!dbKeyMap.has(key)) {
         orphanR2Keys.push(key)
       }
