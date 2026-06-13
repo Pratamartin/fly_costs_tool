@@ -37,7 +37,6 @@ export const PROBLEM_DEFINITIONS = {
     type: 'urn:sgda:auth:token:invalid',
     detail: 'The security token provided is invalid or has expired.',
   },
-
   // --- USER DOMAIN ---
   USER_NOT_FOUND: {
     status: 404,
@@ -65,29 +64,17 @@ export const PROBLEM_DEFINITIONS = {
   },
 
   // --- INVITE DOMAIN ---
-  INVALID_INVITE_CODE: {
-    status: 400,
-    title: 'Invalid invite code',
-    type: 'urn:sgda:domain:invite:invalid-code',
-    detail: 'The invite code provided is invalid or has expired.',
-  },
   INVITE_ALREADY_USED: {
-    status: 409,
+    status: 410,
     title: 'Invite already used',
     type: 'urn:sgda:domain:invite:already-used',
     detail: 'Cannot revoke or use an invite that has already been used.',
   },
   INVITE_ALREADY_EXPIRED: {
-    status: 409,
+    status: 410,
     title: 'Invite already expired',
     type: 'urn:sgda:domain:invite:already-expired',
     detail: 'This invite has already expired.',
-  },
-  INVITE_CONFLICT: {
-    status: 409,
-    title: 'Invite conflict',
-    type: 'urn:sgda:domain:invite:conflict',
-    detail: 'Cannot revoke or use this invite due to its current state (used or expired).',
   },
   INVITE_NOT_FOUND: {
     status: 404,
@@ -173,7 +160,7 @@ export const PROBLEM_DEFINITIONS = {
     detail: 'The project code is already in use by another project.',
   },
   PROJECT_ARCHIVED: {
-    status: 409,
+    status: 410,
     title: 'Project is archived',
     type: 'urn:sgda:domain:project:archived',
     detail: 'This project is archived and cannot be edited or linked.',

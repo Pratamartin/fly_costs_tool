@@ -61,7 +61,7 @@ describe('[Auth] Cadastro de usuário', () => {
 
     const res = await endpoint.$post({ json: payloadConviteInvalido })
 
-    await expectProblem(res, 'INVALID_INVITE_CODE')
+    await expectProblem(res, 'INVITE_NOT_FOUND')
   })
 
   describe('validações Semânticas (RFC 9457)', () => {

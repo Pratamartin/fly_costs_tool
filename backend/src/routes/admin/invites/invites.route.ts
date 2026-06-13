@@ -58,6 +58,6 @@ export const remove = createRoute({
   request: { params: z.object({ id: IdSchema }) },
   responses: {
     [codes.NO_CONTENT]: { description: 'Invite revoked successfully.' },
-    ...registryResponses('INVITE_NOT_FOUND', 'INVITE_CONFLICT', 'UNAUTHORIZED', 'FORBIDDEN'),
+    ...registryResponses('INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
