@@ -32,7 +32,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-800 shadow-2xl">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-5">
@@ -43,15 +43,15 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Rejeitar Solicitação de Despesa</h2>
-              <p className="mt-0.5 text-sm text-gray-500">
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Rejeitar Solicitação de Despesa</h2>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {solicitacao.reqId} • {solicitacao.descricao}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+            className="rounded-lg p-1.5 text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -61,13 +61,13 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
 
         {/* Descrição */}
         <div className="px-6 pb-4">
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             Você está prestes a rejeitar a solicitação de{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-gray-900 dark:text-gray-50">
               {solicitacao.descricao} (R$ {solicitacao.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
             </span>
             {solicitacao.aluno ? (
-              <> enviada por <span className="font-semibold text-gray-900">{solicitacao.aluno}</span>.</>
+              <> enviada por <span className="font-semibold text-gray-900 dark:text-gray-50">{solicitacao.aluno}</span>.</>
             ) : (
               "."
             )}{" "}
@@ -78,7 +78,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
           <div>
-            <label className="mb-1.5 flex items-center gap-1 text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
               Motivo da Rejeição
               <span className="text-red-500">*</span>
             </label>
@@ -90,14 +90,14 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
               className={`w-full resize-none rounded-lg border px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:ring-1 ${
                 motivo.length > 0 && !valido
                   ? "border-red-400 focus:border-red-400 focus:ring-red-400"
-                  : "border-gray-300 focus:border-red-400 focus:ring-red-400"
-              }`}
+                  : "border-gray-300 dark:border-gray-600 focus:border-red-400 focus:ring-red-400"
+              } dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500`}
             />
             <div className="mt-1 flex items-center justify-between">
-              <p className={`text-xs ${motivo.length > 0 && !valido ? "text-red-500" : "text-gray-400"}`}>
+              <p className={`text-xs ${motivo.length > 0 && !valido ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
                 Mínimo {MIN_CHARS} caracteres.
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {motivo.length} / {MAX_CHARS}
               </p>
             </div>
@@ -105,7 +105,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
 
           {/* Inserção rápida */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Inserção Rápida</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Inserção Rápida</p>
             <div className="flex flex-wrap gap-2">
               {MOTIVOS_RAPIDOS.map((m) => (
                 <button
@@ -115,7 +115,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                     motivo === m
                       ? "border-red-400 bg-red-50 text-red-700"
-                      : "border-gray-300 text-gray-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                      : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                   }`}
                 >
                   {m}
@@ -129,7 +129,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
             >
               Cancelar
             </button>

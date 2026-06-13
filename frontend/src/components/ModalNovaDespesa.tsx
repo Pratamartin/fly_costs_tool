@@ -101,11 +101,11 @@ function SpinnerIcon({ className = "h-4 w-4" }: { className?: string }) {
 
 function SectionHeader({ number, label }: { number: number; label: string }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-[10px] font-bold text-white">
+    <div className="mb-3 flex items-center gap-2">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-[10px] font-bold text-white dark:bg-[#818cf8] dark:text-gray-950">
         {number}
       </span>
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
     </div>
   );
 }
@@ -133,28 +133,28 @@ function FileDropZone({
       onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) onChange(f); }}
       onClick={() => inputRef.current?.click()}
       className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition ${
-        disabled ? "opacity-50 pointer-events-none" :
-        dragging ? "border-[#4F46E5] bg-indigo-50" :
-        file ? "border-green-400 bg-green-50" :
-        "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40"
+        disabled ? "pointer-events-none opacity-50" :
+        dragging ? "border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950/20" :
+        file ? "border-green-400 bg-green-50 dark:bg-green-950/20" :
+        "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700/70"
       }`}
     >
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) onChange(e.target.files[0]); }} />
       {file ? (
         <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-green-500 mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-green-500 dark:text-green-300">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
           </svg>
-          <p className="text-xs font-medium text-green-700 text-center truncate max-w-full">{file.name}</p>
-          <p className="text-[10px] text-green-500 mt-0.5">Clique para substituir</p>
+          <p className="max-w-full truncate text-center text-xs font-medium text-green-700 dark:text-green-200">{file.name}</p>
+          <p className="mt-0.5 text-[10px] text-green-500 dark:text-green-400">Clique para substituir</p>
         </>
       ) : (
         <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-gray-400 mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-gray-400 dark:text-gray-500">
             <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
           </svg>
-          <p className="text-xs font-medium text-gray-600">{label}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">PDF, JPG, PNG</p>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
+          <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG</p>
         </>
       )}
     </div>
@@ -323,19 +323,19 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   const displayError = erroLocal ?? erro;
 
   const inputClass = (disabled: boolean) =>
-    `w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition ${disabled ? "opacity-50 bg-gray-50" : "bg-white"}`;
+    `w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${disabled ? "opacity-50 bg-gray-50 dark:bg-gray-800" : "bg-white dark:bg-gray-800"}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="flex w-full max-w-lg flex-col rounded-2xl bg-white shadow-2xl max-h-[92vh]">
+      <div className="flex w-full max-w-lg max-h-[92vh] flex-col rounded-2xl bg-white shadow-2xl dark:bg-gray-900 dark:shadow-none">
 
         {/* Header */}
-        <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-6 py-5">
+        <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Enviar Solicitação de Despesa</h2>
-            <p className="mt-0.5 text-sm text-[#4F46E5]">Preencha os dados do evento e categorias desejadas.</p>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Despesa</h2>
+            <p className="mt-0.5 text-sm text-[#4F46E5] dark:text-[#a5b4fc]">Preencha os dados do evento e categorias desejadas.</p>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-50">
+          <button onClick={onClose} disabled={isSubmitting} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
@@ -347,8 +347,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
             {displayError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-700">{displayError}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/20">
+                <p className="text-sm text-red-700 dark:text-red-200">{displayError}</p>
               </div>
             )}
 
@@ -357,7 +357,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
               <SectionHeader number={1} label="Dados Básicos" />
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-700">
+                  <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
                     Título <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -386,9 +386,9 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
             {/* 2 — Evento */}
             <div>
               <SectionHeader number={2} label="Evento Acadêmico" />
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3 dark:border-gray-800 dark:bg-gray-800/60">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-700">
+                  <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
                     Nome do Evento <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -419,8 +419,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
             {/* 3 — Artigo */}
             <div>
               <SectionHeader number={3} label="Dados da Publicação" />
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <label className="mb-1.5 block text-xs font-medium text-gray-700">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/60">
+                <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
                   Classificação QUALIS CAPES <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -428,7 +428,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                     value={articleClassification}
                     onChange={(e) => setArticleClassification(e.target.value)}
                     disabled={isSubmitting}
-                    className={`w-full appearance-none rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 text-sm outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition ${isSubmitting ? "opacity-50 bg-gray-50 text-gray-400" : articleClassification ? "bg-white text-gray-800" : "bg-white text-gray-400"}`}
+                    className={`w-full appearance-none rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 text-sm outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition dark:border-gray-600 dark:bg-gray-800 dark:focus:border-[#818cf8] ${isSubmitting ? "opacity-50 bg-gray-50 text-gray-400 dark:bg-gray-800" : articleClassification ? "bg-white text-gray-800 dark:text-gray-100" : "bg-white text-gray-400 dark:text-gray-400"}`}
                   >
                     <option value="" disabled>Selecione a classificação...</option>
                     {QUALIS_VALUES.map((v) => (
@@ -457,7 +457,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                 <div className="space-y-3">
                   {/* Passagem Aérea */}
                   {passagemSurvey && (
-                    <div className={`rounded-xl border transition ${passagemSelected ? "border-[#4F46E5] bg-indigo-50/40" : "border-gray-200 bg-white"}`}>
+                    <div className={`rounded-xl border transition ${passagemSelected ? "border-[#4F46E5] bg-indigo-50/40 dark:bg-indigo-950/20" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-800/60"}`}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                         <input
                           type="checkbox"
@@ -470,7 +470,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path d="M16.628 2.397a2.25 2.25 0 00-3.182 0L2.204 13.64a.75.75 0 000 1.06l2.829 2.829a.75.75 0 001.06 0L17.336 6.286a2.25 2.25 0 00-.708-3.889zM3.453 14.704l8.164-8.165 1.414 1.414-8.164 8.165-1.414-1.414z" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800">Passagem Aérea</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Passagem Aérea</span>
                         </div>
                       </label>
                       {passagemSelected && (
@@ -520,7 +520,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
                   {/* Inscrição */}
                   {inscricaoSurvey && (
-                    <div className={`rounded-xl border transition ${inscricaoSelected ? "border-[#4F46E5] bg-indigo-50/40" : "border-gray-200 bg-white"}`}>
+                    <div className={`rounded-xl border transition ${inscricaoSelected ? "border-[#4F46E5] bg-indigo-50/40 dark:bg-indigo-950/20" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-800/60"}`}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                         <input
                           type="checkbox"
@@ -533,7 +533,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 6.75a.75.75 0 011.5 0v2.546l.943-1.048a.75.75 0 111.114 1.004l-2.25 2.5a.75.75 0 01-1.114 0l-2.25-2.5a.75.75 0 111.114-1.004l.943 1.048V8.75z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800">Inscrição em Evento</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Inscrição em Evento</span>
                         </div>
                       </label>
                       {inscricaoSelected && (
@@ -547,7 +547,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
                   {/* Hospedagem */}
                   {hospedagemSurvey && (
-                    <div className={`rounded-xl border transition ${hospedagemSelected ? "border-[#4F46E5] bg-indigo-50/40" : "border-gray-200 bg-white"}`}>
+                    <div className={`rounded-xl border transition ${hospedagemSelected ? "border-[#4F46E5] bg-indigo-50/40 dark:bg-indigo-950/20" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-800/60"}`}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                         <input
                           type="checkbox"
@@ -560,7 +560,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path fillRule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800">Hospedagem</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Hospedagem</span>
                         </div>
                       </label>
                       {hospedagemSelected && (
@@ -576,7 +576,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                             >
                               <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${hospedagem ? "translate-x-5" : "translate-x-0"}`} />
                             </button>
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
                               {hospedagem ? "Solicitar auxílio hospedagem" : "Sem auxílio hospedagem"}
                             </span>
                           </label>
@@ -598,11 +598,11 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50">
+          <div className="shrink-0 flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-50">
               Cancelar
             </button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center justify-center gap-2 rounded-lg bg-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#4338CA] transition disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="flex items-center justify-center gap-2 rounded-lg bg-[#4F46E5] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338CA] dark:bg-[#818cf8] dark:text-gray-950 dark:hover:bg-[#a5b4fc] disabled:opacity-50">
               {isSubmitting ? (
                 <><SpinnerIcon /> {uploadingFiles ? "Enviando arquivos..." : "Enviando..."}</>
               ) : (

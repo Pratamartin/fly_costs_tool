@@ -97,15 +97,15 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-gray-900">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-          <h2 className="text-base font-semibold text-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-50">
             {etapa === "configurar" ? "Convidar Membro" : "Convite Gerado"}
           </h2>
           <button
             onClick={handleClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             aria-label="Fechar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
@@ -119,17 +119,17 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
           <div className="px-6 py-5 space-y-5">
             {/* Role */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Tipo / Papel</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo / Papel</label>
               <div className="relative">
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as InviteRole)}
-                  className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 focus:border-[#1e2d3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e2d3d]"
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 focus:border-[#1e2d3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e2d3d] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:bg-gray-800"
                 >
                   <option value="COORDENADOR">Coordenador</option>
                   <option value="ALUNO">Aluno</option>
                 </select>
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 dark:text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clipRule="evenodd" />
                   </svg>
@@ -139,7 +139,7 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
 
             {/* Expiry */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Validade do convite</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Validade do convite</label>
               <div className="flex gap-2">
                 {EXPIRY_OPTIONS.map((opt) => (
                   <button
@@ -148,8 +148,8 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
                     onClick={() => setExpiryHours(opt.hours)}
                     className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition ${
                       expiryHours === opt.hours
-                        ? "border-[#1e2d3d] bg-[#1e2d3d] text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        ? "border-[#1e2d3d] bg-[#1e2d3d] text-white dark:border-[#93c5fd] dark:bg-[#93c5fd] dark:text-gray-950"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                     }`}
                   >
                     {opt.label}
@@ -159,20 +159,20 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
             </div>
 
             {/* Permissions box */}
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/20">
               <div className="flex gap-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0 text-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0 text-blue-500 dark:text-blue-300">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-blue-900">{PERMISSIONS[role].title}</p>
-                  <p className="mt-0.5 text-xs text-blue-700 leading-relaxed">{PERMISSIONS[role].description}</p>
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{PERMISSIONS[role].title}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-blue-700 dark:text-blue-200/80">{PERMISSIONS[role].description}</p>
                 </div>
               </div>
             </div>
 
             {erroGerar && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-200">
                 {erroGerar}
               </div>
             )}
@@ -183,44 +183,44 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
         {etapa === "gerado" && conviteCriado && (
           <div className="px-6 py-5 space-y-4">
             {/* Sucesso */}
-            <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900/60 dark:bg-green-950/20">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="text-sm font-semibold text-green-800">Convite gerado com sucesso!</p>
-                <p className="text-xs text-green-700">Compartilhe o link abaixo com o convidado.</p>
+                <p className="text-sm font-semibold text-green-800 dark:text-green-100">Convite gerado com sucesso!</p>
+                <p className="text-xs text-green-700 dark:text-green-200/80">Compartilhe o link abaixo com o convidado.</p>
               </div>
             </div>
 
             {/* Detalhes */}
-            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-2">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-2 dark:border-gray-800 dark:bg-gray-800/60">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Código</span>
-                <span className="font-mono font-semibold text-gray-800">{conviteCriado.code}</span>
+                <span className="text-gray-500 dark:text-gray-400">Código</span>
+                <span className="font-mono font-semibold text-gray-800 dark:text-gray-100">{conviteCriado.code}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Papel</span>
+                <span className="text-gray-500 dark:text-gray-400">Papel</span>
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
                   conviteCriado.role === "ALUNO"
-                    ? "bg-violet-50 text-violet-700 ring-violet-200"
-                    : "bg-blue-50 text-blue-700 ring-blue-200"
+                    ? "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/30 dark:text-violet-200 dark:ring-violet-900/60"
+                    : "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:ring-blue-900/60"
                 }`}>
                   {conviteCriado.role === "ALUNO" ? "Aluno" : "Coordenador"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Expira em</span>
-                <span className="text-gray-700">{formatExpiry(conviteCriado.expiresAt)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Expira em</span>
+                <span className="text-gray-700 dark:text-gray-200">{formatExpiry(conviteCriado.expiresAt)}</span>
               </div>
             </div>
 
             {/* Link + Copiar */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Link de Convite</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Link de Convite</label>
               <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-                  <p className="truncate font-mono text-xs text-blue-600">
+                <div className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-800">
+                  <p className="truncate font-mono text-xs text-blue-600 dark:text-blue-300">
                     {buildInviteLink(conviteCriado.code, conviteCriado.role)}
                   </p>
                 </div>
@@ -228,8 +228,8 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
                   onClick={handleCopy}
                   className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
                     copied
-                      ? "border-green-200 bg-green-50 text-green-700"
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/20 dark:text-green-200"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   {copied ? (
@@ -255,19 +255,19 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
           {etapa === "configurar" ? (
             <>
               <button
                 onClick={handleClose}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGerar}
                 disabled={criando}
-                className="flex items-center gap-2 rounded-lg bg-[#1e2d3d] px-4 py-2 text-sm font-medium text-white hover:bg-[#16202c] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-lg bg-[#1e2d3d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#16202c] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {criando ? (
                   <>
@@ -285,7 +285,7 @@ export default function ModalConvite({ open, onClose, onCreated }: ModalConviteP
           ) : (
             <button
               onClick={handleClose}
-              className="rounded-lg bg-[#1e2d3d] px-4 py-2 text-sm font-medium text-white hover:bg-[#16202c] transition"
+              className="rounded-lg bg-[#1e2d3d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#16202c]"
             >
               Fechar
             </button>
