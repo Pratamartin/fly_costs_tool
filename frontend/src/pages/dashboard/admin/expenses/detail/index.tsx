@@ -19,6 +19,7 @@ import {
 import { listProjects, type Project } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
 import { toast } from "@/lib/toast";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -519,7 +520,7 @@ export default function ExpenseDetalhe() {
 
   if (carregando) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <div className="mb-4 flex justify-center">
             <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -527,7 +528,7 @@ export default function ExpenseDetalhe() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
-          <p className="text-gray-600">Carregando despesa...</p>
+          <p className="text-gray-600 dark:text-gray-400">Carregando despesa...</p>
         </div>
       </div>
     );
@@ -535,7 +536,7 @@ export default function ExpenseDetalhe() {
 
   if (erro && !expense) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <p className="text-red-600 font-medium">{erro}</p>
           <button
@@ -555,30 +556,31 @@ export default function ExpenseDetalhe() {
   const totalCusto = (expense.costBreakdowns ?? []).reduce((sum, cb) => sum + cb.amount, 0);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <AdminSidebar active="expenses" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard/admin/expenses")}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0"
+              className="rounded-lg p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
               </svg>
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900 sm:text-xl">Detalhes da Despesa</h1>
-              <p className="text-xs text-gray-500 sm:text-sm">
+              <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Detalhes da Despesa</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
                 {displayId} • {expense.title}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             {erro && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
                 <p className="text-xs text-red-700">{erro}</p>
@@ -636,29 +638,29 @@ export default function ExpenseDetalhe() {
             <div className="col-span-1 space-y-5 lg:col-span-2">
 
               {/* Expense Overview */}
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-5">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                     <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                   </svg>
-                  <h2 className="text-sm font-bold text-gray-800">Visão Geral da Despesa</h2>
+                  <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Visão Geral da Despesa</h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 mb-5 sm:grid-cols-2">
                   <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">ID da Despesa</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">ID da Despesa</p>
                     <p className="text-sm font-bold text-blue-600">{displayId}</p>
                   </div>
                   <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Título</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Título</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.title}</p>
                   </div>
                 </div>
 
                 {expense.description && (
                   <div className="mb-5">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Descrição</p>
-                    <p className="text-sm leading-relaxed text-gray-600">{expense.description}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Descrição</p>
+                    <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{expense.description}</p>
                   </div>
                 )}
 
@@ -708,12 +710,12 @@ export default function ExpenseDetalhe() {
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.event?.name}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Evento</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Local · QUALIS</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.event?.location}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Local · QUALIS</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.location}</p>
                     <span className="mt-1 inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
                       {expense.article?.classification}
                     </span>
@@ -721,9 +723,9 @@ export default function ExpenseDetalhe() {
                 </div>
 
                 {totalCusto > 0 && (
-                  <div className="mt-5 pt-5 border-t border-gray-100">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Total de Custos Registrados</p>
-                    <p className="text-2xl font-bold text-gray-900">{fmtCurrency(totalCusto)}</p>
+                  <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Total de Custos Registrados</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{fmtCurrency(totalCusto)}</p>
                   </div>
                 )}
               </div>
@@ -738,65 +740,65 @@ export default function ExpenseDetalhe() {
                     <p className="text-sm font-semibold text-green-800">Dados confirmados — prossiga para vincular o projeto.</p>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                     <div className="flex items-center gap-2 mb-5">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v4.25H7a.75.75 0 000 1.5h3.25v4.25a.75.75 0 001.5 0v-4.25H15a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                       </svg>
-                      <h2 className="text-sm font-bold text-gray-800">Revisão de Dados pelo Admin</h2>
+                      <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Revisão de Dados pelo Admin</h2>
                       <span className="ml-auto text-xs font-semibold text-orange-500 bg-orange-50 rounded-full px-2 py-0.5 ring-1 ring-orange-200">Ação necessária</span>
                     </div>
 
-                    <p className="text-sm text-gray-500 mb-5">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
                       Confirme se os dados da solicitação estão corretos antes de vincular o projeto. Caso algum dado esteja incorreto, solicite correção ao aluno.
                     </p>
 
                     <div className="space-y-3 mb-6">
-                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
                           <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Despesa</p>
-                          <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Despesa</p>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.title}</p>
                           {expense.description && (
-                            <p className="text-xs text-gray-500 mt-0.5">{expense.description}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{expense.description}</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
                           <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.452-.23.773-.417.635-.374 1.52-.965 2.396-1.763C15.281 15.523 17 13.687 17 11a7 7 0 10-14 0c0 2.687 1.719 4.523 3.216 5.855a19.032 19.032 0 002.396 1.763 11.46 11.46 0 00.773.417 5.75 5.75 0 00.281.14l.018.008.006.003zM10 13a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Evento & Local</p>
-                          <p className="text-sm font-semibold text-gray-800">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Evento & Local</p>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                             {expense.event?.name ?? "—"}
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             {expense.event?.location ?? "—"}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
                           <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Solicitante</p>
-                          <p className="text-sm font-semibold text-gray-800">{expense.student?.name ?? "—"}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">Aluno</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Solicitante</p>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.student?.name ?? "—"}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Aluno</p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 mt-0.5 shrink-0">
+                      <div className="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
                           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Memorando</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Memorando</p>
                           {expense.attachmentKey ? (
                             <div className="flex items-center gap-1.5">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600">
@@ -826,7 +828,7 @@ export default function ExpenseDetalhe() {
                       </div> */}
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-800 pt-5">
                       <button
                         onClick={() => setShowModalCorrecao(true)}
                         className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition"
@@ -852,25 +854,25 @@ export default function ExpenseDetalhe() {
 
               {/* Vincular Projeto — only when APROVADO e dados confirmados */}
               {expense.status === "APROVADO" && dadosConfirmados && (
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                       <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
                       <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
                     </svg>
-                    <h2 className="text-sm font-bold text-gray-800">Vincular Projeto</h2>
+                    <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Vincular Projeto</h2>
                   </div>
 
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Selecione o projeto que irá financiar esta despesa. Após vinculação, o status passa para <strong>Em Processamento</strong>.
                   </p>
 
                   <div className="mb-4">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">Projeto Financiador</label>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto Financiador</label>
                     <select
                       value={selectedProjectId}
                       onChange={(e) => { setSelectedProjectId(e.target.value); setErroVincular(null); }}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                     >
                       <option value="">Selecionar projeto...</option>
                       {projects.map((p) => (
@@ -880,7 +882,7 @@ export default function ExpenseDetalhe() {
                       ))}
                     </select>
                     {projects.length === 0 && (
-                      <p className="mt-1.5 text-xs text-gray-400">Nenhum projeto ativo disponível.</p>
+                      <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Nenhum projeto ativo disponível.</p>
                     )}
                   </div>
 
@@ -918,12 +920,12 @@ export default function ExpenseDetalhe() {
 
               {/* Discriminação de Custos — only when EM_PROCESSAMENTO */}
               {expense.status === "EM_PROCESSAMENTO" && (
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                       <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
                     </svg>
-                    <h2 className="text-sm font-bold text-gray-800">Discriminação de Custos</h2>
+                    <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Discriminação de Custos</h2>
                     {(expense.costBreakdowns ?? []).length > 0 && (
                       <span className="ml-auto rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
                         {expense.costBreakdowns!.length} custo{expense.costBreakdowns!.length !== 1 ? "s" : ""}
@@ -936,17 +938,17 @@ export default function ExpenseDetalhe() {
                     <div className="mb-6">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-100">
-                            <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Tipo de Custo</th>
-                            <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Valor</th>
-                            <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-2">Comprovante</th>
+                          <tr className="border-b border-gray-100 dark:border-gray-800">
+                            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Tipo de Custo</th>
+                            <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Valor</th>
+                            <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Comprovante</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                           {expense.costBreakdowns!.map((cb) => (
                             <tr key={cb.id}>
-                              <td className="py-2.5 font-medium text-gray-700">{cb.subcategory.name}</td>
-                              <td className="py-2.5 text-right font-semibold text-gray-900">{fmtCurrency(cb.amount)}</td>
+                              <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
+                              <td className="py-2.5 text-right font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</td>
                               <td className="py-2.5 text-right">
                                 {cb.attachmentKey ? (
                                   <button
@@ -975,21 +977,21 @@ export default function ExpenseDetalhe() {
                           ))}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t-2 border-gray-200">
-                            <td className="pt-3 text-sm font-bold text-gray-700">Total</td>
-                            <td className="pt-3 text-right text-sm font-bold text-gray-900">{fmtCurrency(totalCusto)}</td>
+                          <tr className="border-t-2 border-gray-200 dark:border-gray-700">
+                            <td className="pt-3 text-sm font-bold text-gray-700 dark:text-gray-300">Total</td>
+                            <td className="pt-3 text-right text-sm font-bold text-gray-900 dark:text-gray-50">{fmtCurrency(totalCusto)}</td>
                             <td />
                           </tr>
                         </tfoot>
                       </table>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 mb-5">Nenhum custo adicionado ainda.</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">Nenhum custo adicionado ainda.</p>
                   )}
 
                   {/* Add new breakdown */}
-                  <div className="border-t border-gray-100 pt-5">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Adicionar Custo</p>
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Adicionar Custo</p>
                     <form onSubmit={handleAdicionarCusto} className="space-y-3">
                       <div className="flex gap-3">
                         <div className="flex-1">
@@ -997,7 +999,7 @@ export default function ExpenseDetalhe() {
                             value={cbSubcategoria}
                             onChange={(e) => { setCbSubcategoria(e.target.value); setErroCusto(null); }}
                             disabled={adicionandoCusto || carregandoCategorias}
-                            className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
                           >
                             <option value="">
                               {carregandoCategorias ? "Carregando categorias..." : "Selecionar tipo de custo..."}
@@ -1011,7 +1013,7 @@ export default function ExpenseDetalhe() {
                         </div>
                         <div className="w-36">
                           <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400">R$</span>
+                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400 dark:text-gray-500">R$</span>
                             <input
                               type="number"
                               placeholder="0,00"
@@ -1020,21 +1022,21 @@ export default function ExpenseDetalhe() {
                               value={cbValor}
                               onChange={(e) => { setCbValor(e.target.value); setErroCusto(null); }}
                               disabled={adicionandoCusto}
-                              className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
+                              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-9 pr-3 text-sm text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
                             />
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                           Anexo <span className="text-red-500">*</span>
                         </label>
-                        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400">
+                        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500">
                             <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
                           </svg>
-                          <span className="flex-1 truncate text-sm text-gray-500">
+                          <span className="flex-1 truncate text-sm text-gray-500 dark:text-gray-400">
                             {cbAnexo ? cbAnexo.name : "Selecionar arquivo..."}
                           </span>
                           <input
@@ -1054,7 +1056,7 @@ export default function ExpenseDetalhe() {
                             Remover anexo
                           </button>
                         )}
-                        <p className="mt-1 text-xs text-gray-400">PDF, JPG ou PNG.</p>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">PDF, JPG ou PNG.</p>
                       </div>
 
                       {erroCusto && (
@@ -1093,12 +1095,12 @@ export default function ExpenseDetalhe() {
 
               {/* Portfólio de Arquivos — only when CONCLUIDO */}
               {expense.status === "CONCLUIDO" && (
-                <div className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-violet-200 bg-white dark:bg-gray-900 p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-violet-500">
                       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                     </svg>
-                    <h2 className="text-sm font-bold text-gray-800">Portfólio de Arquivos</h2>
+                    <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Portfólio de Arquivos</h2>
                     <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
                       Concluído
                     </span>
@@ -1107,7 +1109,7 @@ export default function ExpenseDetalhe() {
                   <div className="space-y-3">
                     {/* Memorando */}
                     {expense.attachmentKey && (
-                      <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-600">
@@ -1115,8 +1117,8 @@ export default function ExpenseDetalhe() {
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900">Memorando</p>
-                            <p className="text-xs text-gray-400 truncate">{expense.attachmentKey.split("/").pop()}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Memorando</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{expense.attachmentKey.split("/").pop()}</p>
                           </div>
                         </div>
                         <button
@@ -1142,7 +1144,7 @@ export default function ExpenseDetalhe() {
 
                     {/* Cost breakdowns */}
                     {(expense.costBreakdowns ?? []).map((cb) => (
-                      <div key={cb.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                      <div key={cb.id} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-600">
@@ -1150,8 +1152,8 @@ export default function ExpenseDetalhe() {
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{cb.subcategory.name}</p>
-                            <p className="text-xs font-semibold text-gray-500">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{cb.subcategory.name}</p>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                               {cb.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                             </p>
                           </div>
@@ -1196,12 +1198,12 @@ export default function ExpenseDetalhe() {
             <div className="space-y-5">
 
               {/* Submitted By */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                     <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
                   </svg>
-                  <h3 className="text-sm font-bold text-gray-800">Solicitante</h3>
+                  <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Solicitante</h3>
                 </div>
 
                 {expense.student ? (
@@ -1210,63 +1212,63 @@ export default function ExpenseDetalhe() {
                       {expense.student.name[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{expense.student.name}</p>
-                      <p className="text-xs text-gray-400">Aluno</p>
+                      <p className="font-semibold text-gray-900 dark:text-gray-50">{expense.student.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Aluno</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">—</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">—</p>
                 )}
               </div>
 
               {/* Travel Details */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                     <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.452-.23.773-.417.635-.374 1.52-.965 2.396-1.763C15.281 15.523 17 13.687 17 11a7 7 0 10-14 0c0 2.687 1.719 4.523 3.216 5.855a19.032 19.032 0 002.396 1.763 11.46 11.46 0 00.773.417 5.75 5.75 0 00.281.14l.018.008.006.003zM10 13a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-sm font-bold text-gray-800">Detalhes do Evento</h3>
+                  <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Detalhes do Evento</h3>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.name ?? "—"}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Evento</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.name ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Local</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.location ?? "—"}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Local</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.location ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">QUALIS</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.article?.classification ?? "—"}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">QUALIS</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.article?.classification ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Criado em</p>
-                    <p className="mt-0.5 text-sm text-gray-600">{fmtDate(expense.createdAt)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Criado em</p>
+                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{fmtDate(expense.createdAt)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Assigned Project */}
               {expense.project && (
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                       <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
                       <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
                     </svg>
-                    <h3 className="text-sm font-bold text-gray-800">Projeto Vinculado</h3>
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Projeto Vinculado</h3>
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Nome</p>
-                      <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.project.name}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Nome</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.project.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Código</p>
-                      <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Código</p>
+                      <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
                         {expense.project.code}
                       </span>
                     </div>
@@ -1274,7 +1276,7 @@ export default function ExpenseDetalhe() {
 
                   <button
                     onClick={() => router.push({ pathname: "/dashboard/admin/projects/detail", query: { id: expense.project!.id } })}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
@@ -1291,12 +1293,12 @@ export default function ExpenseDetalhe() {
                 const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey);
                 const podeConcluir = breakdowns.length > 0 && semComprovante.length === 0;
                 return (
-                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-violet-500">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                       </svg>
-                      <h2 className="text-sm font-bold text-gray-800">Concluir Despesa</h2>
+                      <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Concluir Despesa</h2>
                     </div>
 
                     <ul className="mb-4 space-y-1.5">
@@ -1310,7 +1312,7 @@ export default function ExpenseDetalhe() {
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
                           </svg>
                         )}
-                        <span className={breakdowns.length > 0 ? "text-gray-700" : "text-red-600"}>
+                        <span className={breakdowns.length > 0 ? "text-gray-700 dark:text-gray-300" : "text-red-600"}>
                           {breakdowns.length > 0 ? `${breakdowns.length} custo${breakdowns.length !== 1 ? "s" : ""} registrado${breakdowns.length !== 1 ? "s" : ""}` : "Nenhum custo registrado"}
                         </span>
                       </li>
@@ -1319,7 +1321,7 @@ export default function ExpenseDetalhe() {
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-green-500">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-gray-700">Todos os comprovantes anexados</span>
+                          <span className="text-gray-700 dark:text-gray-300">Todos os comprovantes anexados</span>
                         </li>
                       )}
                       {semComprovante.map((cb) => (

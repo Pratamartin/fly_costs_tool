@@ -5,6 +5,7 @@ import { getToken } from "@/lib/getToken";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getExpenseById, updateExpense, type Expense } from "@/services/expenses";
 import { getMe, type UserProfile } from "@/services/user";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function fmtDateInput(iso: string) {
   return iso.slice(0, 10);
@@ -116,7 +117,7 @@ export default function EditarDespesa() {
 
   if (carregando) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <div className="mb-4 flex justify-center">
             <svg className="animate-spin h-8 w-8 text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -124,7 +125,7 @@ export default function EditarDespesa() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
-          <p className="text-gray-600">Carregando despesa...</p>
+          <p className="text-gray-600 dark:text-gray-400">Carregando despesa...</p>
         </div>
       </div>
     );
@@ -132,7 +133,7 @@ export default function EditarDespesa() {
 
   if (erro && !expense) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <p className="text-red-600 font-medium">{erro}</p>
           <button
@@ -151,26 +152,27 @@ export default function EditarDespesa() {
   const displayId = `#REQ-${expense.id.slice(0, 8).toUpperCase()}`;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <StudentSidebar userName={userProfile?.name ?? null} onLogout={handleLogout} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard/student")}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0"
+              className="rounded-lg p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
               </svg>
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900 sm:text-xl">Corrigir Despesa</h1>
-              <p className="text-xs text-gray-500 sm:text-sm">{displayId} • {expense.title}</p>
+              <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Corrigir Despesa</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{displayId} • {expense.title}</p>
             </div>
           </div>
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
@@ -192,18 +194,18 @@ export default function EditarDespesa() {
             )}
 
             {/* Formulário */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[#4F46E5]">
                   <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
                 </svg>
-                <h2 className="text-sm font-bold text-gray-800">Editar Informações da Despesa</h2>
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Editar Informações da Despesa</h2>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Título */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                     Título <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -211,13 +213,13 @@ export default function EditarDespesa() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={salvando}
-                    className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                   />
                 </div>
 
                 {/* Descrição */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                     Descrição
                   </label>
                   <textarea
@@ -225,14 +227,14 @@ export default function EditarDespesa() {
                     onChange={(e) => setDescription(e.target.value)}
                     disabled={salvando}
                     rows={3}
-                    className="w-full resize-none rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
+                    className="w-full resize-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                   />
                 </div>
 
                 {/* Evento */}
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                       Nome do Evento <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -241,11 +243,11 @@ export default function EditarDespesa() {
                       onChange={(e) => setEventName(e.target.value)}
                       disabled={salvando}
                       placeholder="ex.: Simpósio Brasileiro de Engenharia de Software (SBES)"
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                       Local do Evento <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -254,14 +256,14 @@ export default function EditarDespesa() {
                       onChange={(e) => setEventLocation(e.target.value)}
                       disabled={salvando}
                       placeholder="ex.: Rio de Janeiro/RJ ou Lisboa, Portugal"
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
                 </div>
 
                 {/* Classificação QUALIS */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                     Classificação QUALIS CAPES <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -269,14 +271,14 @@ export default function EditarDespesa() {
                       value={articleClassification}
                       onChange={(e) => setArticleClassification(e.target.value)}
                       disabled={salvando}
-                      className={`w-full appearance-none rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-3 pr-8 text-sm outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition ${articleClassification ? "text-gray-800" : "text-gray-400"}`}
+                      className={`w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-3 pr-8 text-sm outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition ${articleClassification ? "text-gray-800 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}
                     >
                       <option value="" disabled>Selecione a classificação...</option>
                       {QUALIS_VALUES.map((v) => (
                         <option key={v} value={v}>{v}</option>
                       ))}
                     </select>
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 dark:text-gray-500">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                         <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                       </svg>
@@ -295,7 +297,7 @@ export default function EditarDespesa() {
                     type="button"
                     onClick={() => router.push("/dashboard/student")}
                     disabled={salvando}
-                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                    className="rounded-lg border border-gray-300 dark:border-gray-600 px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50"
                   >
                     Cancelar
                   </button>

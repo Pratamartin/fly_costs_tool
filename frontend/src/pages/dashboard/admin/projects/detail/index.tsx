@@ -5,6 +5,7 @@ import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import { getProjectById, updateProject, type Project, type UpdateProjectPayload } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type TabType = "overview" | "expenses" | "team";
 type StatusType = "Pendente" | "Aprovado" | "Rejeitado";
@@ -243,7 +244,7 @@ export default function DashboardAdminProjectDetalhe() {
 
   if (carregando) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -254,9 +255,9 @@ export default function DashboardAdminProjectDetalhe() {
 
   if (erroCarregar || !project) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">{erroCarregar ?? "Projeto não encontrado."}</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">{erroCarregar ?? "Projeto não encontrado."}</p>
           <button onClick={() => router.push("/dashboard/admin/projects")} className="text-sm text-blue-600 hover:underline">
             Voltar aos Projetos
           </button>
@@ -266,7 +267,7 @@ export default function DashboardAdminProjectDetalhe() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <AdminSidebar active="projects" />
 
       {/* Edit Modal */}
@@ -374,23 +375,23 @@ export default function DashboardAdminProjectDetalhe() {
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="border-b border-gray-200 bg-white">
+        <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="px-4 pt-3 pb-0 sm:px-8 sm:pt-4">
-            <div className="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
-              <button onClick={() => router.push("/dashboard/admin/projects")} className="hover:text-gray-800 hover:underline">
+            <div className="mb-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <button onClick={() => router.push("/dashboard/admin/projects")} className="hover:text-gray-800 dark:hover:text-gray-200 hover:underline">
                 Projetos
               </button>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-gray-300">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600">
                 <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
               </svg>
-              <span className="font-medium text-gray-700">{project.name}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{project.name}</span>
             </div>
             <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <button onClick={() => router.push("/dashboard/admin/projects")} className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0">
+                <button onClick={() => router.push("/dashboard/admin/projects")} className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5"><path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" /></svg>
                 </button>
-                <h1 className="text-base font-bold text-gray-900 sm:text-xl">{project.name}</h1>
+                <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">{project.name}</h1>
                 {project.isActive ? (
                   <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">Ativo</span>
                 ) : (
@@ -398,9 +399,10 @@ export default function DashboardAdminProjectDetalhe() {
                 )}
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
+                <ThemeToggle />
                 <button
                   onClick={openEditModal}
-                  className="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:flex"
+                  className="hidden items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition sm:flex"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                   Editar Projeto
@@ -410,7 +412,7 @@ export default function DashboardAdminProjectDetalhe() {
             <nav className="flex gap-0 -mb-px">
               {tabs.map((tab) => (
                 <button key={tab.id} onClick={() => setAbaAtiva(tab.id)}
-                  className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${abaAtiva === tab.id ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"}`}>
+                  className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${abaAtiva === tab.id ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200"}`}>
                   {tab.label}
                 </button>
               ))}
@@ -423,12 +425,12 @@ export default function DashboardAdminProjectDetalhe() {
             <>
               <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                 {/* Orçamento Total */}
-                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+                <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                   <div>
-                    <p className="text-sm text-gray-500">Orçamento Total</p>
-                    <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">{fmtBRL(project.budget)}</p>
-                    <span className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-gray-400">
-                      Código: <span className="font-mono font-semibold text-gray-600">{project.code}</span>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Orçamento Total</p>
+                    <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">{fmtBRL(project.budget)}</p>
+                    <span className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+                      Código: <span className="font-mono font-semibold text-gray-600 dark:text-gray-400">{project.code}</span>
                     </span>
                   </div>
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
@@ -436,27 +438,27 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                 </div>
                 {/* Orçamento Utilizado */}
-                <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+                <div className="flex flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-gray-500">Orçamento Utilizado</p>
-                      <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">{fmtBRL(project.usedBudget)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Orçamento Utilizado</p>
+                      <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">{fmtBRL(project.usedBudget)}</p>
                     </div>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-purple-600"><path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.615z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-1a.75.75 0 000 1.5h1v.75a.75.75 0 001.5 0v-.75h1a.75.75 0 000-1.5h-1v-2.5z" clipRule="evenodd" /></svg>
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="mb-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div className="mb-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
                       <div className={`h-2 rounded-full ${budgetPct >= 100 ? "bg-red-500" : budgetPct >= 85 ? "bg-amber-400" : "bg-purple-500"}`} style={{ width: `${budgetPct}%` }} />
                     </div>
-                    <p className="text-xs text-gray-400">{budgetPct}% do orçamento utilizado</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{budgetPct}% do orçamento utilizado</p>
                   </div>
                 </div>
                 {/* Subcategorias */}
-                <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm text-gray-500">Subcategorias</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Subcategorias</p>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-orange-500"><path fillRule="evenodd" d="M6 4.75A.75.75 0 016.75 4h10.5a.75.75 0 010 1.5H6.75A.75.75 0 016 4.75zM6 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H6.75A.75.75 0 016 10zm0 5.25a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H6.75a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>
                     </div>
@@ -468,10 +470,10 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                 </div>
               </div>
-              <div className="mb-6 rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
+              <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-800">Tendência de Despesas por Categoria</h2>
-                  <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">
+                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Tendência de Despesas por Categoria</h2>
+                  <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                     Este Semestre
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
                   </button>
@@ -481,61 +483,61 @@ export default function DashboardAdminProjectDetalhe() {
                   {CHART_SERIES.map((s) => (
                     <div key={s.key} className="flex items-center gap-2">
                       <div className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: s.color }} />
-                      <span className="text-xs text-gray-600">{s.label}</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{s.label}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                  <h2 className="text-sm font-semibold text-gray-800">Atividade Recente</h2>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Atividade Recente</h2>
                   <button className="text-xs font-medium text-[#2563EB] hover:underline">Ver Tudo</button>
                 </div>
                 {/* Desktop table */}
                 <table className="hidden w-full md:table">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Item de Despesa</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Enviado Por</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Valor</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
+                    <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Item de Despesa</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Enviado Por</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Valor</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {RECENT_ACTIVITY.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <CategoryIcon category={entry.category} />
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">{entry.item}</p>
-                              <p className="text-xs text-gray-400">{entry.category}</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{entry.item}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">{entry.category}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4"><div className="flex items-center gap-2"><Avatar initial={entry.submitterInitial} /><span className="text-sm text-gray-700">{entry.submittedBy}</span></div></td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{entry.date}</td>
-                        <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">${entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4"><div className="flex items-center gap-2"><Avatar initial={entry.submitterInitial} /><span className="text-sm text-gray-700 dark:text-gray-300">{entry.submittedBy}</span></div></td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{entry.date}</td>
+                        <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">${entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                         <td className="px-6 py-4"><StatusBadge status={entry.status} /></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <div className="border-t border-gray-100 px-6 py-4">
-                  <p className="text-sm text-gray-400">Exibindo {RECENT_ACTIVITY.length} de 12 despesas</p>
+                <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-4">
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Exibindo {RECENT_ACTIVITY.length} de 12 despesas</p>
                 </div>
 
                 {/* Cards — mobile */}
-                <div className="md:hidden divide-y divide-gray-100">
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
                   {RECENT_ACTIVITY.map((entry) => (
-                    <div key={entry.id} className="px-4 py-4 hover:bg-gray-50">
+                    <div key={entry.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <CategoryIcon category={entry.category} />
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{entry.item}</p>
-                            <p className="text-xs text-gray-400">{entry.category}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{entry.item}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{entry.category}</p>
                           </div>
                         </div>
                         <StatusBadge status={entry.status} />
@@ -543,11 +545,11 @@ export default function DashboardAdminProjectDetalhe() {
                       <div className="flex items-center justify-between pl-11">
                         <div className="flex items-center gap-2">
                           <Avatar initial={entry.submitterInitial} />
-                          <span className="text-xs text-gray-600">{entry.submittedBy}</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{entry.submittedBy}</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900">${entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                          <p className="text-xs text-gray-400">{entry.date}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">${entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{entry.date}</p>
                         </div>
                       </div>
                     </div>
@@ -557,13 +559,13 @@ export default function DashboardAdminProjectDetalhe() {
             </>
           )}
           {abaAtiva === "expenses" && (
-            <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm">
-              <p className="text-sm text-gray-500">Lista de despesas em breve</p>
+            <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Lista de despesas em breve</p>
             </div>
           )}
           {abaAtiva === "team" && (
-            <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm">
-              <p className="text-sm text-gray-500">Membros da equipe em breve</p>
+            <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Membros da equipe em breve</p>
             </div>
           )}
         </main>

@@ -9,6 +9,7 @@ import AdminSidebar from "@/components/AdminSidebar";
 import { getMe, updateProfile, type UserProfile, type UpdateProfileData } from "@/services/user";
 import { toast } from "@/lib/toast";
 import { profilePersonalSchema } from "@/lib/schemas";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,8 +86,8 @@ function profileToBankForm(p: UserProfile): BankForm {
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-      <p className="mt-1 text-sm text-gray-900">{value || "—"}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
+      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{value || "—"}</p>
     </div>
   );
 }
@@ -108,7 +109,7 @@ function FormField({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
         {label}
       </label>
       <input
@@ -116,10 +117,10 @@ function FormField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 outline-none transition focus:ring-1 ${
+        className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 dark:text-gray-100 outline-none transition focus:ring-1 dark:placeholder-gray-500 ${
           error
-            ? "border-red-400 focus:border-red-400 focus:ring-red-400"
-            : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+            ? "border-red-400 focus:border-red-400 focus:ring-red-400 bg-white dark:bg-gray-800"
+            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
         }`}
       />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
@@ -128,7 +129,7 @@ function FormField({
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-gray-200 bg-white shadow-sm">{children}</div>;
+  return <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">{children}</div>;
 }
 
 function SectionHeader({
@@ -149,16 +150,16 @@ function SectionHeader({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-      <div className="flex items-center gap-2 text-gray-700">
+    <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+      <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
         {icon}
-        <h2 className="text-base font-semibold text-gray-800">{title}</h2>
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
       </div>
       {editing ? (
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Cancelar
           </button>
@@ -372,13 +373,13 @@ export default function ProfilePage() {
 
   if (carregando || !userProfile) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <svg className="mx-auto mb-4 h-8 w-8 animate-spin text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <p className="text-gray-600">Carregando perfil...</p>
+          <p className="text-gray-600 dark:text-gray-400">Carregando perfil...</p>
         </div>
       </div>
     );
@@ -410,31 +411,32 @@ export default function ProfilePage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {sidebar}
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 sm:px-8 sm:py-4">
+        <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Meu Perfil</h1>
-            <p className="text-xs text-gray-500 sm:text-sm">Visualize e gerencie suas informações</p>
+            <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Meu Perfil</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Visualize e gerencie suas informações</p>
           </div>
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
           <div className="mx-auto max-w-3xl space-y-5">
 
             {/* Hero card */}
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
               <div className={`h-24 bg-gradient-to-r ${roleGradient(userProfile.role)}`} />
               <div className="relative px-6 pb-6">
-                <div className={`absolute -top-8 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white ${roleAvatarClass(userProfile.role)} text-xl font-bold text-white shadow-md`}>
+                <div className={`absolute -top-8 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white dark:border-gray-900 ${roleAvatarClass(userProfile.role)} text-xl font-bold text-white shadow-md`}>
                   {userProfile.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="ml-20 pt-3">
-                  <h2 className="text-lg font-bold text-gray-900">{userProfile.name}</h2>
-                  <p className="text-sm text-gray-500">{userProfile.email}</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">{userProfile.name}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{userProfile.email}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${roleBadgeClass(userProfile.role)}`}>
                       {roleLabel(userProfile.role)}
@@ -528,10 +530,10 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-end border-b border-gray-50 px-6 py-2">
+                    <div className="flex items-center justify-end border-b border-gray-50 dark:border-gray-800 px-6 py-2">
                       <button
                         onClick={() => setBankVisible((v) => !v)}
-                        className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-800"
+                        className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                       >
                         {bankVisible ? (
                           <>
