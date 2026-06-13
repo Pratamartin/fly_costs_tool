@@ -1,11 +1,15 @@
 import { serve } from '@hono/node-server'
 import app from './app'
 import env from './env'
-import { jobManager } from './jobs'
+import { boss, jobManager } from './jobs'
 import { logger } from './lib/logger'
 
 try {
   await jobManager.start()
+
+  // Agenda jobs de limpeza — 04:00 UTC
+  await boss.schedule('orphan-cleanup-cron', '0 4 * * *', { type: 'orphan-cleanup' }, {})
+  await boss.schedule('rejected-purge-cron', '0 4 * * *', { type: 'rejected-purge' }, {})
 
   const server = serve({
     fetch: app.fetch,

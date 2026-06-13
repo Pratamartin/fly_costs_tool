@@ -10,6 +10,7 @@ vi.mock('@/lib/storage', () => ({
   validatePDF: () => ({ valid: false, error: 'STORAGE_NOT_CONFIGURED' }),
   uploadFile: async () => ({ fileKey: '', fileName: '', fileSize: 0 }),
   deleteFile: async () => {},
+  deleteObjects: async () => {},
   getSignedDownloadUrl: async () => '',
 }))
 
@@ -40,6 +41,10 @@ vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 vi.mock('@/services/preference-survey.service', () => ({
   validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
+}))
+
+vi.mock('@/services/notifications/staff.notification', () => ({
+  notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
 }))
 
 import * as preferenceSurveyService from '@/services/preference-survey.service'

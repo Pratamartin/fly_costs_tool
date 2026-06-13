@@ -1,9 +1,10 @@
-import type { AssignProjectRoute, ConcludeRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
+import type { AssignProjectRoute, ConcludeRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, RemoveRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import { problems } from '@/lib/problems'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
-import { assignProjectToExpense, attachMemorandumToExpense, concludeExpenseRequest, createExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
+import { DeleteExpenseResponseSchema } from '@/schemas/shared.schema'
+import { assignProjectToExpense, attachMemorandumToExpense, concludeExpenseRequest, createExpenseRequest, deleteExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -169,5 +170,19 @@ export const conclude: AppRouteHandler<ConcludeRoute> = async (c) => {
   }
 
   const parsed = ExpenseResponseSchema.parse(payload)
+  return c.json(parsed, codes.OK)
+}
+
+export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const { sub, role } = c.get('jwtPayload')
+
+  const result = await deleteExpenseRequest(id, sub, role)
+
+  if ('error' in result) {
+    throw problems.create(result.error, { extensions: result.context })
+  }
+
+  const parsed = DeleteExpenseResponseSchema.parse(result)
   return c.json(parsed, codes.OK)
 }

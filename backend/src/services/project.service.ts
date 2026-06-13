@@ -4,6 +4,7 @@ import type { ServiceResult } from '@/lib/problems'
 import type { CreateProjectSchema, ListProjectQuerySchema, UpdateProjectSchema } from '@/schemas/project.schema'
 import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES } from '@/constants/project.constant'
 import prisma from '@/lib/orm'
+import { deleteObjects, isStorageConfigured } from '@/lib/storage'
 import { validateSubcategoriesExist } from './expense.category.service'
 
 type CreateProjectDTO = z.infer<typeof CreateProjectSchema>
@@ -171,11 +172,31 @@ export async function deleteProject(
     return existingResult
   }
 
-  const project = await prisma.project.update({
-    where: { id },
-    data: { isActive: false },
-    include: projectInclude,
+  // Coleciona todas as attachmentKeys das expenses associadas
+  const expenses = await prisma.expenseRequest.findMany({
+    where: { projectId: id },
+    select: {
+      attachmentKey: true,
+      costBreakdowns: { select: { attachmentKey: true } },
+    },
   })
 
-  return formatProjectSubcategories(project)
+  const keys = expenses.flatMap(e => [
+    e.attachmentKey,
+    ...e.costBreakdowns.map(cb => cb.attachmentKey),
+  ]).filter((k): k is string => k !== null)
+
+  return prisma.$transaction(async (tx) => {
+    if (keys.length > 0 && isStorageConfigured()) {
+      await deleteObjects(keys)
+    }
+
+    const project = await tx.project.update({
+      where: { id },
+      data: { isActive: false },
+      include: projectInclude,
+    })
+
+    return formatProjectSubcategories(project)
+  })
 }
