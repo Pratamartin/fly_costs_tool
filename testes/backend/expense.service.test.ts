@@ -42,6 +42,10 @@ vi.mock('@/services/preference-survey.service', () => ({
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
+vi.mock('@/services/notifications/staff.notification', () => ({
+  notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 import * as preferenceSurveyService from '@/services/preference-survey.service'
 import {
   createExpenseRequest,

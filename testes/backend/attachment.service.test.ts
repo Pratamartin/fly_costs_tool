@@ -36,6 +36,10 @@ vi.mock('@/services/notifications', () => ({
   notifyStatusChange: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@/services/notifications/staff.notification', () => ({
+  notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 const prismaMock = vi.hoisted(() => ({
   expenseRequest: {
     findUnique: vi.fn(),
