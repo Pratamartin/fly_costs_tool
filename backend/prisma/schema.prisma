@@ -22,6 +22,8 @@ model User {
   updatedAt       DateTime         @updatedAt
   profile         Profile?
   sessions        UserSession[]
+
+  @@index([passwordResetExpiresAt])
 }
 
 model UserSession {
@@ -35,6 +37,8 @@ model UserSession {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
 }
 
 model Profile {
@@ -178,6 +182,9 @@ model InviteCode {
   usedAt    DateTime?
   expiresAt DateTime
   createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@index([usedAt])
 }
 
 model Notification {

@@ -28,6 +28,12 @@ const EnvSchema = z.object({
   R2_ENDPOINT: z.url().optional(),
   R2_BUCKET_NAME: z.string().optional(),
 
+  CLEANUP_ENABLED: z.coerce.boolean().default(true),
+  CLEANUP_CRON_SCHEDULE: z.string().default('0 3 * * *'),
+  CLEANUP_SESSION_RETENTION_DAYS: z.coerce.number().default(30),
+  CLEANUP_INVITE_PENDING_RETENTION_DAYS: z.coerce.number().default(7),
+  CLEANUP_INVITE_USED_RETENTION_DAYS: z.coerce.number().default(30),
+
   /** Email Service. Opcional em testes; obrigatório para envio de notificações por email */
   GOOGLE_EMAIL: z.email()
     .optional(),
