@@ -129,7 +129,8 @@ export async function deleteFile(fileKey: string): Promise<void> {
  * Aceita lista vazia (no-op) para evitar chamadas desnecessárias.
  */
 export async function deleteObjects(keys: string[]): Promise<void> {
-  if (keys.length === 0) return
+  if (keys.length === 0)
+    return
 
   const BATCH_SIZE = 1000
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {

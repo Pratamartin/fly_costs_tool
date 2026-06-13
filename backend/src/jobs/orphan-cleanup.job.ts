@@ -23,20 +23,36 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
     const [expenseKeys, breakdownKeys] = await Promise.all([
       prisma.expenseRequest.findMany({
         where: { attachmentKey: { not: null } },
-        select: { id: true, attachmentKey: true },
+        select: {
+          id: true,
+          attachmentKey: true,
+        },
       }),
       prisma.costBreakdown.findMany({
         where: { attachmentKey: { not: null } },
-        select: { id: true, attachmentKey: true },
+        select: {
+          id: true,
+          attachmentKey: true,
+        },
       }),
     ])
 
     const dbKeyMap = new Map<string, { entity: 'expense' | 'breakdown', id: string }>()
     for (const e of expenseKeys) {
-      if (e.attachmentKey) dbKeyMap.set(e.attachmentKey, { entity: 'expense', id: e.id })
+      if (e.attachmentKey) {
+        dbKeyMap.set(e.attachmentKey, {
+          entity: 'expense',
+          id: e.id,
+        })
+      }
     }
     for (const cb of breakdownKeys) {
-      if (cb.attachmentKey) dbKeyMap.set(cb.attachmentKey, { entity: 'breakdown', id: cb.id })
+      if (cb.attachmentKey) {
+        dbKeyMap.set(cb.attachmentKey, {
+          entity: 'breakdown',
+          id: cb.id,
+        })
+      }
     }
 
     // 2. Lista todos os objetos do bucket R2 (paginação)
@@ -51,7 +67,8 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
 
       if (response.Contents) {
         for (const obj of response.Contents) {
-          if (obj.Key) r2Keys.add(obj.Key)
+          if (obj.Key)
+            r2Keys.add(obj.Key)
         }
       }
 
@@ -62,7 +79,10 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
     const orphanDbEntries: { key: string, entity: 'expense' | 'breakdown', id: string }[] = []
     for (const [key, ref] of dbKeyMap) {
       if (!r2Keys.has(key)) {
-        orphanDbEntries.push({ key, ...ref })
+        orphanDbEntries.push({
+          key,
+          ...ref,
+        })
       }
     }
 
@@ -86,15 +106,15 @@ export class OrphanCleanupJob extends BaseJob<object, CleanupStats> {
       await Promise.all([
         expenseIds.length > 0
           ? prisma.expenseRequest.updateMany({
-            where: { id: { in: expenseIds } },
-            data: { attachmentKey: null },
-          })
+              where: { id: { in: expenseIds } },
+              data: { attachmentKey: null },
+            })
           : Promise.resolve(),
         breakdownIds.length > 0
           ? prisma.costBreakdown.updateMany({
-            where: { id: { in: breakdownIds } },
-            data: { attachmentKey: null },
-          })
+              where: { id: { in: breakdownIds } },
+              data: { attachmentKey: null },
+            })
           : Promise.resolve(),
       ])
 

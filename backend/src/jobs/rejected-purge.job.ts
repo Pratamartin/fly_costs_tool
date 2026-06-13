@@ -17,7 +17,8 @@ export class RejectedPurgeJob extends BaseJob<object, PurgeStats> {
   readonly type = 'rejected-purge' as const
 
   async work(_job: Job<object>): Promise<PurgeStats> {
-    const cutoff = dayjs().subtract(PURGE_DAYS, 'days').toDate()
+    const cutoff = dayjs().subtract(PURGE_DAYS, 'days')
+      .toDate()
 
     const expired = await prisma.expenseRequest.findMany({
       where: {
@@ -28,9 +29,7 @@ export class RejectedPurgeJob extends BaseJob<object, PurgeStats> {
       select: {
         id: true,
         attachmentKey: true,
-        costBreakdowns: {
-          select: { attachmentKey: true },
-        },
+        costBreakdowns: { select: { attachmentKey: true } },
       },
     })
 
