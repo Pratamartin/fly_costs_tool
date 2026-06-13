@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "@/store/authStore";
 import { toast } from "./toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -27,8 +28,8 @@ api.interceptors.response.use(
       try {
         const res = await axios.post(`${API_URL}/v1/auth/refresh`, {}, { withCredentials: true });
         const newToken: string = res.data.accessToken;
+        useAuthStore.getState().setToken(newToken);
         if (typeof window !== "undefined") {
-          window.__authToken = newToken;
           localStorage.setItem("accessToken", newToken);
         }
         original.headers.Authorization = `Bearer ${newToken}`;
