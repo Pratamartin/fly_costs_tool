@@ -5,6 +5,7 @@ import { OrphanCleanupJob } from './orphan-cleanup.job'
 import { RejectedPurgeJob } from './rejected-purge.job'
 import { SendEmailJob } from './send-email.job'
 
+export { boss }
 export const jobManager = new JobManager(boss)
   .register(new SendEmailJob(boss))
   .register(new GenerateReportJob(boss))

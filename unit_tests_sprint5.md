@@ -197,4 +197,19 @@ Regras verificadas:
 | US 5.0 — Staff Notification | T5.0.2 | unit | staff.notification.test.ts | 11 | PASSOU |
 | **Total Sprint 5** | | | | **31** | **31 PASSOU / 0 FALHOU** |
 
+---
+
+## Code Quality — Linter
+
+O repositório possui um workflow de **Code Quality** (`.github/workflows/code-quality.yml`) que executa `eslint` em todo o `backend/`. Durante a Sprint 5, os arquivos criados/modificados abaixo geraram **25 erros de lint** no CI, todos corrigidos com `eslint --fix`:
+
+| Arquivo | Erros | Padrão |
+|---|---|---|
+| `backend/src/jobs/orphan-cleanup.job.ts` | 20 | `object-curly-newline`, `antfu/if-newline`, `style/indent` |
+| `backend/src/jobs/rejected-purge.job.ts` | 3 | `newline-per-chained-call`, `object-curly-newline` |
+| `backend/src/lib/storage.ts` | 1 | `antfu/if-newline` |
+| `backend/src/schemas/shared.schema.ts` | 1 | `object-curly-newline` |
+
+**Recomendação:** Sempre rodar `npm run lint -- --fix` antes de commitar código novo no backend para evitar falhas no pipeline de Code Quality.
+
 **Total geral da suite (Sprint 1 + 2 + 3 + 4 + 5):** 226 passed / 226 total — exit code 0 (CI-ready)
