@@ -5,6 +5,7 @@ import { createTestApp } from '@/lib/config'
 import { expenses } from '@/routes'
 import { seedUsers } from '@/seeds'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -44,6 +45,6 @@ describe('[Expense Forms] - Teste de Contrato', () => {
 
   it('deve retornar 401 se não estiver autenticado', async () => {
     const res = await endpoint.$get({})
-    expect(res.status).toBe(status.UNAUTHORIZED)
+    await expectProblem(res, 'UNAUTHORIZED')
   })
 })

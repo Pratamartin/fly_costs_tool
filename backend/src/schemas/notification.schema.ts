@@ -25,6 +25,6 @@ export const NotificationQuerySchema = PaginationSchema.extend({
     .optional()
     .openapi({
       example: false,
-      description: 'Filtrar apenas por notificações não lidas',
+      description: 'Filter only by unread notifications',
     }),
 }).partial()

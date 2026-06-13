@@ -21,6 +21,20 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   profile         Profile?
+  sessions        UserSession[]
+}
+
+model UserSession {
+  id        String   @id @default(uuid())
+  jti       String   @unique // JWT ID vinculado ao Refresh Token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt DateTime
+  revokedAt DateTime? 
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Profile {

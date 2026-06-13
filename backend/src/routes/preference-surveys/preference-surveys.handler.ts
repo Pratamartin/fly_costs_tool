@@ -2,6 +2,7 @@ import type { DownloadRoute, ListActiveRoute, UploadRoute } from './preference-s
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import { PREFERENCE_SURVEY_DOWNLOAD_EXPIRY_SECONDS } from '@/constants/preference-survey.constant'
+import { problems } from '@/lib/problems'
 import { getSignedDownloadUrl, isStorageConfigured, uploadFile } from '@/lib/storage'
 import * as preferenceSurveyService from '@/services/preference-survey.service'
 
@@ -12,7 +13,7 @@ export const listActive: AppRouteHandler<ListActiveRoute> = async (c) => {
 
 export const upload: AppRouteHandler<UploadRoute> = async (c) => {
   if (!isStorageConfigured()) {
-    return c.json({ message: 'Variáveis R2 não configuradas.' }, codes.BAD_GATEWAY)
+    throw problems.create('STORAGE_UNAVAILABLE', { detail: 'Storage service (R2) not configured.' })
   }
 
   const { file } = c.req.valid('form')
@@ -32,20 +33,20 @@ export const upload: AppRouteHandler<UploadRoute> = async (c) => {
     }, codes.OK)
   }
   catch {
-    return c.json({ message: 'Erro ao fazer upload para o R2.' }, codes.BAD_GATEWAY)
+    throw problems.create('STORAGE_PROVIDER_ERROR', { detail: 'Error uploading to storage provider.' })
   }
 }
 
 export const download: AppRouteHandler<DownloadRoute> = async (c) => {
   if (!isStorageConfigured()) {
-    return c.json({ message: 'Variáveis R2 não configuradas.' }, codes.SERVICE_UNAVAILABLE)
+    throw problems.create('STORAGE_UNAVAILABLE', { detail: 'Storage service (R2) not configured.' })
   }
 
   const { fileKey } = c.req.valid('query')
 
   // Segurança básica: Garantir que a chave pertence à pasta de pesquisas
   if (!fileKey.startsWith('formulario-preferencias/')) {
-    return c.json({ message: 'Acesso negado: Chave de arquivo inválida.' }, codes.BAD_REQUEST)
+    throw problems.create('FORBIDDEN', { detail: 'Access denied: Invalid file key or out of scope.' })
   }
 
   try {
@@ -58,6 +59,6 @@ export const download: AppRouteHandler<DownloadRoute> = async (c) => {
     }, codes.OK)
   }
   catch {
-    return c.json({ message: 'Erro ao gerar URL de download.' }, codes.SERVICE_UNAVAILABLE)
+    throw problems.create('STORAGE_UNAVAILABLE', { detail: 'Error generating download URL.' })
   }
 }

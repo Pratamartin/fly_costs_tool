@@ -2,9 +2,9 @@ import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
+import { registryResponses } from '@/lib/problems'
 import { requireAuth } from '@/middlewares'
 import { NotificationQuerySchema, NotificationsListSchema } from '@/schemas/notification.schema'
-import { UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Notifications']
 
@@ -12,7 +12,7 @@ export const getNotifications = createRoute({
   path: '/',
   method: 'get',
   summary: 'Get user notifications',
-  description: 'Retorna as notificações do usuário autenticado com suporte a paginação e filtro de lidas.',
+  description: 'Returns notifications for the authenticated user with support for pagination and read-status filtering.',
   tags,
   middleware: [requireAuth],
   security: [{ Bearer: [] }],
@@ -20,9 +20,9 @@ export const getNotifications = createRoute({
   responses: {
     [codes.OK]: jsonContent(
       NotificationsListSchema,
-      'Lista de notificações retornada com sucesso.',
+      'List of notifications retrieved successfully.',
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
   },
 })
 
@@ -30,7 +30,7 @@ export const markRead = createRoute({
   path: '/{id}/read',
   method: 'patch',
   summary: 'Mark notification as read',
-  description: 'Marca uma notificação específica como lida.',
+  description: 'Marks a specific notification as read.',
   tags,
   middleware: [requireAuth],
   security: [{ Bearer: [] }],
@@ -43,14 +43,10 @@ export const markRead = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Notificação marcada como lida'),
-      'Notificação atualizada com sucesso.',
+      createMessageObjectSchema('Notification marked as read'),
+      'Notification updated successfully.',
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Notificação não encontrada'),
-      'A notificação informada não existe ou não pertence ao usuário.',
-    ),
+    ...registryResponses('UNAUTHORIZED', 'NOTIFICATION_NOT_FOUND', 'VALIDATION_ERROR'),
   },
 })
 
@@ -58,16 +54,16 @@ export const markAllRead = createRoute({
   path: '/read-all',
   method: 'patch',
   summary: 'Mark all notifications as read',
-  description: 'Marca todas as notificações do usuário como lidas.',
+  description: 'Marks all notifications for the user as read.',
   tags,
   middleware: [requireAuth],
   security: [{ Bearer: [] }],
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Todas as notificações foram marcadas como lidas'),
-      'Notificações atualizadas com sucesso.',
+      createMessageObjectSchema('All notifications marked as read'),
+      'Notifications updated successfully.',
     ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('UNAUTHORIZED'),
   },
 })
 

@@ -14,7 +14,7 @@ export const ListExpenseCategoryResponseSchema = z.array(ExpenseCategoryResponse
 export const ListExpenseCategoryQuerySchema = z.object({
   search: z.string().optional()
     .openapi({
-      description: 'Busca por nome da subcategoria de despesa',
+      description: 'Search by expense subcategory name',
       example: 'passagem',
     }),
 }).partial()

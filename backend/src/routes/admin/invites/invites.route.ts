@@ -1,13 +1,13 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
-import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { INVITE_EXPIRY } from '@/constants/invite.constant'
 import { UserRole } from '@/generated/prisma/enums'
+import { registryResponses, standardResponses } from '@/lib/problems'
 import { requireAuth, requireRole } from '@/middlewares'
 
 import { CreateInviteSchema, InviteResponseSchema, ListInvitesQuerySchema, ListInvitesSchema } from '@/schemas/admin.invite.schema'
-import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
+import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Invites']
 const middleware = [requireAuth, requireRole([UserRole.ADMIN])]
@@ -22,13 +22,12 @@ export const index = createRoute({
   middleware,
   security: [{ bearerAuth: [] }],
   summary: 'List all invites',
-  description: 'Retorna a lista de todos os códigos de convite gerados, com seus status (ATIVO, USADO, EXPIRADO).',
+  description: 'Returns a list of all generated invite codes, with their statuses (ACTIVE, USED, EXPIRED).',
   tags,
   request: { query: ListInvitesQuerySchema },
   responses: {
-    [codes.OK]: jsonContent(ListInvitesSchema, 'Lista de convites retornada com sucesso.'),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.OK]: jsonContent(ListInvitesSchema, 'Invite list retrieved successfully.'),
+    ...registryResponses('UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
 
@@ -38,17 +37,13 @@ export const create = createRoute({
   middleware,
   security: [{ bearerAuth: [] }],
   summary: 'Create a new invite code',
-  description: `Gera um novo código de convite aleatório para uma role específica. Se não informada, a expiração padrão é de ${INVITE_EXPIRY.DEFAULT_HOURS} horas. A data de expiração deve ser no mínimo ${INVITE_EXPIRY.MIN_MINUTES} minutos após o momento da criação e deve seguir o padrão UTC.`,
+  description: `Generates a new random invite code for a specific role. If not provided, the default expiration is ${INVITE_EXPIRY.DEFAULT_HOURS} hours. The expiration date must be at least ${INVITE_EXPIRY.MIN_MINUTES} minutes after creation and must follow the UTC standard.`,
   tags,
-  request: { body: jsonContentRequired(CreateInviteSchema, 'Dados do convite') },
+  request: { body: jsonContentRequired(CreateInviteSchema, 'Invite data') },
   responses: {
-    [codes.CREATED]: jsonContent(InviteResponseSchema, 'Convite criado com sucesso.'),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Dados inválidos'),
-      `Erro de validação (ex: data de expiração inferior ao mínimo de ${INVITE_EXPIRY.MIN_MINUTES} minutos).`,
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.CREATED]: jsonContent(InviteResponseSchema, 'Invite created successfully.'),
+    ...standardResponses,
+    ...registryResponses('BAD_REQUEST'),
   },
 })
 
@@ -58,20 +53,11 @@ export const remove = createRoute({
   middleware,
   security: [{ bearerAuth: [] }],
   summary: 'Revoke an invite code',
-  description: 'Invalida um código de convite (soft: define expiresAt para agora).',
+  description: 'Invalidates an invite code (soft delete: sets expiresAt to current time).',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
-    [codes.NO_CONTENT]: { description: 'Convite revogado com sucesso.' },
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Convite não encontrado'),
-      'Nenhum convite foi localizado com o ID informado.',
-    ),
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Regra de negócio violada'),
-      'O convite não pode ser revogado (ex: já foi usado ou está expirado).',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.NO_CONTENT]: { description: 'Invite revoked successfully.' },
+    ...registryResponses('INVITE_NOT_FOUND', 'INVITE_CONFLICT', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })

@@ -1,8 +1,7 @@
 import type { CreateRoute, IndexRoute, RemoveRoute } from './invites.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
-import * as phrases from 'stoker/http-status-phrases'
-import { INVITE_ERRORS } from '@/constants/invite.constant'
+import { problems } from '@/lib/problems'
 import { InviteResponseSchema, ListInvitesSchema } from '@/schemas/admin.invite.schema'
 import { createInvite, getInviteDefaultExpiry, listInvites, mapInviteStatus, revokeInvite } from '@/services/invite.service'
 
@@ -30,16 +29,7 @@ export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
   const result = await revokeInvite(id)
 
   if (result && 'error' in result) {
-    switch (result.error) {
-      case phrases.NOT_FOUND:
-        return c.json({ message: 'Convite não encontrado' }, codes.NOT_FOUND)
-      case INVITE_ERRORS.ALREADY_USED:
-        return c.json({ message: 'Não é possível revogar um convite que já foi utilizado' }, codes.CONFLICT)
-      case INVITE_ERRORS.ALREADY_EXPIRED:
-        return c.json({ message: 'Este convite já está expirado' }, codes.CONFLICT)
-      default:
-        return c.json({ message: phrases.INTERNAL_SERVER_ERROR }, codes.INTERNAL_SERVER_ERROR)
-    }
+    throw problems.create(result.error)
   }
 
   return c.body(null, codes.NO_CONTENT)

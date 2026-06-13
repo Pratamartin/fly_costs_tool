@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import * as phrases from 'stoker/http-status-phrases'
-import { EXPENSE_ERROR_CODES } from '@/constants/expense.constant'
 import { CreateExpenseSchema } from '@/schemas/expense.schema'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { UserRole } from '@/generated/prisma/enums'
@@ -32,6 +30,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   user: {
     findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   $transaction: vi.fn((cb) => cb(prismaMock)),
 }))
@@ -39,14 +38,13 @@ const prismaMock = vi.hoisted(() => ({
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
 vi.mock('@/services/preference-survey.service', () => ({
-  validateAnswers: vi.fn().mockResolvedValue(null),
+  validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
 import * as preferenceSurveyService from '@/services/preference-survey.service'
 import {
   createExpenseRequest,
-  expenseInclude,
   getAllExpenseRequests,
   getExpenseById,
   updateExpense,
@@ -111,11 +109,11 @@ describe('CreateExpenseSchema (validação campos / datas)', () => {
   })
 
   it('createExpenseRequest retorna erro quando validação de respostas falha', async () => {
-    vi.mocked(preferenceSurveyService.validateAnswers).mockResolvedValueOnce('INVALID_DATA')
+    vi.mocked(preferenceSurveyService.validateAnswers).mockResolvedValueOnce({ error: 'VALIDATION_ERROR' })
 
     const result = await createExpenseRequest(STUDENT_ID, validBase)
 
-    expect('error' in result && result.error).toBe('INVALID_DATA')
+    expect('error' in result && result.error).toBe('VALIDATION_ERROR')
     expect(prismaMock.expenseRequest.create).not.toHaveBeenCalled()
   })
 })
@@ -144,13 +142,15 @@ describe('getAllExpenseRequests / getExpenseById (formato retorno)', () => {
       expenseRow({ attachmentKey: 'memorandos/k.pdf' }),
     ])
 
-    const list = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
+    const result = await getAllExpenseRequests(STUDENT_ID, UserRole.ALUNO, {})
 
-    expect(list[0].attachmentKey).toBe('memorandos/k.pdf')
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result[0].attachmentKey).toBe('memorandos/k.pdf')
   })
 
   it('getExpenseById retorna rejectionReason e costBreakdowns no payload', async () => {
-    prismaMock.expenseRequest.findFirst.mockResolvedValue(
+    prismaMock.expenseRequest.findUnique.mockResolvedValue(
       expenseRow({
         status: ExpenseRequestStatus.REJEITADO,
         rejectionReason: 'Doc inválido',
@@ -160,8 +160,10 @@ describe('getAllExpenseRequests / getExpenseById (formato retorno)', () => {
 
     const result = await getExpenseById(EXPENSE_ID, STUDENT_ID, UserRole.ALUNO)
 
-    expect(result?.rejectionReason).toBe('Doc inválido')
-    expect(Array.isArray(result?.costBreakdowns)).toBe(true)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.rejectionReason).toBe('Doc inválido')
+    expect(Array.isArray(result.costBreakdowns)).toBe(true)
   })
 })
 
@@ -191,12 +193,12 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     expect(result.rejectionReason).toBe('Falta documentação')
   })
 
-  it('rejeição sem motivo retorna REASON_REQUIRED', async () => {
+  it('rejeição sem motivo retorna MISSING_REASON', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue(expenseRow())
 
     const result = await updateExpenseStatus(EXPENSE_ID, ExpenseRequestStatus.REJEITADO, UserRole.COORDENADOR, undefined)
 
-    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.REASON_REQUIRED)
+    expect('error' in result && result.error).toBe('MISSING_REASON')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 
@@ -261,7 +263,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
       'motivo',
     )
 
-    expect('error' in result && result.error).toBeDefined()
+    expect('error' in result && result.error).toBe('INVALID_TRANSITION')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 
@@ -286,7 +288,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
     expect((result as { correctionReason?: string | null }).correctionReason).toBe('Corrigir valor da passagem')
   })
 
-  it('T3.4.1 — APROVADO → EM_EDICAO sem motivo retorna REASON_REQUIRED', async () => {
+  it('T3.4.1 — APROVADO → EM_EDICAO sem motivo retorna MISSING_REASON', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue(
       expenseRow({ status: ExpenseRequestStatus.APROVADO }),
     )
@@ -298,7 +300,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
       undefined,
     )
 
-    expect('error' in result && result.error).toBe(EXPENSE_ERROR_CODES.REASON_REQUIRED)
+    expect('error' in result && result.error).toBe('MISSING_REASON')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 
@@ -314,7 +316,7 @@ describe('updateExpenseStatus (rejeição / motivo / aprovação)', () => {
       'motivo',
     )
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('FORBIDDEN')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 })
@@ -361,27 +363,27 @@ describe('updateExpense — T3.4.1 (unit)', () => {
 
     const result = await updateExpense(EXPENSE_ID, STUDENT_ID, { title: 'Tentativa' })
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('FORBIDDEN')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 
-  it('status diferente de EM_EDICAO retorna CONFLICT', async () => {
+  it('status diferente de EM_EDICAO retorna INVALID_EXPENSE_STATE', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue(
       expenseRow({ status: ExpenseRequestStatus.PENDENTE, studentId: STUDENT_ID }),
     )
 
     const result = await updateExpense(EXPENSE_ID, STUDENT_ID, { title: 'Tentativa' })
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('INVALID_EXPENSE_STATE')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 
-  it('despesa inexistente retorna NOT_FOUND', async () => {
+  it('despesa inexistente retorna EXPENSE_NOT_FOUND', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue(null)
 
     const result = await updateExpense('nao-existe', STUDENT_ID, { title: 'X' })
 
-    expect('error' in result).toBe(true)
+    expect('error' in result && result.error).toBe('EXPENSE_NOT_FOUND')
     expect(prismaMock.expenseRequest.update).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,5 @@
 import { testClient } from 'hono/testing'
-import * as status from 'stoker/http-status-codes'
-import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, it } from 'vitest'
 import { ID_ALUNO, ID_PROJ_IA } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
@@ -10,6 +9,7 @@ import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import seedProjects from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -58,8 +58,7 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
   })
 
   it('não permite criar cost breakdown para projeto arquivado', async () => {
-    const endpoint = client.expenses[':id']['cost-breakdowns'].$post
-    const res = await endpoint(
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
       {
         param: { id: expenseId },
         json: {
@@ -72,9 +71,6 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
       { headers: adminHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
-    expect(json).toHaveProperty('message')
-    expect(json.message).toContain('arquivado')
+    await expectProblem(res, 'PROJECT_ARCHIVED')
   })
 })

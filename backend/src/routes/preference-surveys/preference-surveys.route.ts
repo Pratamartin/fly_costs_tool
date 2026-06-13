@@ -1,10 +1,10 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent } from 'stoker/openapi/helpers'
+import { registryResponses } from '@/lib/problems'
 import { requireAuth } from '@/middlewares'
 import { uploadSurveySettings } from '@/middlewares/upload-settings'
 import { ListPreferenceSurveyResponseSchema } from '@/schemas/preference-survey.schema'
-import { UnauthorizedResponse } from '@/schemas/shared.schema'
 
 const tags = ['Preference Surveys']
 
@@ -14,11 +14,11 @@ export const listActive = createRoute({
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
   summary: 'List active preference surveys',
-  description: 'Retorna todos os schemas de pesquisa de preferência ativos vinculados às categorias de despesa.',
+  description: 'Returns all active preference survey schemas linked to expense categories.',
   tags,
   responses: {
-    [codes.OK]: jsonContent(ListPreferenceSurveyResponseSchema, 'Lista de pesquisas de preferência.'),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    [codes.OK]: jsonContent(ListPreferenceSurveyResponseSchema, 'List of preference surveys.'),
+    ...registryResponses('UNAUTHORIZED'),
   },
 })
 
@@ -32,7 +32,7 @@ export const upload = createRoute({
   ] as const,
   security: [{ bearerAuth: [] }],
   summary: 'Upload a file for a preference survey',
-  description: 'Faz o upload de um arquivo para o armazenamento R2 e retorna a chave do arquivo para ser usada na resposta do formulário.',
+  description: 'Uploads a file to R2 storage and returns the file key to be used in the form response.',
   tags,
   request: {
     body: {
@@ -42,7 +42,7 @@ export const upload = createRoute({
             file: z.instanceof(File).openapi({
               type: 'string',
               format: 'binary',
-              description: 'Arquivo a ser enviado (PDF, JPEG, PNG). Máx 10MB.',
+              description: 'File to be uploaded (PDF, JPEG, PNG). Max 10MB.',
             }),
           }),
         },
@@ -52,20 +52,12 @@ export const upload = createRoute({
   responses: {
     [codes.OK]: jsonContent(
       z.object({
-        fileKey: z.string().openapi({ description: 'Chave do arquivo no R2' }),
-        fileName: z.string().openapi({ description: 'Nome original do arquivo' }),
+        fileKey: z.string().openapi({ description: 'File key in R2' }),
+        fileName: z.string().openapi({ description: 'Original file name' }),
       }),
-      'Arquivo enviado com sucesso.',
+      'File uploaded successfully.',
     ),
-    [codes.BAD_REQUEST]: jsonContent(
-      z.object({ message: z.string() }),
-      'Arquivo inválido ou erro no upload.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.BAD_GATEWAY]: jsonContent(
-      z.object({ message: z.string() }),
-      'Falha na comunicação com o Cloudflare R2.',
-    ),
+    ...registryResponses('INVALID_FILE', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'UNAUTHORIZED', 'STORAGE_PROVIDER_ERROR', 'VALIDATION_ERROR'),
   },
 })
 
@@ -74,27 +66,19 @@ export const download = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
-  summary: 'URL assinada para download de anexo da pesquisa',
-  description: 'Gera uma URL temporária para baixar um arquivo enviado via pesquisa de preferência.',
+  summary: 'Signed URL for survey attachment download',
+  description: 'Generates a temporary URL to download a file uploaded via a preference survey.',
   tags,
-  request: { query: z.object({ fileKey: z.string().openapi({ description: 'Chave do arquivo no R2' }) }) },
+  request: { query: z.object({ fileKey: z.string().openapi({ description: 'File key in R2' }) }) },
   responses: {
     [codes.OK]: jsonContent(
       z.object({
         downloadUrl: z.string().url(),
         expiresIn: z.number(),
       }),
-      'URL gerada com sucesso.',
+      'URL generated successfully.',
     ),
-    [codes.BAD_REQUEST]: jsonContent(
-      z.object({ message: z.string() }),
-      'Chave de arquivo inválida.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.SERVICE_UNAVAILABLE]: jsonContent(
-      z.object({ message: z.string() }),
-      'Armazenamento R2 não configurado.',
-    ),
+    ...registryResponses('INVALID_FILE', 'UNAUTHORIZED', 'STORAGE_UNAVAILABLE', 'VALIDATION_ERROR'),
   },
 })
 

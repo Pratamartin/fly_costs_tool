@@ -11,7 +11,10 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   JWT_SECRET: z.string(),
   JWT_EXPIRES_IN: z.coerce.number(),
+  JWT_REFRESH_SECRET: z.string(),
+  REFRESH_TOKEN_EXPIRES_DAYS: z.coerce.number().default(14),
   SALT_ROUNDS: z.coerce.number().default(10),
+  COOKIE_SAME_SITE: z.enum(['Strict', 'Lax', 'None']).default('Lax'),
   ALLOWED_ORIGINS: z.string()
     .transform(str => str.split(','))
     .pipe(z.array(z.url()))
@@ -49,7 +52,7 @@ const EnvSchema = z.object({
           expected: 'string',
           received: 'undefined',
           path: [field],
-          message: `Deve estar presente quando NODE_ENV é 'production'`,
+          message: `Must be present when NODE_ENV is 'production'`,
         })
       }
     })

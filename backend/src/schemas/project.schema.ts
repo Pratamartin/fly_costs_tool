@@ -10,13 +10,13 @@ const BaseSchema = z.object({
 
   code: z.string().openapi({
     examples: dummyProjects.map(p => p.code),
-    description: 'Código único do projeto.',
+    description: 'Unique project code.',
   }),
 
   budget: z.coerce.number().positive()
     .openapi({
       example: 10000,
-      description: 'Orçamento total do projeto em reais.',
+      description: 'Total project budget in BRL.',
     }),
 
   subcategories: z.array(z.string()).min(MIN_SUBCATEGORIES)
@@ -33,7 +33,7 @@ export const ProjectResponseSchema = z.object({ id: IdSchema })
   .extend({
     usedBudget: z.coerce.number().openapi({
       example: 0,
-      description: 'Orçamento utilizado do projeto em reais.',
+      description: 'Used project budget in BRL.',
     }),
     isActive: z.boolean().openapi({ example: true })
       .default(true),
@@ -45,7 +45,7 @@ export const ListProjectQuerySchema = z.object({
     .default(true),
   search: z.string().optional()
     .openapi({
-      description: 'Busca por nome ou código do projeto',
+      description: 'Search by project name or code',
       example: 'Alpha',
     }),
 }).partial()

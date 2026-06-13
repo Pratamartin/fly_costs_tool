@@ -16,7 +16,7 @@ const BaseSchema = z.object({
     .default(null),
   expiresAt: z.coerce.date().default(getInviteDefaultExpiry())
     .openapi({
-      description: 'Data e hora de expiração do convite. Segue o padrão UTC (ISO 8601).',
+      description: 'Invite expiration date and time. Follows UTC (ISO 8601) standard.',
       example: getInviteExampleExpiry(),
     }),
   status: z.enum([INVITE_STATUS.ACTIVE, INVITE_STATUS.USED, INVITE_STATUS.EXPIRED]).openapi({ example: INVITE_STATUS.ACTIVE }),
@@ -34,7 +34,7 @@ export const ListInvitesQuerySchema = BaseSchema.pick({
 }).extend({
   search: z.string().optional()
     .openapi({
-      description: 'Busca pelo código de convite',
+      description: 'Search by invite code',
       example: mockInviteCode,
     }),
 })

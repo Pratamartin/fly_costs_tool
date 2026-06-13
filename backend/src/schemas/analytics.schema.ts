@@ -25,7 +25,7 @@ export const TopProjectsQuerySchema = z.object({ limit: z.coerce.number().defaul
 
 export const TopProjectSchema = z.object({
   id: IdSchema,
-  name: z.string().openapi({ example: 'Projeto de Sustentabilidade' }),
+  name: z.string().openapi({ example: 'Sustainability Project' }),
   totalRequests: z.number().int()
     .nonnegative()
     .openapi({ example: 18 }),

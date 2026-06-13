@@ -42,18 +42,18 @@ const BaseSchema = z.object({
   }),
   status: z.enum(ExpenseRequestStatus)
     .openapi({
-      description: 'Status atual da solicitação',
+      description: 'Current request status',
       example: ExpenseRequestStatus.REJEITADO,
     }),
   rejectionReason: z.string().nullable()
     .openapi({
-      description: 'Motivo registrado caso a solicitação tenha sido rejeitada.',
-      example: 'O aluno solicitante excedeu o limite semestral de benefícios.',
+      description: 'Recorded reason if the request was rejected.',
+      example: 'The applicant student has exceeded the semi-annual benefit limit.',
     }),
   correctionReason: z.string().nullable()
     .openapi({
-      description: 'Motivo registrado caso a solicitação tenha sido devolvida para correção.',
-      example: 'Por favor, ajuste o título da despesa para condizer com o memorando.',
+      description: 'Recorded reason if the request was returned for correction.',
+      example: 'Please adjust the expense title to match the memorandum.',
     }),
 })
 
@@ -62,8 +62,8 @@ export const CreateExpenseSchema = BaseSchema.omit({
   rejectionReason: true,
   correctionReason: true,
 }).extend({
-  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
-    .openapi({ description: 'Lista de categorias e respostas de formulário solicitadas' }),
+  surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Select at least one preference to continue.' })
+    .openapi({ description: 'List of categories and requested form responses' }),
 })
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
@@ -71,7 +71,7 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
     ...BaseSchema.shape,
     attachmentKey: z.string().nullable()
       .optional()
-      .openapi({ description: 'Chave do memorando (PDF) no armazenamento R2.' }),
+      .openapi({ description: 'Memorandum key (PDF) in R2 storage.' }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
@@ -107,13 +107,13 @@ export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
 
 export const UpdateExpenseStatusSchema = z.object({
   status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO, ExpenseRequestStatus.EM_EDICAO]).openapi({
-    description: 'O novo status a ser atribuído à solicitação.',
+    description: 'The new status to be assigned to the request.',
     example: ExpenseRequestStatus.REJEITADO,
   }),
   reason: z.string().nullable()
     .optional()
     .openapi({
-      description: `Motivo da alteração. **Obrigatório** se o status for: ${STATUSES_WHERE_REASON_REQUIRED.join(' ou ')}.`,
+      description: `Reason for change. **Required** if status is: ${STATUSES_WHERE_REASON_REQUIRED.join(' or ')}.`,
       example: 'Documentação pendente: Realize o ajuste necessário.',
     }),
 }).check(reasonFieldRequired)
@@ -133,26 +133,26 @@ export const UpdateExpenseSchema = BaseSchema
   })
   .partial()
   .extend({
-    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Selecione pelo menos uma preferência para continuar.' })
+    surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Select at least one preference to continue.' })
       .optional(),
   })
 
 export const ExpenseReportQuerySchema = z.object({
   from: z.coerce.date().optional()
     .openapi({
-      description: 'Data inicial para filtro (createdAt)',
+      description: 'Initial date for filtering (createdAt)',
       example: '2026-01-01T00:00:00Z',
     }),
   to: z.coerce.date().optional()
     .openapi({
-      description: 'Data final para filtro (createdAt)',
+      description: 'Final date for filtering (createdAt)',
       example: '2026-12-31T23:59:59Z',
     }),
   status: z.enum(ExpenseRequestStatus).optional()
     .openapi({
-      description: 'Filtrar por status',
+      description: 'Filter by status',
       example: ExpenseRequestStatus.APROVADO,
     }),
-  projectId: IdSchema.optional().openapi({ description: 'Filtrar por projeto' }),
-  studentId: IdSchema.optional().openapi({ description: 'Filtrar por aluno' }),
+  projectId: IdSchema.optional().openapi({ description: 'Filter by project' }),
+  studentId: IdSchema.optional().openapi({ description: 'Filter by student' }),
 })

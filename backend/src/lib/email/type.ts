@@ -22,7 +22,22 @@ export type PasswordRecoveryTemplateData = {
   }
 }
 
-export type TemplateData = StatusChangeTemplateData | PasswordRecoveryTemplateData
+export type StaffNotificationTemplateData = {
+  type: 'staff-notification'
+  props: {
+    staffName: string
+    eventDetails: string[]
+    expenseTitle: string
+    status: ExpenseRequestStatus
+    date: string
+    actionUrl: string
+    projectName?: string | null
+    categories?: string[]
+    articleClassification?: string
+  }
+}
+
+export type TemplateData = StatusChangeTemplateData | PasswordRecoveryTemplateData | StaffNotificationTemplateData
 
 export type SendEmailInput = {
   to: string

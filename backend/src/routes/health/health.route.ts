@@ -10,12 +10,12 @@ export const index = createRoute({
   path: '/',
   method: 'get',
   summary: 'Health check',
-  description: 'Verifica o status operacional da API e seus serviços dependentes.',
+  description: 'Checks the operational status of the API and its dependent services.',
   tags,
   responses: {
     [codes.OK]: jsonContent(
       HealthResponseSchema,
-      'A API está online e respondendo.',
+      'The API is online and responding.',
     ),
   },
 })

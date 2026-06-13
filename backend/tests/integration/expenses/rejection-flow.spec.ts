@@ -8,6 +8,7 @@ import { expenses } from '@/routes'
 import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds'
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(expenses))
 
@@ -52,20 +53,86 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       ],
     }
 
-    const endpoint = client.expenses.$post
-    const res = await endpoint(
+    const res = await client.expenses.$post(
       { json: expenseData },
       { headers: alunoHeaders },
     )
 
+    expect(res.status).toBe(status.CREATED)
     assert(res.status === status.CREATED)
     const json = await res.json()
     createdExpenseId = json.id
   })
 
+  describe('validações Semânticas AJV (Metadados Dinâmicos)', () => {
+    it('deve falhar se faltar propriedade obrigatória no evento (name)', async () => {
+      const res = await client.expenses.$post({
+        json: {
+          title: 'Título',
+          event: { location: 'Rio de Janeiro' },
+          article: { classification: 'A1' },
+          surveyAnswers: [{
+            expenseCategoryId: categoryId,
+            data: {},
+          }],
+        },
+      }, { headers: alunoHeaders })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const error = json.errors.find(e => e.field === 'event.name')
+      assert(error)
+      expect(error.code).toBe('invalid_type')
+      expect(error.params).toMatchObject({
+        expected: 'any',
+        received: 'undefined',
+      })
+    })
+
+    it('deve falhar se o tamanho mínimo for violado no evento (name < 3)', async () => {
+      const res = await client.expenses.$post({
+        json: {
+          title: 'Título',
+          event: {
+            name: 'Oi',
+            location: 'RJ',
+          },
+          article: { classification: 'A1' },
+          surveyAnswers: [{
+            expenseCategoryId: categoryId,
+            data: {},
+          }],
+        },
+      }, { headers: alunoHeaders })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const error = json.errors.find(e => e.field === 'event.name')
+      assert(error)
+      expect(error.code).toBe('too_small')
+      expect(error.params).toMatchObject({ minimum: 3 })
+    })
+  })
+
+  it('[Extra] Coordenador tenta rejeitar SEM MOTIVO (Falha Semântica)', async () => {
+    const res = await client.expenses[':id'].status.$patch(
+      {
+        param: { id: createdExpenseId },
+        json: {
+          status: ExpenseRequestStatus.REJEITADO,
+          reason: '',
+        },
+      },
+      { headers: coordenadorHeaders },
+    )
+
+    const json = await expectProblem(res, 'VALIDATION_ERROR')
+    const errorField = json.errors.find(e => e.field === 'reason')
+    assert(errorField)
+    expect(errorField.code).toBe('custom')
+    expect(errorField.params).toHaveProperty('requiredForStatuses')
+  })
+
   it('[Step 2] Coordenador rejeita a solicitação COM MOTIVO', async () => {
-    const endpoint = client.expenses[':id'].status.$patch
-    const res = await endpoint(
+    const res = await client.expenses[':id'].status.$patch(
       {
         param: { id: createdExpenseId },
         json: {
@@ -76,6 +143,7 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       { headers: coordenadorHeaders },
     )
 
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -84,12 +152,12 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
   })
 
   it('[Step 3] Aluno visualiza a solicitação rejeitada com o motivo', async () => {
-    const endpoint = client.expenses[':id'].$get
-    const res = await endpoint(
+    const res = await client.expenses[':id'].$get(
       { param: { id: createdExpenseId } },
       { headers: alunoHeaders },
     )
 
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -99,8 +167,7 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
   })
 
   it('[Step 4] Validar que a rejeição é definitiva - tenta rejeitar novamente', async () => {
-    const endpoint = client.expenses[':id'].status.$patch
-    const res = await endpoint(
+    const res = await client.expenses[':id'].status.$patch(
       {
         param: { id: createdExpenseId },
         json: {
@@ -111,14 +178,11 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       { headers: coordenadorHeaders },
     )
 
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
-    expect(json).toHaveProperty('message')
+    await expectProblem(res, 'INVALID_TRANSITION')
   })
 
   it('[Step 5] Aluno não consegue editar uma despesa rejeitada (sem acesso ao endpoint de atualização de status)', async () => {
-    const endpoint = client.expenses[':id'].status.$patch
-    const res = await endpoint(
+    const res = await client.expenses[':id'].status.$patch(
       {
         param: { id: createdExpenseId },
         json: { status: ExpenseRequestStatus.PENDENTE as any },
@@ -126,13 +190,13 @@ describe('[Expense Rejection Flow] - Create → Reject with Reason → Visualize
       { headers: alunoHeaders },
     )
 
-    assert(res.status === status.FORBIDDEN)
+    await expectProblem(res, 'FORBIDDEN')
   })
 
   it('[Step 6] Validar lista de despesas - aluno pode visualizar a rejeitada', async () => {
-    const endpoint = client.expenses.$get
-    const res = await endpoint({ query: {} }, { headers: alunoHeaders })
+    const res = await client.expenses.$get({ query: {} }, { headers: alunoHeaders })
 
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
     const rejectedExpense = json.find((exp: any) => exp.id === createdExpenseId)

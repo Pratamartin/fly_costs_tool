@@ -1,11 +1,11 @@
 import type { z } from '@hono/zod-openapi'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma, UserRole } from '@/generated/prisma/client'
 import type { ProfileCreateWithoutUserInput } from '@/generated/prisma/models'
+import type { ServiceResult } from '@/lib/problems'
 import type { RegisterSchema } from '@/schemas/auth.schema'
 import type { UpdateProfileSchema } from '@/schemas/user.schema'
 import bcrypt from 'bcryptjs'
-import * as phrases from 'stoker/http-status-phrases'
-import { ROLES_ALLOWED_TO_HAVE_PROFILE, USER_ERROR_CODES } from '@/constants/user.constant'
+import { ROLES_ALLOWED_TO_HAVE_PROFILE } from '@/constants/user.constant'
 import prisma from '@/lib/orm'
 
 const omit = { passwordHash: true }
@@ -46,33 +46,63 @@ export async function createUser(data: CreateUserDTO, saltRounds: number, tx: Pr
   })
 }
 
-export async function getUserByEmail(email: string) {
-  return prisma.user.findUnique({ where: { email } })
+export type UserWithProfile = Prisma.UserGetPayload<{ omit: typeof omit, include: { profile: true } }>
+
+export async function getUserByEmail(email: string): Promise<ServiceResult<Prisma.UserGetPayload<object>, 'USER_NOT_FOUND'>> {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) {
+    return { error: 'USER_NOT_FOUND' }
+  }
+  return user
 }
 
-export async function getUserById(id: string, tx: Prisma.TransactionClient = prisma) {
+export async function getUserById(id: string, tx: Prisma.TransactionClient = prisma): Promise<ServiceResult<UserWithProfile, 'USER_NOT_FOUND'>> {
   const user = await tx.user.findUnique({
     where: { id },
     omit,
     include: { profile: true },
   })
 
+  if (!user) {
+    return { error: 'USER_NOT_FOUND' }
+  }
+
   return user
 }
 
-export async function updateUser(id: string, data: UpdateUserDTO) {
+export async function getUsersByRoles(
+  roles: UserRole[],
+  tx: Prisma.TransactionClient = prisma,
+) {
+  return tx.user.findMany({
+    where: {
+      role: { in: roles },
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  })
+}
+
+export async function updateUser(id: string, data: UpdateUserDTO): Promise<ServiceResult<UserWithProfile, 'USER_NOT_FOUND' | 'FORBIDDEN' | 'CPF_CONFLICT' | 'PROFILE_NOT_ALLOWED'>> {
   const { name, ...profileData } = data
 
-  const user = await getUserById(id)
+  const result = await getUserById(id)
 
-  if (!user) {
-    return { error: phrases.NOT_FOUND }
+  if ('error' in result) {
+    return result
   }
+
+  const user = result
 
   const hasProfileData = Object.values(profileData).some(val => val !== undefined)
 
   if (!ROLES_ALLOWED_TO_HAVE_PROFILE.includes(user.role) && hasProfileData) {
-    return { error: USER_ERROR_CODES.PROFILE_UPDATE_NOT_ALLOWED }
+    return { error: 'PROFILE_NOT_ALLOWED' }
   }
 
   if (profileData.cpf && profileData.cpf !== user.profile?.cpf) {
@@ -85,7 +115,7 @@ export async function updateUser(id: string, data: UpdateUserDTO) {
     })
 
     if (cpfInUseByAnotherUser) {
-      return { error: USER_ERROR_CODES.CPF_ALREADY_USED }
+      return { error: 'CPF_CONFLICT' }
     }
   }
 

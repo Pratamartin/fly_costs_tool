@@ -1,5 +1,7 @@
 export { default as cors } from './cors'
 export { default as logger } from './logger'
+export { default as notFound } from './not-found'
+export { default as onError } from './on-error'
 export { default as requireAuth } from './require-auth'
 export { default as requireRole } from './require-role'
 export { default as uploadSettings } from './upload-settings'

@@ -11,6 +11,8 @@ export default defineConfig({
       NODE_ENV: 'test',
       JWT_SECRET: 'fake-secret',
       JWT_EXPIRES_IN: '3600',
+      JWT_REFRESH_SECRET: 'fake-refresh-secret',
+      REFRESH_TOKEN_EXPIRES_DAYS: '7',
       SALT_ROUNDS: '2',
       LOG_LEVEL: 'debug',
     },

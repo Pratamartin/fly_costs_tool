@@ -1,4 +1,4 @@
-import { awsSendMock } from '@aws-sdk/client-s3'
+import { awsSendMock } from './mocks/aws-s3-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const envMock = vi.hoisted(() => ({

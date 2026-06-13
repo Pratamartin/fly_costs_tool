@@ -13,7 +13,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    logger.error(e, '❌ Erro crítico durante o seed')
+    logger.error(e, '❌ Critical error during seed')
     process.exit(1)
   })
   .finally(async () => {

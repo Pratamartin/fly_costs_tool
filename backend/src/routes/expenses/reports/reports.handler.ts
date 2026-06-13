@@ -70,7 +70,7 @@ export const reportStatus: AppRouteHandler<ReportStatusRoute> = async (c) => {
         case 'failed': {
           const message = typeof job.output === 'string'
             ? job.output
-            : (job.output as any)?.message || 'Erro interno no processamento'
+            : (job.output as any)?.message || 'Internal processing error'
 
           await sse.writeSSE({
             data: JSON.stringify(ReportEventDataSchema.parse({

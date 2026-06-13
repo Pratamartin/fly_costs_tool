@@ -35,6 +35,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   user: {
     findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   $transaction: vi.fn((cb) => cb(prismaMock)),
 }))
@@ -42,7 +43,7 @@ const prismaMock = vi.hoisted(() => ({
 vi.mock('@/lib/orm', () => ({ default: prismaMock }))
 
 vi.mock('@/services/preference-survey.service', () => ({
-  validateAnswers: vi.fn().mockResolvedValue(null),
+  validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
@@ -59,7 +60,10 @@ const txMock = {
   costBreakdown: { create: vi.fn() },
   project: { update: vi.fn() },
   notification: { create: vi.fn() },
-  user: { findUnique: vi.fn() },
+  user: {
+    findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
 }
 
 const STUDENT_ID = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
@@ -137,7 +141,7 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     })
     expect('error' in breakdown).toBe(false)
 
-    prismaMock.expenseRequest.findFirst.mockResolvedValueOnce(
+    prismaMock.expenseRequest.findUnique.mockResolvedValueOnce(
       baseExpense({
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
         projectId: PROJECT_ID,
@@ -157,8 +161,9 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     )
 
     const viewed = await getExpenseById(EXPENSE_ID, STUDENT_ID, UserRole.ALUNO)
-    expect(viewed).not.toBeNull()
-    expect(viewed!.project?.id).toBe(PROJECT_ID)
-    expect(viewed!.costBreakdowns).toHaveLength(1)
+    expect('error' in viewed).toBe(false)
+    if ('error' in viewed) return
+    expect(viewed.project?.id).toBe(PROJECT_ID)
+    expect(viewed.costBreakdowns).toHaveLength(1)
   })
 })

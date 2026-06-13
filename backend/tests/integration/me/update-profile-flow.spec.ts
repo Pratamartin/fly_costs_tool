@@ -7,6 +7,7 @@ import prisma from '@/lib/orm'
 import { me } from '@/routes'
 import { seedUsers } from '@/seeds'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(me))
 
@@ -36,12 +37,9 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
     await prisma.user.deleteMany()
   })
 
-  const patchEndpoint = client.me.$patch
-  const getEndpoint = client.me.$get
-
   it('[Step 1] Usuário anônimo tenta atualizar perfil e é bloqueado', async () => {
-    const res = await patchEndpoint({ json: { bankName: 'BANCO TESTE' } })
-    expect(res.status).toBe(status.UNAUTHORIZED)
+    const res = await client.me.$patch({ json: { bankName: 'BANCO TESTE' } })
+    await expectProblem(res, 'UNAUTHORIZED')
   })
 
   it('[Step 2] Aluno atualiza seus dados bancários com sucesso', async () => {
@@ -52,11 +50,12 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
       bankAccount: '56789-0',
     }
 
-    const res = await patchEndpoint(
+    const res = await client.me.$patch(
       { json: updatePayload },
       { headers: alunoHeaders },
     )
 
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -66,11 +65,12 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
   })
 
   it('[Step 3] Aluno visualiza o próprio perfil e confirma a persistência dos dados', async () => {
-    const res = await getEndpoint(
+    const res = await client.me.$get(
       {},
       { headers: alunoHeaders },
     )
 
+    expect(res.status).toBe(status.OK)
     assert(res.status === status.OK)
     const json = await res.json()
 
@@ -80,20 +80,16 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
   })
 
   it('[Step 4] Aluno tenta atualizar seu perfil usando um CPF que pertence a outro usuário', async () => {
-    const res = await patchEndpoint(
+    const res = await client.me.$patch(
       { json: { cpf: cpfEmUso } },
       { headers: alunoHeaders },
     )
-    expect(res.status).toBe(status.CONFLICT)
-    assert(res.status === status.CONFLICT)
-    const json = await res.json()
 
-    expect(json).toHaveProperty('message')
-    expect(json.message).toContain('já está em uso')
+    await expectProblem(res, 'CPF_CONFLICT')
   })
 
   it('[Step 5] Admin tenta adicionar dados bancários e é bloqueado pela regra de negócio', async () => {
-    const res = await patchEndpoint(
+    const res = await client.me.$patch(
       {
         json: {
           bankCode: '341',
@@ -103,16 +99,12 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
       { headers: adminHeaders },
     )
 
-    assert(res.status === status.FORBIDDEN)
-    const json = await res.json()
-
-    expect(json).toHaveProperty('message')
-    expect(json.message).toContain('Acesso negado')
+    await expectProblem(res, 'PROFILE_NOT_ALLOWED')
   })
 
-  it('[Step 6] Admin atualiza apenas o próprio nome com sucesso (permitido)', async () => {
+  it('[Step 6] Admin atualiza apenas o próprio nome with sucesso (permitido)', async () => {
     const newAdminName = 'flamingo admin'
-    const res = await patchEndpoint(
+    const res = await client.me.$patch(
       { json: { name: newAdminName } },
       { headers: adminHeaders },
     )

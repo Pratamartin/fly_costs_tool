@@ -1,10 +1,13 @@
 import type { AppContext, AppOpenAPI } from './type'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
-import { defaultHook } from 'stoker/openapi'
 
 export function createRouter() {
   return new OpenAPIHono<AppContext>({
-    defaultHook, // Estrutura de Resposta padrão para erros de validação Zod (422).
+    defaultHook: (result) => {
+      if (!result.success) {
+        throw result.error
+      }
+    },
     strict: false, // Flexibilidade quanto ao trailing slash --> 'endpoint/' == 'endpoint'.
   })
 }

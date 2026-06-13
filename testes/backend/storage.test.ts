@@ -4,7 +4,7 @@
  * getSignedDownloadUrl retorna URL com expiração correta
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { awsSendMock, PutObjectCommand } from '@aws-sdk/client-s3'
+import { awsSendMock, PutObjectCommand } from './mocks/aws-s3-client'
 // alias → mocks/aws-s3-request-presigner.ts
 import { getSignedUrl as getSignedUrlMock } from '@aws-sdk/s3-request-presigner'
 

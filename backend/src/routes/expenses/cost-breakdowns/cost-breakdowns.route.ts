@@ -1,13 +1,13 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
-import { createMessageObjectSchema } from 'stoker/openapi/schemas'
 import { UserRole } from '@/generated/prisma/enums'
+import { registryResponses, standardResponses } from '@/lib/problems'
 import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole } from '@/middlewares'
 import { uploadReceiptSettings } from '@/middlewares/upload-settings'
 import { CostBreakdownResponseSchema, CreateCostBreakdownSchema, ReceiptDownloadUrlSchema, UploadReceiptSchema } from '@/schemas/cost-breakdown.schema'
-import { ForbiddenResponse, IdSchema, UnauthorizedResponse } from '@/schemas/shared.schema'
+import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Cost Breakdowns']
 
@@ -22,31 +22,19 @@ export const create = createRoute({
   middleware: [requireAuth, requireRole([UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
   summary: 'Add cost breakdown to expense',
-  description: 'Adiciona uma discriminação de custo a uma solicitação de despesa. Restrito a ADMIN.',
+  description: 'Adds a cost breakdown to an expense request. Restricted to ADMIN.',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
-    body: jsonContentRequired(CreateCostBreakdownSchema, 'Detalhes da discriminação de custo'),
+    body: jsonContentRequired(CreateCostBreakdownSchema, 'Cost breakdown details'),
   },
   responses: {
     [codes.CREATED]: jsonContent(
       CostBreakdownResponseSchema,
-      'Discriminação salva com sucesso.',
+      'Breakdown saved successfully.',
     ),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Erro de validação'),
-      'Erro de regra de negócio (ex: Budget insuficiente, Categoria inválida).',
-    ),
-    [codes.CONFLICT]: jsonContent(
-      createMessageObjectSchema('Operação inválida'),
-      'O projeto está arquivado ou não pode receber discriminação de custo.',
-    ),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Despesa não encontrada'),
-      'A despesa não existe ou não possui projeto vinculado.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    ...standardResponses,
+    ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND'),
   },
 })
 
@@ -61,38 +49,22 @@ export const uploadReceipt = createRoute({
   ],
   security: [{ bearerAuth: [] }],
   summary: 'Upload receipt to cost breakdown',
-  description: 'Faz upload de um arquivo de comprovante para uma discriminação de custo existente.',
+  description: 'Uploads a receipt file for an existing cost breakdown.',
   tags,
   request: {
     params: z.object({
       id: IdSchema,
       breakdownId: IdSchema,
     }),
-    body: multipartFormContentRequired(UploadReceiptSchema, 'Arquivo de comprovante (PDF, Imagem)'),
+    body: multipartFormContentRequired(UploadReceiptSchema, 'Receipt file (PDF, Image)'),
   },
   responses: {
     [codes.OK]: jsonContent(
       CostBreakdownResponseSchema,
-      'Comprovante anexado com sucesso.',
+      'Receipt attached successfully.',
     ),
-    [codes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Erro na requisição'),
-      'Arquivo inválido ou erro de processamento.',
-    ),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Não encontrado'),
-      'Despesa ou Discriminação de custo não encontrados.',
-    ),
-    [codes.SERVICE_UNAVAILABLE]: jsonContent(
-      createMessageObjectSchema('Armazenamento indisponível'),
-      'Variáveis R2 não configuradas.',
-    ),
-    [codes.BAD_GATEWAY]: jsonContent(
-      createMessageObjectSchema('Erro no provedor de armazenamento'),
-      'Falha na comunicação com o Cloudflare R2.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    ...standardResponses,
+    ...registryResponses('INVALID_FILE', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'STORAGE_PROVIDER_ERROR'),
   },
 })
 
@@ -102,7 +74,7 @@ export const removeReceipt = createRoute({
   middleware: [requireAuth, requireRole([UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
   summary: 'Delete receipt from cost breakdown',
-  description: 'Remove o comprovante do banco de dados e do armazenamento R2. Restrito a ADMIN.',
+  description: 'Removes the receipt from the database and R2 storage. Restricted to ADMIN.',
   tags,
   request: {
     params: z.object({
@@ -111,17 +83,8 @@ export const removeReceipt = createRoute({
     }),
   },
   responses: {
-    [codes.NO_CONTENT]: { description: 'Comprovante removido com sucesso.' },
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Não encontrado'),
-      'Comprovante não encontrado.',
-    ),
-    [codes.BAD_GATEWAY]: jsonContent(
-      createMessageObjectSchema('Erro no provedor de armazenamento'),
-      'Falha na comunicação com o Cloudflare R2.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
-    [codes.FORBIDDEN]: ForbiddenResponse,
+    [codes.NO_CONTENT]: { description: 'Receipt removed successfully.' },
+    ...registryResponses('EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'RECEIPT_NOT_FOUND', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
 
@@ -130,8 +93,8 @@ export const getReceiptDownload = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
-  summary: 'URL assinada para download do comprovante',
-  description: 'Retorna uma URL pré-assinada válida por 15 min para baixar o comprovante de um cost breakdown. Acesso: ADMIN ou dono da despesa.',
+  summary: 'Signed URL for receipt download',
+  description: 'Returns a pre-signed URL valid for 15 min to download a cost breakdown receipt. Access: ADMIN or expense owner.',
   tags,
   request: {
     params: z.object({
@@ -142,20 +105,8 @@ export const getReceiptDownload = createRoute({
   responses: {
     [codes.OK]: jsonContent(
       ReceiptDownloadUrlSchema,
-      'URL gerada com sucesso.',
+      'URL generated successfully.',
     ),
-    [codes.NOT_FOUND]: jsonContent(
-      createMessageObjectSchema('Não encontrado'),
-      'Comprovante não encontrado ou despesa inexistente.',
-    ),
-    [codes.SERVICE_UNAVAILABLE]: jsonContent(
-      createMessageObjectSchema('Armazenamento indisponível'),
-      'Variáveis R2 não configuradas.',
-    ),
-    [codes.BAD_GATEWAY]: jsonContent(
-      createMessageObjectSchema('Erro no provedor de armazenamento'),
-      'Falha na comunicação com o Cloudflare R2.',
-    ),
-    [codes.UNAUTHORIZED]: UnauthorizedResponse,
+    ...registryResponses('EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'RECEIPT_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED'),
   },
 })

@@ -1,26 +1,28 @@
-import type { ForgotPasswordRoute, LoginRoute, RegisterRoute, ResetPasswordRoute } from './auth.route'
+import type { ForgotPasswordRoute, LoginRoute, LogoutRoute, RefreshRoute, RegisterRoute, ResetPasswordRoute } from './auth.route'
 import type { AppRouteHandler } from '@/lib/type'
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import * as codes from 'stoker/http-status-codes'
-import { AUTH_ERROR_CODES } from '@/constants/auth.constant'
+import { getRefreshTokenCookieOptions } from '@/constants/auth.constant'
 import env from '@/env'
 import { emailService } from '@/lib/email/service'
 import prisma from '@/lib/orm'
-import { createPasswordResetToken, generateAccessToken, resetPassword as resetPasswordService, verifyCredentials } from '@/services/auth.service'
-import { findActiveInvite, validateAndConsume } from '@/services/invite.service'
+import { problems } from '@/lib/problems'
+import { createPasswordResetToken, createSession, extendSession, generateAccessToken, generateRefreshToken, resetPassword as resetPasswordService, revokeSession, validateSession, verifyCredentials, verifyRefreshToken } from '@/services/auth.service'
+import { findInviteByCode, validateAndConsume } from '@/services/invite.service'
 import { createUser, getUserByEmail } from '@/services/user.service'
 
 export const register: AppRouteHandler<RegisterRoute> = async (c) => {
   const data = c.req.valid('json')
 
   const existingUser = await getUserByEmail(data.email)
-  if (existingUser) {
-    return c.json({ message: 'E-mail já cadastrado' }, codes.CONFLICT)
+  if (!('error' in existingUser)) {
+    throw problems.create('EMAIL_ALREADY_EXISTS')
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const invite = await findActiveInvite(data.inviteCode, tx)
-    if (!invite) {
-      return { error: AUTH_ERROR_CODES.INVITE_CODE_INVALID }
+    const inviteResult = await findInviteByCode(data.inviteCode, tx)
+    if ('error' in inviteResult) {
+      return inviteResult
     }
 
     const newUser = await createUser(data, env.SALT_ROUNDS, tx)
@@ -34,11 +36,11 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
   })
 
   if ('error' in result) {
-    let message = 'Código de convite inválido ou expirado'
-    if (result.error === AUTH_ERROR_CODES.INVITE_CODE_INVALID) {
-      message = 'Código de convite inválido ou expirado'
+    // Mapeamento específico: No registro, se o convite não existe, tratamos como código inválido (400)
+    if (result.error === 'INVITE_NOT_FOUND') {
+      throw problems.create('INVALID_INVITE_CODE')
     }
-    return c.json({ message }, codes.BAD_REQUEST)
+    throw problems.create(result.error)
   }
 
   return c.json(result.data, codes.CREATED)
@@ -47,34 +49,92 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
 export const login: AppRouteHandler<LoginRoute> = async (c) => {
   const data = c.req.valid('json')
 
-  const credentials = await verifyCredentials(data)
+  const result = await verifyCredentials(data)
 
-  if (!credentials) {
-    return c.json({ message: 'E-mail ou senha inválidos' }, codes.UNAUTHORIZED)
+  if ('error' in result) {
+    throw problems.create(result.error)
   }
 
-  const accessToken = await generateAccessToken(credentials, env.JWT_SECRET)
+  const accessToken = await generateAccessToken(result, env.JWT_SECRET)
+
+  const session = await createSession(result.sub)
+  const refreshToken = await generateRefreshToken(result, session.jti)
+
+  setCookie(c, 'refreshToken', refreshToken, getRefreshTokenCookieOptions())
 
   return c.json({ accessToken }, codes.OK)
+}
+
+export const refresh: AppRouteHandler<RefreshRoute> = async (c) => {
+  const refreshToken = getCookie(c, 'refreshToken')
+
+  if (!refreshToken) {
+    throw problems.create('UNAUTHORIZED')
+  }
+
+  const result = await verifyRefreshToken(refreshToken)
+
+  if ('error' in result) {
+    throw problems.create(result.error)
+  }
+
+  const sessionResult = await validateSession(result.jti)
+
+  if ('error' in sessionResult) {
+    throw problems.create(sessionResult.error)
+  }
+
+  // Sliding Session: Estende a sessão no banco e rotaciona o cookie
+  const extensionResult = await extendSession(result.jti)
+  if ('error' in extensionResult) {
+    throw problems.create(extensionResult.error)
+  }
+
+  const newRefreshToken = await generateRefreshToken({
+    sub: sessionResult.userId,
+    role: sessionResult.user.role,
+  }, result.jti)
+
+  setCookie(c, 'refreshToken', newRefreshToken, getRefreshTokenCookieOptions())
+
+  const accessToken = await generateAccessToken({
+    sub: sessionResult.userId,
+    role: sessionResult.user.role,
+  }, env.JWT_SECRET)
+
+  return c.json({ accessToken }, codes.OK)
+}
+
+export const logout: AppRouteHandler<LogoutRoute> = async (c) => {
+  const refreshToken = deleteCookie(c, 'refreshToken', getRefreshTokenCookieOptions())
+
+  if (refreshToken) {
+    const result = await verifyRefreshToken(refreshToken)
+    if (!('error' in result)) {
+      await revokeSession(result.jti)
+    }
+  }
+
+  return c.json({ message: 'Logged out successfully.' }, codes.OK)
 }
 
 export const forgotPassword: AppRouteHandler<ForgotPasswordRoute> = async (c) => {
   const { email } = c.req.valid('json')
 
-  const plainToken = await createPasswordResetToken(email)
+  const result = await createPasswordResetToken(email)
 
-  if (plainToken) {
+  if (!('error' in result)) {
     await emailService.send({
       to: email,
-      subject: 'SGDA: Recuperação de Senha',
+      subject: 'SGDA: Password Recovery',
       template: {
         type: 'password-recovery',
-        props: { resetToken: `${env.FRONTEND_URL}/reset-password?token=${plainToken}` },
+        props: { resetToken: `${env.FRONTEND_URL}/reset-password?token=${result.token}` },
       },
     }, { singletonKey: `password_recovery_${email}` })
   }
 
-  return c.json({ message: 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.' }, codes.OK)
+  return c.json({ message: 'If the email is registered, you will receive instructions to reset your password.' }, codes.OK)
 }
 
 export const resetPassword: AppRouteHandler<ResetPasswordRoute> = async (c) => {
@@ -83,11 +143,8 @@ export const resetPassword: AppRouteHandler<ResetPasswordRoute> = async (c) => {
   const result = await resetPasswordService(token, newPassword)
 
   if ('error' in result) {
-    if (result.error === AUTH_ERROR_CODES.INVALID_OR_EXPIRED_TOKEN) {
-      return c.json({ message: 'Token inválido ou expirado.' }, codes.BAD_REQUEST)
-    }
-    return c.json({ message: result.error }, codes.BAD_REQUEST)
+    throw problems.create(result.error)
   }
 
-  return c.json({ message: 'Senha redefinida com sucesso.' }, codes.OK)
+  return c.json({ message: 'Password reset successfully.' }, codes.OK)
 }

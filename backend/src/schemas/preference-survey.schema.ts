@@ -22,7 +22,7 @@ export const ListPreferenceSurveyResponseSchema = z.array(PreferenceSurveySchema
 export const PreferenceSurveyAnswerSchema = z.object({
   expenseCategoryId: IdSchema,
   data: z.record(z.string(), z.any()).openapi({
-    description: 'Dados preenchidos no formulário da categoria.',
+    description: 'Data filled in the category form.',
     example: { invoiceKey: 'formulario-preferencias/user-uuid/arquivo-anexo.pdf' },
   }),
 })

@@ -1,6 +1,9 @@
 import type { ExpenseRequest, Prisma, Project } from '@/generated/prisma/client'
+import { FRONTEND_PATH_BY_STATUS } from '@/constants/expense.constant'
+import { ROLE_FRONTEND_SLUG } from '@/constants/user.constant'
 import env from '@/env'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
+import { UserRole } from '@/generated/prisma/enums'
 import { dayjs } from '@/lib/date'
 import { emailService } from '@/lib/email/service'
 import { logger } from '@/lib/logger'
@@ -17,11 +20,9 @@ function getStatusChangeReason(status: ExpenseRequestStatus, expense: Pick<Expen
 }
 
 function getExpenseDetailUrl(expenseId: string, status: ExpenseRequestStatus) {
-  const baseUrl = `${env.FRONTEND_URL}/dashboard/student/expenses`
-  if (status === ExpenseRequestStatus.EM_EDICAO) {
-    return `${baseUrl}/edit/${expenseId}`
-  }
-  return `${baseUrl}/detail/${expenseId}`
+  const slug = ROLE_FRONTEND_SLUG[UserRole.ALUNO]
+  const path = FRONTEND_PATH_BY_STATUS[status] ?? 'detail'
+  return `${env.FRONTEND_URL}/dashboard/${slug}/expenses/${path}/${expenseId}`
 }
 
 export async function sendStatusChangeEmail(
@@ -32,17 +33,22 @@ export async function sendStatusChangeEmail(
   tx?: Prisma.TransactionClient,
 ) {
   try {
-    const user = await getUserById(userId, tx)
-    if (!user) {
-      logger.warn({ userId }, 'User not found when trying to send status change email')
+    const userResult = await getUserById(userId, tx)
+    if ('error' in userResult) {
+      logger.warn({
+        userId,
+        error: userResult.error,
+      }, 'User not found when trying to send status change email')
       return
     }
+
+    const user = userResult
 
     const date = dayjs(expense.updatedAt).format('DD [de] MMMM [de] YYYY')
     const reason = getStatusChangeReason(newStatus, expense, extra)
     const detailPage = getExpenseDetailUrl(expense.id, newStatus)
 
-    const result = await emailService.send({
+    const emailResult = await emailService.send({
       to: user.email,
       subject: `SGDA: Atualização de Status - ${expense.title}`,
       template: {
@@ -63,11 +69,11 @@ export async function sendStatusChangeEmail(
       singletonKey: `status_change_${expense.id}_${newStatus}`,
     })
 
-    if (!result.success) {
+    if (!emailResult.success) {
       logger.error({
         userId,
         expenseId: expense.id,
-        error: result.error,
+        error: emailResult.error,
       }, 'Failed to queue status change email')
     }
   }

@@ -8,6 +8,7 @@ import { seedExpenseCategories, seedPreferenceSurveys, seedUsers } from '@/seeds
 import seedExpenses, { dummyExpenses } from '@/seeds/expense.seed'
 import seedProjects, { dummyProjects } from '@/seeds/project.seed'
 import { getAuthHeaders } from '../../util'
+import { expectProblem } from '../../util/assertions'
 
 const client = testClient(createTestApp(analytics))
 
@@ -38,12 +39,12 @@ describe('get /analytics/admin-dashboard', () => {
 
   it('deve retornar 401 quando nenhum token é fornecido', async () => {
     const res = await endpoint.$get({ query: {} })
-    assert(res.status === status.UNAUTHORIZED)
+    await expectProblem(res, 'UNAUTHORIZED')
   })
 
   it('deve retornar 403 quando um ALUNO tenta acessar o dashboard', async () => {
     const res = await endpoint.$get({ query: {} }, { headers: alunoHeaders })
-    assert(res.status === status.FORBIDDEN)
+    await expectProblem(res, 'FORBIDDEN')
   })
 
   it('deve retornar estatísticas corretas e valores financeiros como string', async () => {

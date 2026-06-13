@@ -33,13 +33,14 @@ vi.mock('@/services/notifications', () => ({
 }))
 
 vi.mock('@/services/preference-survey.service', () => ({
-  validateAnswers: vi.fn().mockResolvedValue(null),
+  validateAnswers: vi.fn().mockResolvedValue({ success: true }),
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
 vi.mock('@/services/user.service', () => ({
   getUserByEmail: vi.fn(),
   getUserById: vi.fn(),
+  getUsersByRoles: vi.fn().mockResolvedValue([]),
 }))
 
 const prismaMock = vi.hoisted(() => ({
@@ -59,6 +60,7 @@ const prismaMock = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   $transaction: vi.fn((cb: any) => cb(prismaMock)),
@@ -137,6 +139,8 @@ describe('US 4.0 — notifyStatusChange spy em updateExpenseStatus', () => {
       STUDENT_ID,
       expect.objectContaining({ id: EXPENSE_ID }),
       ExpenseRequestStatus.APROVADO,
+      null,
+      prismaMock,
     )
   })
 
@@ -233,10 +237,10 @@ describe('US 4.4 — getUserNotifications: isolamento por usuário', () => {
 
     await markAsRead('notif-001', USER_ID_A)
 
-    expect(prismaMock.notification.update).toHaveBeenCalledWith({
+    expect(prismaMock.notification.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'notif-001', userId: USER_ID_A },
       data: { isRead: true },
-    })
+    }))
   })
 
   it('PATCH /v1/notifications/read-all — markAllAsRead marca todas como lidas', async () => {
@@ -273,12 +277,14 @@ describe('US 4.2 — verifyCredentials (login e proteção de rotas)', () => {
 
     const result = await verifyCredentials({ email: 'aluno@uni.br', password: 'Senha@123' })
 
-    expect(result).not.toBeNull()
-    expect(result?.sub).toBe(USER_ID_A)
-    expect(result?.role).toBe('ALUNO')
+    expect('error' in result).toBe(false)
+    if (!('error' in result)) {
+      expect(result.sub).toBe(USER_ID_A)
+      expect(result.role).toBe('ALUNO')
+    }
   })
 
-  it('rota protegida — senha incorreta → verifyCredentials retorna null (não autenticado)', async () => {
+  it('rota protegida — senha incorreta → verifyCredentials retorna erro', async () => {
     const bcrypt = await import('bcryptjs')
     const passwordHash = await bcrypt.hash('Senha@123', 1)
 
@@ -295,10 +301,10 @@ describe('US 4.2 — verifyCredentials (login e proteção de rotas)', () => {
 
     const result = await verifyCredentials({ email: 'aluno@uni.br', password: 'SenhaErrada' })
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'INVALID_CREDENTIALS' })
   })
 
-  it('usuário inativo → verifyCredentials retorna null', async () => {
+  it('usuário inativo → verifyCredentials retorna erro', async () => {
     vi.mocked(userService.getUserByEmail).mockResolvedValue({
       id: USER_ID_A,
       email: 'aluno@uni.br',
@@ -312,7 +318,7 @@ describe('US 4.2 — verifyCredentials (login e proteção de rotas)', () => {
 
     const result = await verifyCredentials({ email: 'aluno@uni.br', password: 'Senha@123' })
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ error: 'INVALID_CREDENTIALS' })
   })
 })
 
@@ -329,19 +335,21 @@ describe('US 4.1 — Fluxo completo de recuperação de senha (integração de s
     } as any)
     prismaMock.user.update.mockResolvedValue({})
 
-    const token = await createPasswordResetToken('aluno@uni.br')
+    const result = await createPasswordResetToken('aluno@uni.br')
 
-    expect(token).not.toBeNull()
-    expect(typeof token).toBe('string')
-    expect(token!.length).toBeGreaterThan(0)
+    expect('error' in result).toBe(false)
+    if (!('error' in result)) {
+      expect(typeof result.token).toBe('string')
+      expect(result.token.length).toBeGreaterThan(0)
+    }
   })
 
-  it('forgot-password com e-mail inexistente → retorna null (sem vazar info)', async () => {
-    vi.mocked(userService.getUserByEmail).mockResolvedValue(null)
+  it('forgot-password com e-mail inexistente → retorna erro', async () => {
+    vi.mocked(userService.getUserByEmail).mockResolvedValue({ error: 'USER_NOT_FOUND' })
 
-    const token = await createPasswordResetToken('naoexiste@uni.br')
+    const result = await createPasswordResetToken('naoexiste@uni.br')
 
-    expect(token).toBeNull()
+    expect(result).toEqual({ error: 'USER_NOT_FOUND' })
   })
 
   it('reset-password com token válido → { success: true } + token limpo', async () => {
