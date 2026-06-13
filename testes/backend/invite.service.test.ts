@@ -304,7 +304,7 @@ describe('isInviteCodeValid — T3.2.2 (unit / deprecated)', () => {
 
   it('usa código hardcoded CONVITE2026, não consulta o banco', async () => {
     // isInviteCodeValid é @deprecated — não chama prisma.inviteCode.findUnique
-    // A função real está em invite.service.findActiveInvite
+    // A função real está em invite.service.findInviteByCode
     const { isInviteCodeValid } = await import('@/services/auth.service')
 
     expect(isInviteCodeValid('CONVITE2026')).toBe(true)

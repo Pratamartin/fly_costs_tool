@@ -53,4 +53,10 @@ export const ExpenseRequestStatus = {
   CONCLUIDO: 'CONCLUIDO',
 }
 
+export const UserRole = {
+  ALUNO: 'ALUNO',
+  COORDENADOR: 'COORDENADOR',
+  ADMIN: 'ADMIN',
+} as const
+
 export class PrismaClient {}
