@@ -65,6 +65,7 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
   const res = await fetch(`${API_URL}/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(payload),
   })
 
@@ -116,4 +117,11 @@ export async function resetPassword(token: string, newPassword: string): Promise
   }
   if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
   return { ok: false, error: "UNKNOWN" }
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_URL}/v1/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => { /* best-effort */ })
 }

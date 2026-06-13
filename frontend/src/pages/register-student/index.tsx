@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { register, login } from "@/services/auth";
+import { useAuthStore } from "@/store/authStore";
 
 type FormState = {
   email: string;
@@ -97,6 +98,7 @@ function validateForm(form: FormState): FormErrors {
 
 export default function CadastroAluno() {
   const router = useRouter();
+  const setToken = useAuthStore((s) => s.setToken);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -184,6 +186,7 @@ export default function CadastroAluno() {
 
       if (loginResult.ok) {
         localStorage.setItem("accessToken", loginResult.accessToken);
+        setToken(loginResult.accessToken);
         router.push("/dashboard/student");
       } else {
         router.push("/login");
@@ -196,21 +199,21 @@ export default function CadastroAluno() {
   }
 
   const inputClass = (field: keyof FormState) =>
-    `w-full rounded-lg border py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
+    `w-full rounded-lg border bg-white dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 transition ${
       errors[field]
         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-        : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+        : "border-gray-300 dark:border-gray-600 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
     }`;
 
   const textareaClass = (field: keyof FormState) =>
-    `w-full resize-none rounded-lg border py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
+    `w-full resize-none rounded-lg border bg-white dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 transition ${
       errors[field]
         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-        : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+        : "border-gray-300 dark:border-gray-600 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
     }`;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-12">
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
@@ -221,15 +224,15 @@ export default function CadastroAluno() {
               <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
             </svg>
           </div>
-          <h1 className="mt-3 text-2xl font-bold text-gray-900">
+          <h1 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-50">
             Complete seu Cadastro de Aluno
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Preencha seus dados para configurar sua conta de despesas acadêmicas
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white px-8 py-8 shadow-md">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 px-8 py-8 shadow-md">
           {globalError && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {globalError}
@@ -240,7 +243,7 @@ export default function CadastroAluno() {
 
             {/* Account Information */}
             <div>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#4F46E5] text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
                     <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
@@ -249,7 +252,7 @@ export default function CadastroAluno() {
                 Informações da Conta
               </h2>
               <div>
-                <label className="mb-1 block text-xs font-medium text-[#4F46E5]">
+                <label className="mb-1 block text-xs font-medium text-[#4F46E5] dark:text-[#818cf8]">
                   Endereço de E-mail
                 </label>
                 <div className="relative">
@@ -269,17 +272,17 @@ export default function CadastroAluno() {
                   />
                 </div>
                 {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                   Este e-mail será usado para acessar sua conta
                 </p>
               </div>
             </div>
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-100 dark:border-gray-700" />
 
             {/* Personal Information */}
             <div>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#4F46E5] text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
                     <path fillRule="evenodd" d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1Z" clipRule="evenodd" />
@@ -292,7 +295,7 @@ export default function CadastroAluno() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Full Name */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Nome Completo <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -315,7 +318,7 @@ export default function CadastroAluno() {
 
                 {/* ID/Passport */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     RG ou Passaporte <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -338,7 +341,7 @@ export default function CadastroAluno() {
 
                 {/* CPF */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     CPF <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -361,7 +364,7 @@ export default function CadastroAluno() {
 
                 {/* Date of Birth */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Data de Nascimento <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -370,10 +373,10 @@ export default function CadastroAluno() {
                       name="dataNascimento"
                       value={form.dataNascimento}
                       onChange={handleChange}
-                      className={`w-full rounded-lg border py-2.5 px-3 text-sm text-gray-800 outline-none focus:ring-1 transition ${
+                      className={`w-full rounded-lg border bg-white dark:bg-gray-800 py-2.5 px-3 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 transition ${
                         errors.dataNascimento
                           ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-                          : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+                          : "border-gray-300 dark:border-gray-600 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
                       }`}
                     />
                   </div>
@@ -382,7 +385,7 @@ export default function CadastroAluno() {
 
                 {/* Profession */}
                 <div className="col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Profissão <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -406,7 +409,7 @@ export default function CadastroAluno() {
 
                 {/* Address */}
                 <div className="col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Endereço <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -429,11 +432,11 @@ export default function CadastroAluno() {
               </div>
             </div>
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-100 dark:border-gray-700" />
 
             {/* Bank Details */}
             <div>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#4F46E5] text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
                     <path fillRule="evenodd" d="M8.5 1.709a1 1 0 0 0-1 0L1.63 5.384A1 1 0 0 0 2.13 7H3v5H2a.75.75 0 0 0 0 1.5h12A.75.75 0 0 0 14 12h-1V7h.87a1 1 0 0 0 .5-1.866L8.5 1.709ZM9.25 12V7h-2.5v5h2.5ZM5.25 7v5h-1V7h1Zm6.5 5V7h-1v5h1Z" clipRule="evenodd" />
@@ -445,7 +448,7 @@ export default function CadastroAluno() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Bank Code */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Código do Banco <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -468,7 +471,7 @@ export default function CadastroAluno() {
 
                 {/* Bank Name */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Nome do Banco <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -491,7 +494,7 @@ export default function CadastroAluno() {
 
                 {/* Agency */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Agência + Dígito <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -514,7 +517,7 @@ export default function CadastroAluno() {
 
                 {/* Account */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Conta + Dígito <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -537,11 +540,11 @@ export default function CadastroAluno() {
               </div>
             </div>
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-100 dark:border-gray-700" />
 
             {/* Security */}
             <div>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#4F46E5] text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
                     <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
@@ -553,7 +556,7 @@ export default function CadastroAluno() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Password */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Senha <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -568,10 +571,10 @@ export default function CadastroAluno() {
                       value={form.senha}
                       onChange={handleChange}
                       placeholder="Crie uma senha forte"
-                      className={`w-full rounded-lg border py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
+                      className={`w-full rounded-lg border bg-white dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 transition ${
                         errors.senha
                           ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-                          : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+                          : "border-gray-300 dark:border-gray-600 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
                       }`}
                     />
                     <button
@@ -594,13 +597,13 @@ export default function CadastroAluno() {
                   </div>
                   {errors.senha
                     ? <p className="mt-1 text-xs text-red-500">{errors.senha}</p>
-                    : <p className="mt-1 text-xs text-gray-400">Mínimo 8 caracteres com letras e números</p>
+                    : <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Mínimo 8 caracteres com letras e números</p>
                   }
                 </div>
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Confirmar Senha <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -615,10 +618,10 @@ export default function CadastroAluno() {
                       value={form.confirmarSenha}
                       onChange={handleChange}
                       placeholder="Digite sua senha novamente"
-                      className={`w-full rounded-lg border py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${
+                      className={`w-full rounded-lg border bg-white dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 transition ${
                         errors.confirmarSenha
                           ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-                          : "border-gray-300 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
+                          : "border-gray-300 dark:border-gray-600 focus:border-[#4F46E5] focus:ring-[#4F46E5]"
                       }`}
                     />
                     <button
@@ -644,7 +647,7 @@ export default function CadastroAluno() {
 
                 {/* Invite Code */}
                 <div className="col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Código de Convite <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -692,7 +695,7 @@ export default function CadastroAluno() {
             </button>
           </form>
 
-          <p className="mt-5 text-center text-xs text-gray-400">
+          <p className="mt-5 text-center text-xs text-gray-400 dark:text-gray-500">
             Ao se cadastrar, você concorda com nossos{" "}
             <a href="#" className="text-[#4F46E5] hover:underline">Termos de Serviço</a>{" "}
             e{" "}
@@ -700,7 +703,7 @@ export default function CadastroAluno() {
           </p>
         </div>
 
-        <p className="mt-5 text-center text-sm text-gray-500">
+        <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
           Já tem uma conta?{" "}
           <a href="/login" className="font-medium text-[#4F46E5] hover:underline">
             Entre aqui

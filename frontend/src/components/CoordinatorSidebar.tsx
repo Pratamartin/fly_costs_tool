@@ -58,13 +58,14 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const onProfile = router.pathname === "/dashboard/profile";
+  const onSettings = router.pathname === "/dashboard/settings";
 
   return (
     <>
       {/* FAB - open sidebar on mobile */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#1a5c38] shadow-lg md:hidden"
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#1a5c38] shadow-lg shadow-[#1a5c38]/30 transition hover:bg-[#15492d] dark:bg-[#34d399] dark:shadow-black/30 dark:hover:bg-[#6ee7b7] md:hidden"
         aria-label="Abrir menu"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="h-5 w-5">
@@ -84,7 +85,7 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col justify-between
-          bg-white border-r border-gray-200 py-6 px-4
+          bg-white border-r border-gray-200 py-6 px-4 dark:bg-gray-900 dark:border-gray-800
           transition-transform duration-300 ease-in-out
           md:relative md:inset-auto md:z-auto md:w-56 md:translate-x-0 md:min-h-full
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
@@ -93,7 +94,7 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
         {/* Close button - mobile only */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 md:hidden"
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 md:hidden"
           aria-label="Fechar menu"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
@@ -111,11 +112,11 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
                 <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
               </svg>
             </div>
-            <span className="text-sm font-bold text-gray-800">SGDA</span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-100">SGDA</span>
           </div>
 
           {/* Tab Nav */}
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
             Portal do Coordenador
           </p>
           <nav className="space-y-1">
@@ -125,8 +126,8 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
                 onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
                   active === item.id
-                    ? item.activeClass
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 font-medium"
+                    ? `${item.activeClass} dark:bg-white/10 dark:text-white`
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 font-medium dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -143,7 +144,7 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
           </nav>
 
           {/* Conta */}
-          <p className="mb-2 mt-6 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+          <p className="mb-2 mt-6 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
             Conta
           </p>
           <nav>
@@ -151,8 +152,8 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
               onClick={() => { router.push("/dashboard/profile"); setMobileOpen(false); }}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 onProfile
-                  ? "bg-[#1a5c38]/10 text-[#1a5c38] font-semibold"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                  ? "bg-[#1a5c38]/10 text-[#1a5c38] font-semibold dark:bg-[#34d399]/15 dark:text-[#a7f3d0]"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -160,23 +161,36 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
               </svg>
               Meu Perfil
             </button>
+            <button
+              onClick={() => { router.push("/dashboard/settings"); setMobileOpen(false); }}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                onSettings
+                  ? "bg-[#1a5c38]/10 text-[#1a5c38] font-semibold dark:bg-[#34d399]/15 dark:text-[#a7f3d0]"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.993 6.993 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
+              Configurações
+            </button>
           </nav>
         </div>
 
         {/* Usuário + Logout */}
-        <div className="space-y-3 border-t border-gray-200 pt-4">
+        <div className="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5c38] text-sm font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5c38] text-sm font-bold text-white dark:bg-[#34d399] dark:text-gray-950">
               {userName?.charAt(0).toUpperCase() ?? "?"}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-gray-800">{userName ?? "Carregando..."}</p>
-              <p className="truncate text-xs text-gray-400">Coordenador</p>
+              <p className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">{userName ?? "Carregando..."}</p>
+              <p className="truncate text-xs text-gray-400 dark:text-gray-500">Coordenador</p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />

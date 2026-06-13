@@ -82,7 +82,7 @@ export default function CadastroCoordenador() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-12">
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
@@ -98,23 +98,23 @@ export default function CadastroCoordenador() {
               <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
             </svg>
           </div>
-          <h2 className="mt-3 text-xl font-bold text-gray-800">SGDA</h2>
-          <p className="text-sm text-gray-500">Sistema de Gestão de Despesas Acadêmicas</p>
+          <h2 className="mt-3 text-xl font-bold text-gray-800 dark:text-gray-50">SGDA</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Sistema de Gestão de Despesas Acadêmicas</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-white px-8 py-8 shadow-md">
-          <h1 className="text-xl font-bold text-gray-900">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 px-8 py-8 shadow-md">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50">
             Conclua seu Cadastro de Coordenador
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Preencha as informações abaixo para ativar sua conta
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {/* Nome completo */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Nome Completo <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -130,14 +130,14 @@ export default function CadastroCoordenador() {
                   onChange={handleChange}
                   placeholder="Digite seu nome completo"
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
                 />
               </div>
             </div>
 
             {/* E-mail */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 E-mail <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -154,14 +154,14 @@ export default function CadastroCoordenador() {
                   onChange={handleChange}
                   placeholder="Digite seu e-mail"
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
                 />
               </div>
             </div>
 
             {/* Senha */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Senha <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -177,7 +177,7 @@ export default function CadastroCoordenador() {
                   onChange={handleChange}
                   placeholder="Crie uma senha forte"
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
                 />
                 <button
                   type="button"
@@ -197,14 +197,14 @@ export default function CadastroCoordenador() {
                   )}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                 Mínimo de 8 caracteres com maiúsculas, minúsculas e números
               </p>
             </div>
 
             {/* Confirmar Senha */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirmar Senha <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -220,7 +220,7 @@ export default function CadastroCoordenador() {
                   onChange={handleChange}
                   placeholder="Repita sua senha"
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
                 />
                 <button
                   type="button"
@@ -244,7 +244,7 @@ export default function CadastroCoordenador() {
 
             {/* Código de Convite */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Código de Convite <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -261,7 +261,7 @@ export default function CadastroCoordenador() {
                   onChange={handleChange}
                   placeholder="Digite seu código de convite"
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38]"
                 />
               </div>
             </div>
@@ -281,7 +281,7 @@ export default function CadastroCoordenador() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-6 text-center text-xs text-gray-400 dark:text-gray-500">
             Ao concluir o cadastro, você concorda com nossos{" "}
             <a href="#" className="text-[#1a5c38] hover:underline">
               Termos de Uso
@@ -293,7 +293,7 @@ export default function CadastroCoordenador() {
           </p>
         </div>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Precisa de ajuda?{" "}
           <a href="#" className="font-medium text-[#1a5c38] hover:underline">
             Fale com o Suporte

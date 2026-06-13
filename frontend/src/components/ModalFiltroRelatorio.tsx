@@ -46,24 +46,24 @@ export default function ModalFiltroRelatorio({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-gray-900">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e2d3d]/10">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-[#1e2d3d]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e2d3d]/10 dark:bg-[#1e2d3d]/20">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-[#1e2d3d] dark:text-[#93c5fd]">
                 <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 6.75a.75.75 0 011.5 0v2.546l.943-1.048a.75.75 0 111.114 1.004l-2.25 2.5a.75.75 0 01-1.114 0l-2.25-2.5a.75.75 0 111.114-1.004l.943 1.048V8.75z" clipRule="evenodd" />
               </svg>
             </div>
             <div>
-              <h2 className="text-sm font-bold text-gray-900">Exportar Relatório PDF</h2>
-              <p className="text-xs text-gray-400">Aplique filtros antes de exportar</p>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-50">Exportar Relatório PDF</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Aplique filtros antes de exportar</p>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={exporting}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-40"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -75,25 +75,25 @@ export default function ModalFiltroRelatorio({
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Período */}
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Período</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Período</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Data início</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Data início</label>
                 <input
                   type="date"
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Data fim</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Data fim</label>
                 <input
                   type="date"
                   value={to}
                   min={from || undefined}
                   onChange={(e) => setTo(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
             </div>
@@ -101,11 +101,11 @@ export default function ModalFiltroRelatorio({
 
           {/* Status */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Status</label>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ExpenseStatus | "all")}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -116,11 +116,11 @@ export default function ModalFiltroRelatorio({
           {/* Projeto */}
           {projects.length > 0 && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Projeto</label>
+              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Projeto</label>
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               >
                 <option value="">Todos os projetos</option>
                 {projects.map((p) => (
@@ -131,12 +131,12 @@ export default function ModalFiltroRelatorio({
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
             <button
               type="button"
               onClick={onClose}
               disabled={exporting}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-40"
             >
               Cancelar
             </button>

@@ -34,47 +34,47 @@ function getExpenseRoute(role: string, expenseId: string | null): string | null 
 function NotifIcon({ type }: { type: NotificationType }) {
   if (type === "EXPENSE_APPROVED" || type === "EXPENSE_CONCLUDED")
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/15">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600 dark:text-green-300">
           <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
         </svg>
       </div>
     );
   if (type === "EXPENSE_REJECTED")
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-red-600">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-red-600 dark:text-red-300">
           <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
         </svg>
       </div>
     );
   if (type === "EXPENSE_PENDING_REVIEW")
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-yellow-600">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-500/15">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-300">
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
         </svg>
       </div>
     );
   if (type === "EXPENSE_CORRECTION_REQUESTED")
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-orange-600">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/15">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-orange-600 dark:text-orange-300">
           <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
         </svg>
       </div>
     );
   if (type === "PROJECT_ASSIGNED")
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-blue-600">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/15">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300">
           <path d="M3.75 3A1.75 1.75 0 002 4.75v3.26a3.235 3.235 0 011.75-.51h12.5c.644 0 1.245.188 1.75.51V6.75A1.75 1.75 0 0016.25 5h-4.836a.25.25 0 01-.177-.073L9.823 3.513A1.75 1.75 0 008.586 3H3.75zM3.75 9A1.75 1.75 0 002 10.75v4.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0018 15.25v-4.5A1.75 1.75 0 0016.25 9H3.75z" />
         </svg>
       </div>
     );
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-gray-500">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-gray-500 dark:text-gray-300">
         <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
       </svg>
     </div>
@@ -108,15 +108,15 @@ function NotifItem({
     <button
       onClick={handleClick}
       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-gray-50 ${
-        isUnread ? "bg-blue-50/60" : ""
+        isUnread ? "bg-blue-50/60 dark:bg-blue-500/10" : ""
       }`}
     >
       <NotifIcon type={notif.type} />
       <div className="min-w-0 flex-1">
-        <p className={`text-xs leading-snug ${isUnread ? "font-semibold text-gray-800" : "font-medium text-gray-600"}`}>
+        <p className={`text-xs leading-snug ${isUnread ? "font-semibold text-gray-800 dark:text-gray-100" : "font-medium text-gray-600 dark:text-gray-300"}`}>
           {notif.message}
         </p>
-        <p className="mt-0.5 text-[10px] text-gray-400">{formatRelative(notif.createdAt)}</p>
+        <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">{formatRelative(notif.createdAt)}</p>
       </div>
       {isUnread && (
         <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
@@ -155,8 +155,8 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
   }
 
   const bellClass = dark
-    ? "relative rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition"
-    : "relative rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition";
+    ? "relative rounded-lg p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
+    : "relative rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600";
 
   // Rendered via portal so it escapes the sidebar's stacking context (created by transform)
   const dropdown =
@@ -165,14 +165,14 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
           <div
             ref={dropdownRef}
             style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: DROPDOWN_WIDTH }}
-            className="z-[9999] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+            className="z-[9999] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-800">Notificações</span>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notificações</span>
                 {unreadCount > 0 && (
-                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-600">
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-600 dark:bg-red-500/15 dark:text-red-300">
                     {unreadCount}
                   </span>
                 )}
@@ -180,7 +180,7 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-blue-600 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-500/10"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
@@ -191,13 +191,13 @@ export default function NotificationsPanel({ role, dark = false }: Notifications
             </div>
 
             {/* List */}
-            <div className="max-h-96 divide-y divide-gray-100 overflow-y-auto">
+            <div className="max-h-96 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-800">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-10 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8 text-gray-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8 text-gray-200 dark:text-gray-700">
                     <path fillRule="evenodd" d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-xs text-gray-400">Nenhuma notificação</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Nenhuma notificação</p>
                 </div>
               ) : (
                 notifications.map((n) => (

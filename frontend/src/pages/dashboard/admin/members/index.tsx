@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalConvite from "@/components/ModalConvite";
 import {
@@ -11,6 +13,7 @@ import {
   type InviteRole,
 } from "@/services/invites";
 import { getMe } from "@/services/user";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const ROLE_LABEL: Record<InviteRole, string> = {
   ALUNO: "Aluno",
@@ -93,14 +96,14 @@ export default function AdminMembers() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") ?? "" : "";
+  const token = getToken();
   const [userName, setUserName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const t = localStorage.getItem("accessToken");
+    const t = getToken();
     if (!t) { router.push("/login"); return; }
     getMe(t).then((r) => {
-      if (!r.ok) { localStorage.removeItem("accessToken"); router.push("/login"); }
+      if (!r.ok) { useAuthStore.getState().clearToken(); localStorage.removeItem("accessToken"); router.push("/login"); }
       else setUserName(r.data.name);
     });
   }, []);
@@ -159,7 +162,7 @@ export default function AdminMembers() {
   const canRevoke = (s: InviteStatus) => s === "ATIVO";
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
       <AdminSidebar active="members" userName={userName} />
 
       <main className="flex-1 overflow-auto">
@@ -167,11 +170,13 @@ export default function AdminMembers() {
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Gerenciar Membros</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50">Gerenciar Membros</h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Gere e gerencie links de convite para alunos e coordenadores.
               </p>
             </div>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
             <button
               onClick={() => setShowModal(true)}
               className="flex items-center gap-2 rounded-lg bg-[#1e2d3d] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#16202c] transition"
@@ -181,6 +186,7 @@ export default function AdminMembers() {
               </svg>
               Convidar Membro
             </button>
+            </div>
           </div>
 
           {/* Filtros */}
@@ -188,7 +194,7 @@ export default function AdminMembers() {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value as InviteRole | "")}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#1e2d3d] focus:outline-none focus:ring-1 focus:ring-[#1e2d3d]"
+              className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-100 focus:border-[#1e2d3d] focus:outline-none focus:ring-1 focus:ring-[#1e2d3d]"
             >
               <option value="">Todos os papéis</option>
               <option value="ALUNO">Aluno</option>
@@ -197,7 +203,7 @@ export default function AdminMembers() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as InviteStatus | "")}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#1e2d3d] focus:outline-none focus:ring-1 focus:ring-[#1e2d3d]"
+              className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-100 focus:border-[#1e2d3d] focus:outline-none focus:ring-1 focus:ring-[#1e2d3d]"
             >
               <option value="">Todos os status</option>
               <option value="ATIVO">Ativos</option>
@@ -207,11 +213,11 @@ export default function AdminMembers() {
           </div>
 
           {/* Tabela */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
             {carregando ? (
               <div className="space-y-px p-1">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100" />
+                  <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
                 ))}
               </div>
             ) : erro ? (
@@ -223,27 +229,27 @@ export default function AdminMembers() {
               </div>
             ) : invites.length === 0 ? (
               <div className="px-6 py-14 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mx-auto mb-3 h-8 w-8 text-gray-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mx-auto mb-3 h-8 w-8 text-gray-300 dark:text-gray-600">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
-                <p className="text-sm font-medium text-gray-500">Nenhum convite encontrado</p>
-                <p className="mt-1 text-xs text-gray-400">Gere um novo convite para começar.</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Nenhum convite encontrado</p>
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Gere um novo convite para começar.</p>
               </div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50">
+                <thead className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Código</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Papel</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Expira em</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Ações</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Código</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Papel</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Expira em</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                   {invites.map((invite) => (
-                    <tr key={invite.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3.5 font-mono font-semibold text-gray-800 tracking-wider">
+                    <tr key={invite.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                      <td className="px-4 py-3.5 font-mono font-semibold text-gray-800 dark:text-gray-100 tracking-wider">
                         {invite.code}
                       </td>
                       <td className="px-4 py-3.5">
@@ -256,7 +262,7 @@ export default function AdminMembers() {
                           {invite.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-500 text-xs">
+                      <td className="px-4 py-3.5 text-gray-500 dark:text-gray-400 text-xs">
                         {invite.status === "USADO" ? "—" : formatExpiry(invite.expiresAt)}
                       </td>
                       <td className="px-4 py-3.5">
@@ -269,7 +275,7 @@ export default function AdminMembers() {
                               className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
                                 copiedId === invite.id
                                   ? "border-green-200 bg-green-50 text-green-700"
-                                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                               }`}
                             >
                               {copiedId === invite.id ? (
@@ -296,7 +302,7 @@ export default function AdminMembers() {
                             onClick={() => canRevoke(invite.status) && setConfirmId(invite.id)}
                             disabled={!canRevoke(invite.status)}
                             title={canRevoke(invite.status) ? "Revogar convite" : "Não pode ser revogado"}
-                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                               <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />

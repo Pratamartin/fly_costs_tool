@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
 import {
@@ -8,6 +11,7 @@ import {
   getCostBreakdownReceiptDownloadUrl,
   type Expense,
 } from "@/services/expenses";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -31,11 +35,11 @@ export default function StudentExpenseDetail() {
   useEffect(() => {
     if (!id || typeof id !== "string") return;
 
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
 
     async function carregar() {
-      const token = localStorage.getItem("accessToken")!;
+      const token = getToken();
       const [meResult, expResult] = await Promise.all([
         getMe(token),
         getExpenseById(token, id as string),
@@ -43,6 +47,7 @@ export default function StudentExpenseDetail() {
 
       if (!meResult.ok) {
         if (meResult.error === "UNAUTHORIZED") {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -55,6 +60,7 @@ export default function StudentExpenseDetail() {
 
       if (!expResult.ok) {
         if (expResult.error === "UNAUTHORIZED") {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -77,7 +83,7 @@ export default function StudentExpenseDetail() {
   }, [router, id]);
 
   async function handleDownloadMemorandum() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoMemorandum(true);
     const result = await getMemorandumDownloadUrl(token, expense.id);
@@ -86,7 +92,7 @@ export default function StudentExpenseDetail() {
   }
 
   async function handleDownloadComprovante(breakdownId: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoComprovante(breakdownId);
     const result = await getCostBreakdownReceiptDownloadUrl(token, expense.id, breakdownId);
@@ -94,14 +100,13 @@ export default function StudentExpenseDetail() {
     if (result.ok) window.open(result.url, "_blank");
   }
 
-  function handleLogout() {
-    localStorage.removeItem("accessToken");
-    router.push("/login");
+  async function handleLogout() {
+    await performLogout(router);
   }
 
   if (carregando) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <svg className="animate-spin h-8 w-8 text-[#4F46E5]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -112,7 +117,7 @@ export default function StudentExpenseDetail() {
 
   if (erro || !expense) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <p className="text-red-600 font-medium">{erro ?? "Erro inesperado."}</p>
           <button onClick={() => router.push("/dashboard/student")} className="mt-4 text-sm text-[#4F46E5] hover:underline">
@@ -128,24 +133,25 @@ export default function StudentExpenseDetail() {
   const total = breakdowns.reduce((sum, cb) => sum + cb.amount, 0);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <StudentSidebar userName={userProfile?.name ?? null} onLogout={handleLogout} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:px-8 sm:py-4">
+        <header className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:px-8 sm:py-4">
           <button
             onClick={() => router.push("/dashboard/student")}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition shrink-0"
+            className="rounded-lg p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
           </button>
-          <div>
-            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Detalhes da Solicitação</h1>
-            <p className="text-xs text-gray-500">{displayId} • {expense.title}</p>
+          <div className="flex-1">
+            <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Detalhes da Solicitação</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{displayId} • {expense.title}</p>
           </div>
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
@@ -174,43 +180,43 @@ export default function StudentExpenseDetail() {
             <div className="col-span-1 space-y-5 lg:col-span-2">
 
               {/* Visão Geral */}
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-gray-800 mb-5">Visão Geral</h2>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-5">Visão Geral</h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">ID</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">ID</p>
                     <p className="text-sm font-bold text-[#4F46E5]">{displayId}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Título</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Título</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.title}</p>
                   </div>
                   {expense.description && (
                     <div className="col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Descrição</p>
-                      <p className="text-sm text-gray-600 leading-relaxed">{expense.description}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Descrição</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{expense.description}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Evento</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.event?.name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Evento</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Local</p>
-                    <p className="text-sm font-semibold text-gray-800">{expense.event?.location}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Local</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.location}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">QUALIS</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">QUALIS</p>
                     <span className="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
                       {expense.article?.classification}
                     </span>
                   </div>
                   {expense.project && (
                     <div className="col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Projeto</p>
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Projeto</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                         {expense.project.name}{" "}
-                        <span className="font-mono text-xs text-gray-400">({expense.project.code})</span>
+                        <span className="font-mono text-xs text-gray-400 dark:text-gray-500">({expense.project.code})</span>
                       </p>
                     </div>
                   )}
@@ -218,18 +224,18 @@ export default function StudentExpenseDetail() {
               </div>
 
               {/* Portfólio de Arquivos */}
-              <div className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-violet-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-5">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-violet-500">
                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                   </svg>
-                  <h2 className="text-sm font-bold text-gray-800">Portfólio de Arquivos</h2>
+                  <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Portfólio de Arquivos</h2>
                 </div>
 
                 <div className="space-y-3">
                   {/* Memorando */}
                   {expense.attachmentKey && (
-                    <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-600">
@@ -237,8 +243,8 @@ export default function StudentExpenseDetail() {
                           </svg>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">Memorando</p>
-                          <p className="text-xs text-gray-400 truncate">{expense.attachmentKey.split("/").pop()}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Memorando</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{expense.attachmentKey.split("/").pop()}</p>
                         </div>
                       </div>
                       <button
@@ -264,7 +270,7 @@ export default function StudentExpenseDetail() {
 
                   {/* Cost breakdowns */}
                   {breakdowns.map((cb) => (
-                    <div key={cb.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div key={cb.id} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-600">
@@ -272,8 +278,8 @@ export default function StudentExpenseDetail() {
                           </svg>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{cb.subcategory.name}</p>
-                          <p className="text-xs font-semibold text-gray-500">{fmtCurrency(cb.amount)}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{cb.subcategory.name}</p>
+                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{fmtCurrency(cb.amount)}</p>
                         </div>
                       </div>
                       {cb.attachmentKey ? (
@@ -296,13 +302,13 @@ export default function StudentExpenseDetail() {
                           Baixar
                         </button>
                       ) : (
-                        <span className="ml-3 text-xs text-gray-300 shrink-0">—</span>
+                        <span className="ml-3 text-xs text-gray-300 dark:text-gray-600 shrink-0">—</span>
                       )}
                     </div>
                   ))}
 
                   {breakdowns.length === 0 && !expense.attachmentKey && (
-                    <p className="text-sm text-gray-400 text-center py-4">Nenhum arquivo disponível.</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Nenhum arquivo disponível.</p>
                   )}
 
                   {/* Total */}
@@ -318,41 +324,41 @@ export default function StudentExpenseDetail() {
 
             {/* Right sidebar */}
             <div className="space-y-5">
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-800 mb-4">Detalhes do Evento</h3>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-4">Detalhes do Evento</h3>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Evento</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Evento</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Local</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.event?.location}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Local</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.event?.location}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">QUALIS</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">QUALIS</p>
                     <span className="mt-0.5 inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
                       {expense.article?.classification}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Criado em</p>
-                    <p className="mt-0.5 text-sm text-gray-600">{fmtDate(expense.createdAt)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Criado em</p>
+                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{fmtDate(expense.createdAt)}</p>
                   </div>
                 </div>
               </div>
 
               {expense.project && (
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-800 mb-4">Projeto Vinculado</h3>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-4">Projeto Vinculado</h3>
                   <div className="space-y-2">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Nome</p>
-                      <p className="mt-0.5 text-sm font-semibold text-gray-800">{expense.project.name}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Nome</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.project.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Código</p>
-                      <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Código</p>
+                      <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
                         {expense.project.code}
                       </span>
                     </div>

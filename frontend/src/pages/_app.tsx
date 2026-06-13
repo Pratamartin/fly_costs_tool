@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { useRouter } from "next/router";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -11,7 +12,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => router.pathname.startsWith(prefix));
 
   return (
-    <>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <Toaster position="top-right" richColors closeButton expand={false} />
       {isProtected ? (
         <ProtectedRoute>
@@ -20,6 +21,6 @@ export default function App({ Component, pageProps }: AppProps) {
       ) : (
         <Component {...pageProps} />
       )}
-    </>
+    </ThemeProvider>
   );
 }

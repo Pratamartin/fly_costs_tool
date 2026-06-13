@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import ModalDetalhe from "@/components/ModalDetalhe";
@@ -9,6 +12,7 @@ import { listExpenses, updateExpenseStatus, getExpenseById, exportExpensesReport
 import { listProjects } from "@/services/projects";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { toast } from "@/lib/toast";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type CategoriaIcone = "componentes" | "livros" | "viagem" | "nuvem";
 
@@ -115,7 +119,7 @@ export default function DashboardCoordenador() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getToken();
       if (!token) { router.push("/login"); return; }
       try {
         const [meResult, pendingResult, approvedResult, rejectedResult, projectsResult] = await Promise.all([
@@ -127,7 +131,7 @@ export default function DashboardCoordenador() {
         ]);
         if (projectsResult.ok) setProjects(projectsResult.data.map((p) => ({ id: p.id, name: p.name })));
         if (!meResult.ok) {
-          if (meResult.error === "UNAUTHORIZED") { localStorage.removeItem("accessToken"); router.push("/login"); }
+          if (meResult.error === "UNAUTHORIZED") { useAuthStore.getState().clearToken(); localStorage.removeItem("accessToken"); router.push("/login"); }
           else setErro("Erro ao carregar perfil");
           return;
         }
@@ -137,6 +141,7 @@ export default function DashboardCoordenador() {
           (!approvedResult.ok && approvedResult.error === "UNAUTHORIZED") ||
           (!rejectedResult.ok && rejectedResult.error === "UNAUTHORIZED")
         ) {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -156,7 +161,7 @@ export default function DashboardCoordenador() {
   }, [router]);
 
   async function handleExport(filters: ReportFilters) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setExporting(true);
     try {
@@ -175,13 +180,12 @@ export default function DashboardCoordenador() {
   }
 
   async function handleLogout() {
-    localStorage.removeItem("accessToken");
     toast.success("Sessão encerrada com sucesso.");
-    router.push("/login");
+    await performLogout(router);
   }
 
   async function abrirDetalhe(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await getExpenseById(token, id);
@@ -193,7 +197,7 @@ export default function DashboardCoordenador() {
   }
 
   async function handleAprovar(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await updateExpenseStatus(token, id, "APROVADO");
@@ -215,7 +219,7 @@ export default function DashboardCoordenador() {
   }
 
   async function handleRejeitar(id: string, motivo: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await updateExpenseStatus(token, id, "REJEITADO", motivo);
@@ -256,7 +260,7 @@ export default function DashboardCoordenador() {
 
   if (carregando) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <div className="mb-4 flex justify-center">
             <svg className="animate-spin h-8 w-8 text-[#1a5c38]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -264,14 +268,14 @@ export default function DashboardCoordenador() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
-          <p className="text-gray-600">Carregando dashboard...</p>
+          <p className="text-gray-600 dark:text-gray-400">Carregando dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {rejeitando && (
         <ModalRejeitar
           solicitacao={rejeitando}
@@ -282,7 +286,7 @@ export default function DashboardCoordenador() {
       {detalheAberto && (
         <ModalDetalhe
           despesa={detalheAberto}
-          token={localStorage.getItem("accessToken") ?? ""}
+          token={getToken()}
           onClose={() => setDetalheAberto(null)}
         />
       )}
@@ -306,19 +310,20 @@ export default function DashboardCoordenador() {
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-base font-bold text-gray-900 sm:text-xl">{tituloAba}</h1>
-            <p className="text-xs text-gray-500 sm:text-sm">{subtituloAba}</p>
+            <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">{tituloAba}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{subtituloAba}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             {erro && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
                 <p className="text-xs text-red-700 sm:text-sm">{erro}</p>
               </div>
             )}
             <div className="relative flex-1 sm:flex-none">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
                 </svg>
@@ -328,7 +333,7 @@ export default function DashboardCoordenador() {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar..."
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38] sm:w-56"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1a5c38] focus:ring-1 focus:ring-[#1a5c38] sm:w-56"
               />
             </div>
             <button
@@ -348,13 +353,13 @@ export default function DashboardCoordenador() {
 
           {/* Cards de resumo */}
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Total {abaAtual === "PENDENTE" ? "Pendente" : abaAtual === "APROVADO" ? "Aprovado" : "Rejeitado"}
                 </p>
-                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
-                  {filtradas.length} <span className="text-base font-medium text-gray-400">solicitações</span>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
+                  {filtradas.length} <span className="text-base font-medium text-gray-400 dark:text-gray-500">solicitações</span>
                 </p>
               </div>
               <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
@@ -367,10 +372,10 @@ export default function DashboardCoordenador() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500">Valor Total</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Valor Total</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                   R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -380,10 +385,10 @@ export default function DashboardCoordenador() {
                 </svg>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500">Maior Solicitação</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Maior Solicitação</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                   {filtradas.length > 0
                     ? `R$ ${Math.max(...filtradas.map((s) => s.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                     : "—"}
@@ -398,9 +403,9 @@ export default function DashboardCoordenador() {
           </div>
 
           {/* Tabela / Cards */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
-              <h2 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+            <div className="border-b border-gray-100 dark:border-gray-800 px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 {filtradas.length === pendentesAtual.length
                   ? `${pendentesAtual.length} solicitações`
                   : `${filtradas.length} resultado${filtradas.length !== 1 ? "s" : ""} encontrado${filtradas.length !== 1 ? "s" : ""}`}
@@ -410,16 +415,16 @@ export default function DashboardCoordenador() {
             {/* Tabela — desktop */}
             <table className="hidden w-full md:table">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Solicitação</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Projeto</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Aluno</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Valor</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Ações</th>
+                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Solicitação</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Valor</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filtradas.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-16 text-center">
@@ -429,11 +434,11 @@ export default function DashboardCoordenador() {
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                           </svg>
                         </div>
-                        <p className="text-sm font-medium text-gray-600">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                           {busca ? "Nenhuma solicitação encontrada." : "Nenhuma solicitação neste status."}
                         </p>
                         {!busca && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
                             {abaAtual === "PENDENTE" && "Todas as solicitações foram processadas."}
                             {abaAtual === "APROVADO" && "Nenhuma solicitação aprovada ainda."}
                             {abaAtual === "REJEITADO" && "Nenhuma solicitação rejeitada ainda."}
@@ -444,13 +449,13 @@ export default function DashboardCoordenador() {
                   </tr>
                 ) : (
                   filtradas.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-50">
+                    <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4">
                         <button onClick={() => abrirDetalhe(s.id)} className="flex items-center gap-3 hover:opacity-75">
                           <IconeSolicitacao tipo={s.icone} />
                           <div className="text-left">
-                            <p className="text-sm font-semibold text-gray-900">{s.descricao}</p>
-                            <p className="text-xs text-gray-400">{s.reqId}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{s.descricao}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{s.reqId}</p>
                           </div>
                         </button>
                       </td>
@@ -462,13 +467,13 @@ export default function DashboardCoordenador() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <AvatarAluno inicial={s.avatarInicial} />
-                          <span className="text-sm text-gray-700">{s.aluno}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{s.aluno}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                      <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
                         R$ {s.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{s.dataSubmissao}</td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{s.dataSubmissao}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           {abaAtual === "PENDENTE" && (
@@ -495,7 +500,7 @@ export default function DashboardCoordenador() {
                           )}
                           <button
                             onClick={() => abrirDetalhe(s.id)}
-                            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
+                            className="flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                               <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
@@ -521,25 +526,25 @@ export default function DashboardCoordenador() {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                       {busca ? "Nenhuma solicitação encontrada." : "Nenhuma solicitação neste status."}
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {filtradas.map((s) => (
-                    <div key={s.id} className="px-4 py-4">
+                    <div key={s.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
                       {/* Linha 1: ícone + descrição + valor */}
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <IconeSolicitacao tipo={s.icone} />
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{s.descricao}</p>
-                            <p className="text-xs text-gray-400">{s.reqId}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{s.descricao}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{s.reqId}</p>
                           </div>
                         </div>
-                        <p className="shrink-0 text-sm font-bold text-gray-900">
+                        <p className="shrink-0 text-sm font-bold text-gray-900 dark:text-gray-50">
                           R$ {s.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </p>
                       </div>
@@ -547,9 +552,9 @@ export default function DashboardCoordenador() {
                       <div className="flex items-center justify-between pl-11 mb-3">
                         <div className="flex items-center gap-2 min-w-0">
                           <AvatarAluno inicial={s.avatarInicial} />
-                          <span className="text-xs text-gray-600 truncate">{s.aluno}</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{s.aluno}</span>
                         </div>
-                        <span className="shrink-0 text-xs text-gray-400">{s.dataSubmissao}</span>
+                        <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{s.dataSubmissao}</span>
                       </div>
                       {/* Linha 3: projeto */}
                       <div className="pl-11 mb-3">
@@ -583,7 +588,7 @@ export default function DashboardCoordenador() {
                         )}
                         <button
                           onClick={() => abrirDetalhe(s.id)}
-                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
+                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                             <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
@@ -598,8 +603,8 @@ export default function DashboardCoordenador() {
               )}
             </div>
 
-            <div className="border-t border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
-              <p className="text-sm text-gray-400">
+            <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 sm:px-6 sm:py-4">
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Exibindo {filtradas.length} de {pendentesAtual.length} solicitações
               </p>
             </div>

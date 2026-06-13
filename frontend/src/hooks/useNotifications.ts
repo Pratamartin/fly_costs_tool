@@ -5,6 +5,7 @@ import {
   markAllAsRead,
   type Notification,
 } from "@/services/notifications";
+import { getToken } from "@/lib/getToken";
 
 const POLL_INTERVAL = 60_000;
 
@@ -13,7 +14,7 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
-    const token = localStorage.getItem("accessToken") ?? "";
+    const token = getToken();
     const result = await listNotifications(token);
     if (result.ok) {
       setNotifications(result.data.items);
@@ -28,7 +29,7 @@ export function useNotifications() {
   }, [fetchNotifications]);
 
   const handleMarkAsRead = useCallback(async (id: string) => {
-    const token = localStorage.getItem("accessToken") ?? "";
+    const token = getToken();
     await markAsRead(token, id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
@@ -37,7 +38,7 @@ export function useNotifications() {
   }, []);
 
   const handleMarkAllAsRead = useCallback(async () => {
-    const token = localStorage.getItem("accessToken") ?? "";
+    const token = getToken();
     await markAllAsRead(token);
     const now = new Date().toISOString();
     setNotifications((prev) =>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalCriarProjeto, { NovoDadosProjeto } from "@/components/ModalCriarProjeto";
 import { getAdminDashboard, getTopProjects, type AdminDashboard, type TopProject } from "@/services/analytics";
@@ -7,6 +9,7 @@ import { listExpenses, type Expense, type ExpenseStatus } from "@/services/expen
 import { createProject } from "@/services/projects";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { toast } from "@/lib/toast";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const AVATAR_COLORS: Record<string, string> = {
   A: "bg-pink-500", B: "bg-indigo-500", C: "bg-sky-500", D: "bg-violet-500",
@@ -59,7 +62,7 @@ export default function DashboardAdmin() {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
     carregarDados(token);
   }, [router]);
@@ -78,6 +81,7 @@ export default function DashboardAdmin() {
       (!dashResult.ok && dashResult.error === "UNAUTHORIZED") ||
       (!expResult.ok && expResult.error === "UNAUTHORIZED")
     ) {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     }
@@ -85,7 +89,7 @@ export default function DashboardAdmin() {
   }
 
   async function handleCriarProjeto(data: NovoDadosProjeto) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setCriando(true);
     setErroCriar(null);
@@ -112,25 +116,26 @@ export default function DashboardAdmin() {
   const totalRequests = dashboard?.totalRequests ?? 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <AdminSidebar active="dashboard" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
+        <header className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
-            <h1 className="text-base font-bold text-gray-900 sm:text-xl">Painel Global</h1>
-            <p className="text-xs text-gray-500 sm:text-sm">Visão geral de todos os projetos e despesas acadêmicas</p>
+            <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Painel Global</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Visão geral de todos os projetos e despesas acadêmicas</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative flex-1 sm:flex-none">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
                 </svg>
               </span>
-              <input type="text" placeholder="Pesquisar projetos, despesas..." className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56" />
+              <input type="text" placeholder="Pesquisar projetos, despesas..." className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56" />
             </div>
+            <ThemeToggle />
             <NotificationsPanel role="admin" />
             <button
               onClick={() => { setErroCriar(null); setShowModalCriar(true); }}
@@ -149,13 +154,13 @@ export default function DashboardAdmin() {
 
           {/* Stats cards */}
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500">Total de Gastos</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total de Gastos</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                   {carregando ? "—" : `R$ ${fmt(totalValue)}`}
                 </p>
-                <p className="mt-1.5 text-xs text-gray-400">valor total das despesas</p>
+                <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">valor total das despesas</p>
               </div>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-600">
@@ -164,11 +169,11 @@ export default function DashboardAdmin() {
               </div>
             </div>
 
-            <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Orçamento Comprometido</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Orçamento Comprometido</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                     {carregando ? "—" : `R$ ${fmt(budgetCommitted)}`}
                   </p>
                 </div>
@@ -178,13 +183,13 @@ export default function DashboardAdmin() {
                   </svg>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-gray-400">em projetos em processamento</p>
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">em projetos em processamento</p>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500">Solicitações Pendentes</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Solicitações Pendentes</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                   {carregando ? "—" : pendingCount}
                 </p>
                 <p className="mt-1.5 text-xs text-orange-500">
@@ -203,8 +208,8 @@ export default function DashboardAdmin() {
           {!carregando && dashboard && (
             <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* Status breakdown */}
-              <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
-                <h2 className="mb-4 text-sm font-semibold text-gray-800">Despesas por Status</h2>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Despesas por Status</h2>
                 <div className="space-y-3">
                   {([
                     { key: "PENDENTE",         label: "Pendente",          color: "bg-yellow-400" },
@@ -217,10 +222,10 @@ export default function DashboardAdmin() {
                     return (
                       <div key={key}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-600">{label}</span>
-                          <span className="text-sm font-semibold text-gray-900">{count} <span className="text-xs text-gray-400">({pct}%)</span></span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">{count} <span className="text-xs text-gray-400 dark:text-gray-500">({pct}%)</span></span>
                         </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                           <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -230,10 +235,10 @@ export default function DashboardAdmin() {
               </div>
 
               {/* Top projects */}
-              <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
-                <h2 className="mb-4 text-sm font-semibold text-gray-800">Top Projetos por Solicitações</h2>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Top Projetos por Solicitações</h2>
                 {topProjects.length === 0 ? (
-                  <p className="text-sm text-gray-400">Nenhum projeto com solicitações.</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum projeto com solicitações.</p>
                 ) : (
                   <div className="space-y-3">
                     {topProjects.map((p, i) => (
@@ -242,8 +247,8 @@ export default function DashboardAdmin() {
                           {i + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-800">{p.name}</p>
-                          <p className="text-xs text-gray-400">{p.totalRequests} solicitações · R$ {fmt(p.totalValue)}</p>
+                          <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{p.name}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{p.totalRequests} solicitações · R$ {fmt(p.totalValue)}</p>
                         </div>
                       </div>
                     ))}
@@ -254,11 +259,11 @@ export default function DashboardAdmin() {
           )}
 
           {/* Recent Activity */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
               <div>
-                <h2 className="text-sm font-semibold text-gray-800">Atividade Recente</h2>
-                <p className="text-xs text-gray-400">Últimas despesas registradas</p>
+                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Atividade Recente</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Últimas despesas registradas</p>
               </div>
               <button
                 onClick={() => router.push("/dashboard/admin/expenses")}
@@ -279,44 +284,44 @@ export default function DashboardAdmin() {
               <>
                 <table className="hidden w-full md:table">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">ID Despesa</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Solicitação</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Aluno</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Data</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Ação</th>
+                    <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">ID Despesa</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Solicitação</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {recentExpenses.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-sm text-gray-400">Nenhuma despesa registrada.</td>
+                        <td colSpan={6} className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Nenhuma despesa registrada.</td>
                       </tr>
                     ) : recentExpenses.map((expense) => (
-                      <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <td className="px-6 py-4">
                           <button onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })} className="text-sm font-semibold text-[#2563EB] hover:underline">
                             REQ-{expense.id.slice(0, 8).toUpperCase()}
                           </button>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-sm text-gray-700">{expense.title}</p>
-                          <p className="text-xs text-gray-400">{expense.project?.name ?? "Sem projeto"}</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{expense.title}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{expense.project?.name ?? "Sem projeto"}</p>
                         </td>
                         <td className="px-6 py-4">
                           {expense.student ? (
                             <div className="flex items-center gap-2">
                               <Avatar name={expense.student.name} />
-                              <span className="text-sm text-gray-700">{expense.student.name}</span>
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{expense.student.name}</span>
                             </div>
-                          ) : <span className="text-sm text-gray-400">—</span>}
+                          ) : <span className="text-sm text-gray-400 dark:text-gray-500">—</span>}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{formatDate(expense.createdAt)}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(expense.createdAt)}</td>
                         <td className="px-6 py-4"><StatusBadge status={expense.status} /></td>
                         <td className="px-6 py-4">
                           <div className="flex justify-end">
-                            <button onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition">
+                            <button onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" /><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41z" clipRule="evenodd" /></svg>
                             </button>
                           </div>
@@ -326,29 +331,29 @@ export default function DashboardAdmin() {
                   </tbody>
                 </table>
 
-                <div className="border-t border-gray-100 px-6 py-4">
-                  <p className="text-sm text-gray-400">Exibindo {recentExpenses.length} despesas mais recentes</p>
+                <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-4">
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Exibindo {recentExpenses.length} despesas mais recentes</p>
                 </div>
 
                 {/* Cards — mobile */}
-                <div className="md:hidden divide-y divide-gray-100">
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
                   {recentExpenses.map((expense) => (
-                    <div key={expense.id} className="px-4 py-4 hover:bg-gray-50">
+                    <div key={expense.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <button onClick={() => router.push({ pathname: "/dashboard/admin/expenses/detail", query: { id: expense.id } })} className="text-sm font-semibold text-[#2563EB] hover:underline">
                           REQ-{expense.id.slice(0, 8).toUpperCase()}
                         </button>
                         <StatusBadge status={expense.status} />
                       </div>
-                      <p className="text-sm font-medium text-gray-800 mb-1">{expense.title}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">{expense.title}</p>
                       <div className="flex items-center justify-between">
                         {expense.student && (
                           <div className="flex items-center gap-2">
                             <Avatar name={expense.student.name} />
-                            <span className="text-xs text-gray-600">{expense.student.name}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{expense.student.name}</span>
                           </div>
                         )}
-                        <p className="text-xs text-gray-400">{formatDate(expense.createdAt)}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(expense.createdAt)}</p>
                       </div>
                     </div>
                   ))}

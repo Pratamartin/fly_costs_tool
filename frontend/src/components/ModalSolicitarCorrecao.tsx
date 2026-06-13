@@ -29,19 +29,19 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-5">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 mt-0.5">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/15">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-amber-600">
                 <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Solicitar Correção</h2>
-              <p className="mt-0.5 text-sm text-gray-500">
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Solicitar Correção</h2>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {solicitacao.reqId} • {solicitacao.descricao}
               </p>
             </div>
@@ -49,7 +49,7 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
           <button
             onClick={onClose}
             disabled={confirmando}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-50"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -59,15 +59,15 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
 
         {/* Descrição */}
         <div className="px-6 pb-4">
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
             Você está solicitando ao aluno{" "}
             {solicitacao.aluno ? (
-              <span className="font-semibold text-gray-900">{solicitacao.aluno}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-50">{solicitacao.aluno}</span>
             ) : (
               "solicitante"
             )}{" "}
             que corrija a despesa{" "}
-            <span className="font-semibold text-gray-900">{solicitacao.descricao}</span>.
+            <span className="font-semibold text-gray-900 dark:text-gray-50">{solicitacao.descricao}</span>.
             Descreva claramente o que precisa ser corrigido ou complementado.
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
           <div>
-            <label className="mb-1.5 flex items-center gap-1 text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
               Instrução de Correção
               <span className="text-amber-500">*</span>
             </label>
@@ -85,17 +85,17 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
               placeholder="Descreva o que precisa ser corrigido ou complementado na solicitação..."
               rows={4}
               disabled={confirmando}
-              className={`w-full resize-none rounded-lg border px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:ring-1 disabled:opacity-60 ${
+              className={`w-full resize-none rounded-lg border px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:ring-1 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 disabled:opacity-60 ${
                 note.length > 0 && !valido
-                  ? "border-amber-400 focus:border-amber-400 focus:ring-amber-400"
-                  : "border-gray-300 focus:border-amber-400 focus:ring-amber-400"
+                  ? "border-amber-400 focus:border-amber-400 focus:ring-amber-400 dark:border-amber-400"
+                  : "border-gray-300 focus:border-amber-400 focus:ring-amber-400 dark:border-gray-600"
               }`}
             />
             <div className="mt-1 flex items-center justify-between">
-              <p className={`text-xs ${note.length > 0 && !valido ? "text-amber-600" : "text-gray-400"}`}>
+              <p className={`text-xs ${note.length > 0 && !valido ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-gray-500"}`}>
                 Mínimo {MIN_CHARS} caracteres.
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {note.length} / {MAX_CHARS}
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
 
           {/* Sugestões rápidas */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Sugestões Rápidas</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Sugestões Rápidas</p>
             <div className="flex flex-wrap gap-2">
               {SUGESTOES.map((s) => (
                 <button
@@ -113,8 +113,8 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
                   onClick={() => setNote(s)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                     note === s
-                      ? "border-amber-400 bg-amber-50 text-amber-700"
-                      : "border-gray-300 text-gray-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+                      ? "border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                      : "border-gray-300 text-gray-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 dark:border-gray-600 dark:text-gray-300 dark:hover:border-amber-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
                   }`}
                 >
                   {s}
@@ -129,7 +129,7 @@ export default function ModalSolicitarCorrecao({ solicitacao, onClose, onConfirm
               type="button"
               onClick={onClose}
               disabled={confirmando}
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-50"
             >
               Cancelar
             </button>

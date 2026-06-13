@@ -71,10 +71,10 @@ const roles = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
 
       {/* Navbar */}
-      <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/90 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e2d3d]">
@@ -84,7 +84,7 @@ export default function LandingPage() {
                 <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
               </svg>
             </div>
-            <span className="text-sm font-bold text-gray-900">SGDA</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">SGDA</span>
           </div>
           <Link
             href="/login"
@@ -96,7 +96,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#1e2d3d] px-6 py-24">
+      <section className="relative overflow-hidden bg-[#1e2d3d] px-6 py-24 dark:bg-[#0f172a]">
         {/* Círculos decorativos */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/5" />
         <div className="pointer-events-none absolute top-40 -right-10 h-56 w-56 rounded-full bg-white/5" />
@@ -134,22 +134,22 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="bg-gray-50 px-6 py-20">
+      <section className="bg-gray-50 px-6 py-20 dark:bg-gray-950">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Tudo que você precisa</h2>
-            <p className="mt-3 text-gray-500">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50">Tudo que você precisa</h2>
+            <p className="mt-3 text-gray-500 dark:text-gray-400">
               Fluxo completo de solicitação e aprovação de despesas acadêmicas.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
             {features.map((f) => (
-              <div key={f.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+              <div key={f.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
                 <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${f.color} text-white`}>
                   {f.icon}
                 </div>
-                <h3 className="mt-5 text-base font-bold text-gray-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{f.description}</p>
+                <h3 className="mt-5 text-base font-bold text-gray-900 dark:text-gray-50">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{f.description}</p>
               </div>
             ))}
           </div>
@@ -157,28 +157,28 @@ export default function LandingPage() {
       </section>
 
       {/* Roles */}
-      <section className="px-6 py-20">
+      <section className="px-6 py-20 dark:bg-gray-950">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Para cada perfil, um portal dedicado</h2>
-            <p className="mt-3 text-gray-500">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50">Para cada perfil, um portal dedicado</h2>
+            <p className="mt-3 text-gray-500 dark:text-gray-400">
               Acesso personalizado para alunos e coordenadores.
             </p>
           </div>
           <div className="grid gap-8 sm:grid-cols-2">
             {roles.map((r) => (
-              <div key={r.role} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+              <div key={r.role} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
                 <div
                   className="flex h-11 w-11 items-center justify-center rounded-xl text-white"
                   style={{ backgroundColor: r.accent }}
                 >
                   {r.icon}
                 </div>
-                <h3 className="mt-5 text-xl font-bold text-gray-900">{r.role}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{r.description}</p>
+                <h3 className="mt-5 text-xl font-bold text-gray-900 dark:text-gray-50">{r.role}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{r.description}</p>
                 <ul className="mt-5 space-y-2">
                   {r.items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={item} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" style={{ color: r.accent }}>
                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                       </svg>
@@ -200,7 +200,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 bg-gray-50 px-6 py-8">
+      <footer className="border-t border-gray-100 bg-gray-50 px-6 py-8 dark:border-gray-800 dark:bg-gray-950">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1e2d3d]">
@@ -210,9 +210,9 @@ export default function LandingPage() {
                 <path d="M4.462 19.462c.42-.419.753-.89 1-1.394.453.213.902.434 1.347.661a6.743 6.743 0 01-1.286 1.794.75.75 0 11-1.06-1.06z" />
               </svg>
             </div>
-            <span className="text-sm font-bold text-gray-700">SGDA</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-200">SGDA</span>
           </div>
-          <p className="text-xs text-gray-400">© 2026 Sistema de Gestão de Despesas Acadêmicas</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">© 2026 Sistema de Gestão de Despesas Acadêmicas</p>
         </div>
       </footer>
 

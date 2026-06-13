@@ -74,14 +74,14 @@ export default function Login() {
   }
 
   const fieldClass = (hasError: boolean) =>
-    `w-full rounded-lg border bg-gray-50 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition disabled:opacity-50 ${
+    `w-full rounded-lg border bg-gray-50 dark:bg-gray-800 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 transition disabled:opacity-50 ${
       hasError
         ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-        : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+        : "border-gray-300 dark:border-gray-600 focus:border-[#2563EB] focus:ring-[#2563EB]"
     }`;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gray-200 dark:bg-gray-950 px-4 py-10">
       <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl">
 
         {/* Painel esquerdo */}
@@ -140,16 +140,16 @@ export default function Login() {
         </div>
 
         {/* Painel direito */}
-        <div className="flex flex-1 flex-col justify-center bg-white px-10 py-12">
+        <div className="flex flex-1 flex-col justify-center bg-white dark:bg-gray-900 px-10 py-12">
           <div className="mx-auto w-full max-w-sm">
-            <h2 className="text-2xl font-bold text-gray-900">Bem-vindo de volta</h2>
-            <p className="mt-1 text-sm text-gray-500">Insira seus dados para acessar o sistema.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Bem-vindo de volta</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Insira seus dados para acessar o sistema.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-5" noValidate>
 
               {/* Perfil de acesso */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Perfil de Acesso <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -161,10 +161,10 @@ export default function Login() {
                   <select
                     {...register("perfil")}
                     disabled={isSubmitting}
-                    className={`w-full appearance-none rounded-lg border bg-gray-50 py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none focus:ring-1 transition disabled:opacity-50 ${
+                    className={`w-full appearance-none rounded-lg border bg-gray-50 dark:bg-gray-800 py-2.5 pl-9 pr-8 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 transition disabled:opacity-50 ${
                       errors.perfil
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                        : "border-gray-300 dark:border-gray-600 focus:border-[#2563EB] focus:ring-[#2563EB]"
                     }`}
                   >
                     <option value="">Selecione seu perfil de acesso</option>
@@ -184,7 +184,7 @@ export default function Login() {
               {/* E-mail */}
               {mostrarCredenciais && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">E-mail</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">E-mail</label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -208,7 +208,7 @@ export default function Login() {
               {mostrarCredenciais && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-700">Senha</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
                     <a href="/forgot-password" className="text-xs font-medium text-[#2563EB] hover:underline">
                       Esqueceu a senha?
                     </a>
@@ -274,13 +274,13 @@ export default function Login() {
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-500">
+            <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
               É coordenador e ainda não tem acesso?{" "}
               <a href="/register-coordinator" className="font-medium text-[#2563EB] hover:underline">
                 Cadastre-se aqui
               </a>
             </p>
-            <p className="mt-3 text-center text-sm text-gray-500">
+            <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
               Está com dificuldades?{" "}
               <a href="#" className="font-medium text-[#2563EB] hover:underline">Fale com o Suporte</a>
             </p>
