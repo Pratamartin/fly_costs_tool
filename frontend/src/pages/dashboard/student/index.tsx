@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import ModalNovaDespesa, { type NovaDespesaData } from "@/components/ModalNovaDespesa";
 import StudentSidebar from "@/components/StudentSidebar";
 import NotificationsPanel from "@/components/NotificationsPanel";
@@ -157,6 +160,7 @@ export default function DashboardAluno() {
     if (expensesResult.ok) {
       setDespesas(expensesResult.data.map(expenseToDespesa));
     } else if (expensesResult.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else {
@@ -175,12 +179,13 @@ export default function DashboardAluno() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getToken();
       if (!token) { router.push("/login"); return; }
       try {
         const meResult = await getMe(token);
         if (!meResult.ok) {
           if (meResult.error === "UNAUTHORIZED") {
+            useAuthStore.getState().clearToken();
             localStorage.removeItem("accessToken");
             router.push("/login");
           } else {
@@ -200,7 +205,7 @@ export default function DashboardAluno() {
   }, [router]);
 
   async function handleAtualizar() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || atualizando) return;
     setAtualizando(true);
     setErro(null);
@@ -214,13 +219,12 @@ export default function DashboardAluno() {
   }
 
   async function handleLogout() {
-    localStorage.removeItem("accessToken");
     toast.success("Sessão encerrada com sucesso.");
-    router.push("/login");
+    await performLogout(router);
   }
 
   async function handleNovaDespesa(data: NovaDespesaData) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setCriandoDespesa(true);
     setErro(null);
@@ -240,6 +244,7 @@ export default function DashboardAluno() {
         setModalAberto(false);
         toast.success("Solicitação de despesa enviada com sucesso!");
       } else if (result.error === "UNAUTHORIZED") {
+        useAuthStore.getState().clearToken();
         localStorage.removeItem("accessToken");
         router.push("/login");
       } else if (result.error === "VALIDATION_ERROR") {

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import StudentSidebar from "@/components/StudentSidebar";
 import { getMe, type UserProfile } from "@/services/user";
 import {
@@ -31,11 +34,11 @@ export default function StudentExpenseDetail() {
   useEffect(() => {
     if (!id || typeof id !== "string") return;
 
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
 
     async function carregar() {
-      const token = localStorage.getItem("accessToken")!;
+      const token = getToken();
       const [meResult, expResult] = await Promise.all([
         getMe(token),
         getExpenseById(token, id as string),
@@ -43,6 +46,7 @@ export default function StudentExpenseDetail() {
 
       if (!meResult.ok) {
         if (meResult.error === "UNAUTHORIZED") {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -55,6 +59,7 @@ export default function StudentExpenseDetail() {
 
       if (!expResult.ok) {
         if (expResult.error === "UNAUTHORIZED") {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -77,7 +82,7 @@ export default function StudentExpenseDetail() {
   }, [router, id]);
 
   async function handleDownloadMemorandum() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoMemorandum(true);
     const result = await getMemorandumDownloadUrl(token, expense.id);
@@ -86,7 +91,7 @@ export default function StudentExpenseDetail() {
   }
 
   async function handleDownloadComprovante(breakdownId: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token || !expense) return;
     setBaixandoComprovante(breakdownId);
     const result = await getCostBreakdownReceiptDownloadUrl(token, expense.id, breakdownId);
@@ -94,9 +99,8 @@ export default function StudentExpenseDetail() {
     if (result.ok) window.open(result.url, "_blank");
   }
 
-  function handleLogout() {
-    localStorage.removeItem("accessToken");
-    router.push("/login");
+  async function handleLogout() {
+    await performLogout(router);
   }
 
   if (carregando) {

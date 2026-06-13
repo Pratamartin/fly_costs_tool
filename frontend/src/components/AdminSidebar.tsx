@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { performLogout } from "@/lib/logout";
 
 type NavId = "dashboard" | "projects" | "expenses" | "members" | "profile" | "settings";
 
@@ -79,9 +80,8 @@ export default function AdminSidebar({ active, userName }: AdminSidebarProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  function handleLogout() {
-    localStorage.removeItem("accessToken");
-    router.push("/login");
+  async function handleLogout() {
+    await performLogout(router);
   }
 
   const displayName = userName ?? "Admin";

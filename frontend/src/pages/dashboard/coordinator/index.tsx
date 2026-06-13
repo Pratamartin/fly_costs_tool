@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import ModalDetalhe from "@/components/ModalDetalhe";
@@ -115,7 +118,7 @@ export default function DashboardCoordenador() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getToken();
       if (!token) { router.push("/login"); return; }
       try {
         const [meResult, pendingResult, approvedResult, rejectedResult, projectsResult] = await Promise.all([
@@ -127,7 +130,7 @@ export default function DashboardCoordenador() {
         ]);
         if (projectsResult.ok) setProjects(projectsResult.data.map((p) => ({ id: p.id, name: p.name })));
         if (!meResult.ok) {
-          if (meResult.error === "UNAUTHORIZED") { localStorage.removeItem("accessToken"); router.push("/login"); }
+          if (meResult.error === "UNAUTHORIZED") { useAuthStore.getState().clearToken(); localStorage.removeItem("accessToken"); router.push("/login"); }
           else setErro("Erro ao carregar perfil");
           return;
         }
@@ -137,6 +140,7 @@ export default function DashboardCoordenador() {
           (!approvedResult.ok && approvedResult.error === "UNAUTHORIZED") ||
           (!rejectedResult.ok && rejectedResult.error === "UNAUTHORIZED")
         ) {
+          useAuthStore.getState().clearToken();
           localStorage.removeItem("accessToken");
           router.push("/login");
           return;
@@ -156,7 +160,7 @@ export default function DashboardCoordenador() {
   }, [router]);
 
   async function handleExport(filters: ReportFilters) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     setExporting(true);
     try {
@@ -175,13 +179,12 @@ export default function DashboardCoordenador() {
   }
 
   async function handleLogout() {
-    localStorage.removeItem("accessToken");
     toast.success("Sessão encerrada com sucesso.");
-    router.push("/login");
+    await performLogout(router);
   }
 
   async function abrirDetalhe(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await getExpenseById(token, id);
@@ -193,7 +196,7 @@ export default function DashboardCoordenador() {
   }
 
   async function handleAprovar(id: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await updateExpenseStatus(token, id, "APROVADO");
@@ -215,7 +218,7 @@ export default function DashboardCoordenador() {
   }
 
   async function handleRejeitar(id: string, motivo: string) {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
     try {
       const result = await updateExpenseStatus(token, id, "REJEITADO", motivo);
@@ -282,7 +285,7 @@ export default function DashboardCoordenador() {
       {detalheAberto && (
         <ModalDetalhe
           despesa={detalheAberto}
-          token={localStorage.getItem("accessToken") ?? ""}
+          token={getToken()}
           onClose={() => setDetalheAberto(null)}
         />
       )}

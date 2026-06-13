@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuthStore } from "@/store/authStore";
+import { getToken } from "@/lib/getToken";
+import { performLogout } from "@/lib/logout";
 import StudentSidebar from "@/components/StudentSidebar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -212,7 +215,7 @@ export default function ProfilePage() {
   const [bankVisible, setBankVisible] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) { router.push("/login"); return; }
 
     getMe(token).then((result) => {
@@ -221,15 +224,15 @@ export default function ProfilePage() {
         setPersonalForm(profileToPersonalForm(result.data));
         setBankForm(profileToBankForm(result.data));
       } else {
+        useAuthStore.getState().clearToken();
         localStorage.removeItem("accessToken");
         router.push("/login");
       }
     }).finally(() => setCarregando(false));
   }, [router]);
 
-  function handleLogout() {
-    localStorage.removeItem("accessToken");
-    router.push("/login");
+  async function handleLogout() {
+    await performLogout(router);
   }
 
   // Personal edit
@@ -262,7 +265,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
 
     setSavingPersonal(true);
@@ -287,6 +290,7 @@ export default function ProfilePage() {
       setEditingPersonal(false);
       toast.success("Informações pessoais salvas!");
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "FORBIDDEN") {
@@ -317,7 +321,7 @@ export default function ProfilePage() {
   }
 
   async function saveBank() {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) return;
 
     setSavingBank(true);
@@ -337,6 +341,7 @@ export default function ProfilePage() {
       setEditingBank(false);
       toast.success("Dados bancários salvos!");
     } else if (result.error === "UNAUTHORIZED") {
+      useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
       router.push("/login");
     } else if (result.error === "VALIDATION_ERROR" && result.fieldErrors) {
