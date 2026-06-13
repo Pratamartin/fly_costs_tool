@@ -26,7 +26,7 @@ export const register = createRoute({
       RegisterSuccessSchema,
       'User created successfully',
     ),
-    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVALID_INVITE_CODE', 'VALIDATION_ERROR'),
+    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
   },
 })
 
