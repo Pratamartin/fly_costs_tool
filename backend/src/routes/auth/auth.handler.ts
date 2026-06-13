@@ -36,10 +36,6 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
   })
 
   if ('error' in result) {
-    // Mapeamento específico: No registro, se o convite não existe, tratamos como código inválido (400)
-    if (result.error === 'INVITE_NOT_FOUND') {
-      throw problems.create('INVALID_INVITE_CODE')
-    }
     throw problems.create(result.error)
   }
 

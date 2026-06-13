@@ -41,6 +41,10 @@ vi.mock('@/services/preference-survey.service', () => ({
   createSurveyAnswer: vi.fn().mockResolvedValue({}),
 }))
 
+vi.mock('@/services/notifications/staff.notification', () => ({
+  notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('@/services/user.service', () => ({
   getUserByEmail: vi.fn(),
   getUserById: vi.fn(),

@@ -46,10 +46,12 @@ Estabelecer a "Fonte da Verdade" para todos os erros da API.
 
 ### Etapa 2 — Honestidade Semântica (Atualização de HTTP Status)
 Revisar e alterar códigos de status para refletir a realidade arquitetural. As mudanças principais mapeadas:
-- **Invites**: Mudar de `400` para **`409 Conflict`** quando o convite já foi usado ou expirou (conflito de estado de negócio).
+- **Estados Terminais (410 Gone)**: Recursos que atingiram um estado terminal operacional (ex: convites usados/expirados ou projetos arquivados) agora retornam **`410 Gone`**. 
+- **Cleanup & Purge**: Alguns recursos efêmeros em estado `410`  como tokens e convites são alvos do `CleanupJob`, que realiza o purge físico dos dados após o período de retenção configurado, consolidando a semântica de que o dado "se foi".
 - **Files/Uploads**: Implementar **`415 Unsupported Media Type`** para formatos inválidos e **`413 Content Too Large`** para arquivos excedendo a cota.
-- **State Machine (Expenses)**: Transições de status inválidas mudam de falhas genéricas para **`409 Conflict`**.
+- **Conflitos (409 Conflict)**: Mantido para falhas que *podem* ser resolvidas (ex: transições de status inválidas na máquina de estados ou email já cadastrado).
 - **Resources**: Entidades não encontradas passam a retornar rigorosamente **`404 Not Found`** em todas as camadas.
+
 
 ### Etapa 3 — Equalização de Motores (Zod ↔ AJV)
 Garantir que validações estáticas (TypeScript) e dinâmicas (JSON Schema) emitam o mesmo contrato:
