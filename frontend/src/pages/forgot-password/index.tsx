@@ -29,7 +29,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gray-200 dark:bg-gray-950 px-4 py-10">
       <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl">
 
         {/* Painel esquerdo */}
@@ -97,7 +97,7 @@ export default function ForgotPassword() {
         </div>
 
         {/* Painel direito */}
-        <div className="flex flex-1 flex-col justify-center bg-white px-10 py-12">
+        <div className="flex flex-1 flex-col justify-center bg-white dark:bg-gray-900 px-10 py-12">
           <div className="mx-auto w-full max-w-sm">
 
             {enviado ? (
@@ -108,14 +108,14 @@ export default function ForgotPassword() {
                     <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Solicitação recebida</h2>
-                <p className="mt-3 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Solicitação recebida</h2>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                   Se o e-mail{" "}
-                  <span className="font-medium text-gray-700">{email}</span>{" "}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>{" "}
                   estiver cadastrado, você receberá as instruções de redefinição em breve.
                   Verifique também a pasta de spam.
                 </p>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
                   O link expira em 30 minutos.
                 </p>
                 <button
@@ -126,7 +126,7 @@ export default function ForgotPassword() {
                 </button>
                 <button
                   onClick={() => { setEnviado(false); setEmail(""); }}
-                  className="mt-3 w-full text-center text-sm text-gray-500 hover:text-gray-700"
+                  className="mt-3 w-full text-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   Reenviar para outro e-mail
                 </button>
@@ -136,7 +136,7 @@ export default function ForgotPassword() {
               <>
                 <button
                   onClick={() => router.push("/login")}
-                  className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                  className="mb-6 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
@@ -144,8 +144,8 @@ export default function ForgotPassword() {
                   Voltar ao login
                 </button>
 
-                <h2 className="text-2xl font-bold text-gray-900">Esqueceu sua senha?</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Esqueceu sua senha?</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Digite seu e-mail e enviaremos um link para redefinir sua senha.
                 </p>
 
@@ -157,7 +157,7 @@ export default function ForgotPassword() {
                   )}
 
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       E-mail <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -174,7 +174,7 @@ export default function ForgotPassword() {
                         placeholder="Digite seu e-mail cadastrado"
                         required
                         disabled={carregando}
-                        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -203,7 +203,7 @@ export default function ForgotPassword() {
                   </button>
                 </form>
 
-                <p className="mt-6 text-center text-sm text-gray-500">
+                <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
                   Lembrou sua senha?{" "}
                   <a href="/login" className="font-medium text-[#2563EB] hover:underline">
                     Fazer login

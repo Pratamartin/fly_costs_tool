@@ -81,7 +81,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gray-200 dark:bg-gray-950 px-4 py-10">
       <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl">
 
         {/* Painel esquerdo */}
@@ -140,7 +140,7 @@ export default function ResetPassword() {
         </div>
 
         {/* Painel direito */}
-        <div className="flex flex-1 flex-col justify-center bg-white px-10 py-12">
+        <div className="flex flex-1 flex-col justify-center bg-white dark:bg-gray-900 px-10 py-12">
           <div className="mx-auto w-full max-w-sm">
 
             {sucesso ? (
@@ -151,11 +151,11 @@ export default function ResetPassword() {
                     <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Senha redefinida!</h2>
-                <p className="mt-3 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Senha redefinida!</h2>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                   Sua senha foi alterada com sucesso. Você será redirecionado para o login em instantes.
                 </p>
-                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-400">
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-500">
                   <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -174,7 +174,7 @@ export default function ResetPassword() {
               <>
                 <button
                   onClick={() => router.push("/login")}
-                  className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                  className="mb-6 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
@@ -182,8 +182,8 @@ export default function ResetPassword() {
                   Voltar ao login
                 </button>
 
-                <h2 className="text-2xl font-bold text-gray-900">Criar nova senha</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Criar nova senha</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Escolha uma senha segura para acessar o sistema.
                 </p>
 
@@ -196,7 +196,7 @@ export default function ResetPassword() {
 
                   {/* Código de redefinição */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Código de redefinição <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -207,10 +207,10 @@ export default function ResetPassword() {
                       placeholder="Cole aqui o código recebido no e-mail"
                       required
                       disabled={carregando}
-                      className={`w-full rounded-lg border bg-gray-50 px-3 py-2.5 font-mono text-xs text-gray-800 placeholder-gray-400 outline-none focus:ring-1 disabled:opacity-50 ${
+                      className={`w-full rounded-lg border bg-gray-50 dark:bg-gray-800 px-3 py-2.5 font-mono text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 disabled:opacity-50 ${
                         !form.codigo.trim() && tocouSenha
                           ? "border-red-400 focus:border-red-400 focus:ring-red-400"
-                          : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                          : "border-gray-300 dark:border-gray-600 focus:border-[#2563EB] focus:ring-[#2563EB]"
                       }`}
                     />
                     {tokenDaUrl && (
@@ -220,7 +220,7 @@ export default function ResetPassword() {
 
                   {/* Nova senha */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Nova senha <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -238,10 +238,10 @@ export default function ResetPassword() {
                         placeholder="••••••••"
                         required
                         disabled={carregando}
-                        className={`w-full rounded-lg border bg-gray-50 py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 disabled:opacity-50 ${
+                        className={`w-full rounded-lg border bg-gray-50 dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 disabled:opacity-50 ${
                           tocouSenha && errosSenha.length > 0
                             ? "border-red-400 focus:border-red-400 focus:ring-red-400"
-                            : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                            : "border-gray-300 dark:border-gray-600 focus:border-[#2563EB] focus:ring-[#2563EB]"
                         }`}
                       />
                       <button
@@ -291,7 +291,7 @@ export default function ResetPassword() {
 
                   {/* Confirmar senha */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Confirmar senha <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -308,10 +308,10 @@ export default function ResetPassword() {
                         placeholder="••••••••"
                         required
                         disabled={carregando}
-                        className={`w-full rounded-lg border bg-gray-50 py-2.5 pl-9 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 disabled:opacity-50 ${
+                        className={`w-full rounded-lg border bg-gray-50 dark:bg-gray-800 py-2.5 pl-9 pr-10 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-1 disabled:opacity-50 ${
                           form.confirmar.length > 0 && form.confirmar !== form.senha
                             ? "border-red-400 focus:border-red-400 focus:ring-red-400"
-                            : "border-gray-300 focus:border-[#2563EB] focus:ring-[#2563EB]"
+                            : "border-gray-300 dark:border-gray-600 focus:border-[#2563EB] focus:ring-[#2563EB]"
                         }`}
                       />
                       <button
