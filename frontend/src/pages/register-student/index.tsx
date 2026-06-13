@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { register, login } from "@/services/auth";
+import { useAuthStore } from "@/store/authStore";
 
 type FormState = {
   email: string;
@@ -97,6 +98,7 @@ function validateForm(form: FormState): FormErrors {
 
 export default function CadastroAluno() {
   const router = useRouter();
+  const setToken = useAuthStore((s) => s.setToken);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -184,6 +186,7 @@ export default function CadastroAluno() {
 
       if (loginResult.ok) {
         localStorage.setItem("accessToken", loginResult.accessToken);
+        setToken(loginResult.accessToken);
         router.push("/dashboard/student");
       } else {
         router.push("/login");
