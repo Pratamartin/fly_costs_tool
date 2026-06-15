@@ -30,12 +30,20 @@ Essas  descrições do github acabaram não seguido um padrão.
 |   3    | 3.5 | RF17       | Aluno Visualiza Dossiê de Comprovantes       |           `Done`           |
 |   4    | 4.0 | RF11       | Notificação de Mudança de Status             |           `Done`           |
 |   4    | 4.1 | RF04       | Recuperação de Senha                         |           `Done`           |
-|   4    | 4.2 | RF20       | Proteção de Rotas e Refresh Token            |        🔴 Pendente         |
+|   4    | 4.2 | RF20       | Proteção de Rotas e Refresh Token            |           `Done`           |
 |   4    | 4.3 | RF23       | Relatório / Exportação de Despesas (PDF)     |           `Done`           |
 |   4    | 4.4 | RF24       | Central de Notificações In-App               |           `Done`           |
-|   5    | 4.5 | RF25       | Feedback visual de erros e sucesso (Toast)   |        🔴 Pendente         |
-|   5    | 4.6 | RF26       | Validação de campos em formulários           |        🔴 Pendente         |
-|   5    | 4.2 | RF20       | Proteção de rotas e refresh token automático | 🔴 Pendente *(carry-over)* |
+|   5    | 4.5 | RF25       | Feedback visual de erros e sucesso (Toast)   |           `Done`           |
+|   5    | 4.6 | RF26       | Validação de campos em formulários           |           `Done`           |
+|   5    | 4.2 | RF20       | Proteção de rotas e refresh token automático |           `Done`           |
+|   6    | 6.1 | RF27       | Remoção de invoice na solicitação inicial    |        🔴 Pendente         |
+|   6    | 6.2 | RF28       | Ajuste de visualização para coordenador      |        🔴 Pendente         |
+|   6    | 6.3 | RF29       | Inclusão de datas de viagem                  |        🔴 Pendente         |
+|   6    | 6.4 | RF30       | Alteração de "Hospedagem" para "Diárias"     |        🔴 Pendente         |
+|   6    | 6.5 | RF31       | Simplificação do campo "Diárias"             |        🔴 Pendente         |
+|   6    | 6.6 | RF32       | Padronização de nomenclaturas                |        🔴 Pendente         |
+|   6    | 6.7 | RF33       | Melhorias no cadastro de projeto             |        🔴 Pendente         |
+|   6    | 6.8 | RF34       | Ajuda de custo com fonte de recurso por item |        🔴 Pendente         |
 
 ---
 
@@ -71,12 +79,20 @@ Essas descrições deveriam ser o padrão dos us e rfs.
 |   3    | 3.1 | RF17       | Aluno Visualiza Dossiê de Comprovantes       |           `Done`           |
 |   4    | 3.2 | RF11       | Notificação de Mudança de Status             |           `Done`           |
 |   4    | 3.3 | RF04       | Recuperação de Senha                         |           `Done`           |
-|   4    | 3.4 | RF20       | Proteção de Rotas e Refresh Token            |        🔴 Pendente         |
+|   4    | 3.4 | RF20       | Proteção de Rotas e Refresh Token            |           `Done`           |
 |   4    | 3.5 | RF23       | Relatório / Exportação de Despesas (PDF)     |           `Done`           |
 |   4    | 3.6 | RF24       | Central de Notificações In-App               |           `Done`           |
-|   5    | 3.7 | RF25       | Feedback visual de erros e sucesso (Toast)   |        🔴 Pendente         |
-|   5    | 3.8 | RF26       | Validação de campos em formulários           |        🔴 Pendente         |
-|  4\|5  | 3.9 | RF20       | Proteção de rotas e refresh token automático | 🔴 Pendente *(carry-over)* |
+|   5    | 3.7 | RF25       | Feedback visual de erros e sucesso (Toast)   |           `Done`           |
+|   5    | 3.8 | RF26       | Validação de campos em formulários           |           `Done`           |
+|  4\|5  | 3.9 | RF20       | Proteção de rotas e refresh token automático |           `Done`           |
+|   6    | 4.0 | RF27       | Remoção de invoice na solicitação inicial    |        🔴 Pendente         |
+|   6    | 4.1 | RF28       | Ajuste de visualização para coordenador      |        🔴 Pendente         |
+|   6    | 4.2 | RF29       | Inclusão de datas de viagem                  |        🔴 Pendente         |
+|   6    | 4.3 | RF30       | Alteração de "Hospedagem" para "Diárias"     |        🔴 Pendente         |
+|   6    | 4.4 | RF31       | Simplificação do campo "Diárias"             |        🔴 Pendente         |
+|   6    | 4.5 | RF32       | Padronização de nomenclaturas                |        🔴 Pendente         |
+|   6    | 4.6 | RF33       | Melhorias no cadastro de projeto             |        🔴 Pendente         |
+|   6    | 4.7 | RF34       | Ajuda de custo com fonte de recurso por item |        🔴 Pendente         |
 
 LINKS:
 
@@ -98,3 +114,6 @@ https://github.com/Pratamartin/fly_costs_tool/issues/194
 
 Sprint-5
 https://github.com/Pratamartin/fly_costs_tool/issues/225
+
+Sprint-6
+https://github.com/Pratamartin/fly_costs_tool/issues/260
