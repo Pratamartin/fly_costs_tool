@@ -21,11 +21,14 @@ function formatRelative(dateStr: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-function getExpenseRoute(role: string, expenseId: string | null): string | null {
+function getExpenseRoute(role: string, expenseId: string | null, type: NotificationType): string | null {
   if (!expenseId) return null;
   switch (role) {
     case "admin": return `/dashboard/admin/expenses/detail?id=${expenseId}`;
-    case "student": return `/dashboard/student/expenses/detail/${expenseId}`;
+    case "student":
+      if (type === "EXPENSE_CORRECTION_REQUESTED") return `/dashboard/student/expenses/edit/${expenseId}`;
+      if (type === "EXPENSE_CONCLUDED") return `/dashboard/student/expenses/detail/${expenseId}`;
+      return `/dashboard/student`;
     case "coordinator": return `/dashboard/coordinator`;
     default: return null;
   }
@@ -97,7 +100,7 @@ function NotifItem({
 
   function handleClick() {
     if (isUnread) onMarkAsRead(notif.id);
-    const route = getExpenseRoute(role, notif.expenseId);
+    const route = getExpenseRoute(role, notif.expenseId, notif.type);
     if (route) {
       router.push(route);
       onClose();
