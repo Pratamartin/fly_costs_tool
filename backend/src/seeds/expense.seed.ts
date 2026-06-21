@@ -2,7 +2,7 @@ import type { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
-import { ID_ALUNO, ID_PROJ_DATA_SCIENCE, ID_PROJ_IA } from '../constants/seed.constant'
+import { ID_ALUNO, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '../constants/seed.constant'
 
 export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
   {
@@ -16,7 +16,6 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'A1' },
     student: { connect: { id: ID_ALUNO } },
-    project: { connect: { id: ID_PROJ_IA } },
   },
   {
     id: '104bfd84-d27e-44c0-a26b-96db1ac0fb10',
@@ -29,7 +28,25 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'A2' },
     student: { connect: { id: ID_ALUNO } },
-    project: { connect: { id: ID_PROJ_DATA_SCIENCE } },
+    costBreakdowns: {
+      create: [
+        {
+          amount: 15000,
+          project: { connect: { id: ID_PROJ_IA } },
+          expenseCategory: { connect: { normalizedName: 'inscricao' } },
+        },
+        {
+          amount: 15000,
+          project: { connect: { id: ID_PROJ_ROBOTICA } },
+          expenseCategory: { connect: { normalizedName: 'hospedagem' } },
+        },
+        {
+          amount: 10,
+          project: { connect: { id: ID_PROJ_ROBOTICA } },
+          expenseCategory: { connect: { normalizedName: 'passagem-aerea' } },
+        },
+      ],
+    },
   },
   {
     id: 'ef9ac2fc-a3a2-488b-b06b-480e57315c4f',
@@ -42,7 +59,6 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'Sem Qualis' },
     student: { connect: { id: ID_ALUNO } },
-    project: undefined,
   },
   {
     id: '9e730bb7-6123-4363-8f87-e37f907a3246',
@@ -55,7 +71,6 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'Sem Qualis' },
     student: { connect: { id: ID_ALUNO } },
-    project: undefined,
   },
   {
     id: 'ee128e58-fb1a-4be0-b2f3-9c6229b49784',
@@ -69,7 +84,27 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'B1' },
     student: { connect: { id: ID_ALUNO } },
-    project: undefined,
+  },
+  {
+    id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    title: 'Simulação de Gasto Histórico',
+    description: 'Simulação de compra concluída de passagens/inscrição no passado.',
+    status: ExpenseRequestStatus.CONCLUIDO,
+    event: {
+      name: 'Evento Histórico',
+      location: 'Porto Alegre/RS',
+    },
+    article: { classification: 'Sem Qualis' },
+    student: { connect: { id: ID_ALUNO } },
+    costBreakdowns: {
+      create: [
+        {
+          amount: 15000,
+          project: { connect: { id: ID_PROJ_IA } },
+          expenseCategory: { connect: { normalizedName: 'inscricao' } },
+        },
+      ],
+    },
   },
 ]
 
