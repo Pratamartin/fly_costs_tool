@@ -25,9 +25,9 @@ if (!arg) {
   process.exit(1)
 }
 
-async function main() {
+async function main(prefix: string) {
   const expense = await prisma.expenseRequest.findFirst({
-    where: { id: { startsWith: arg.toLowerCase() } },
+    where: { id: { startsWith: prefix.toLowerCase() } },
     include: {
       costBreakdowns: {
         select: {
@@ -40,7 +40,7 @@ async function main() {
   })
 
   if (!expense) {
-    console.error(`Despesa não encontrada para o prefixo "${arg}".`)
+    console.error(`Despesa não encontrada para o prefixo "${prefix}".`)
     process.exit(1)
   }
 
@@ -74,4 +74,4 @@ async function main() {
   }
 }
 
-main().finally(() => prisma.$disconnect())
+main(arg).finally(() => prisma.$disconnect())
