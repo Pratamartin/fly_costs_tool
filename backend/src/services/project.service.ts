@@ -174,10 +174,13 @@ export async function deleteProject(
 
   // Coleciona todas as attachmentKeys das expenses associadas
   const expenses = await prisma.expenseRequest.findMany({
-    where: { projectId: id },
+    where: { costBreakdowns: { some: { projectId: id } } },
     select: {
       attachmentKey: true,
-      costBreakdowns: { select: { attachmentKey: true } },
+      costBreakdowns: {
+        where: { projectId: id },
+        select: { attachmentKey: true },
+      },
     },
   })
 
