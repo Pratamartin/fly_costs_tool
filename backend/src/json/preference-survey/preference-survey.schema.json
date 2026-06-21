@@ -15,10 +15,7 @@
           "format": "r2-key",
           "title": "Anexar Boleto/Invoice"
         }
-      },
-      "required": [
-        "invoiceKey"
-      ]
+      }
     },
     "passagem-aerea": {
       "title": "Solicitação de Passagem",

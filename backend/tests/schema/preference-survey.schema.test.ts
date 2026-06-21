@@ -31,9 +31,9 @@ describe('preference Survey Schema Validation', () => {
       expect(validate(invalidPayload)).toBe(false)
     })
 
-    it('deve falhar se invoiceKey estiver faltando', () => {
+    it('deve validar com sucesso se invoiceKey estiver faltando (opcional no POST)', () => {
       const invalidPayload = {}
-      expect(validate(invalidPayload)).toBe(false)
+      expect(validate(invalidPayload)).toBe(true)
     })
   })
 

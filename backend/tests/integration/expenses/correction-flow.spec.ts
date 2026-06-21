@@ -19,7 +19,8 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
   let createdExpenseId: string
-  const categoryId = dummyExpenseCategories[0]!.id!
+  const inscricaoCategory = dummyExpenseCategories.find(c => c.normalizedName === 'inscricao')!
+  const categoryId = inscricaoCategory.id!
   const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o memorando.'
 
   beforeAll(async () => {
@@ -56,7 +57,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
       surveyAnswers: [
         {
           expenseCategoryId: categoryId,
-          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice.pdf' },
+          data: {},
         },
       ],
     }
@@ -133,7 +134,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
       surveyAnswers: [
         {
           expenseCategoryId: categoryId,
-          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice-corrigido.pdf' },
+          data: { invoiceKey: 'formulario-preferencias/aluno-uuid/invoice-anexado-tardiamente.pdf' },
         },
       ],
     }
@@ -153,7 +154,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     expect(json.status).toBe(ExpenseRequestStatus.APROVADO)
     expect(json.title).toBe(updateData.title)
     expect(json.correctionReason).toBeNull()
-    expect(json.surveyAnswers![0]!.data.invoiceKey).toBe('formulario-preferencias/aluno-uuid/invoice-corrigido.pdf')
+    expect(json.surveyAnswers![0]!.data.invoiceKey).toBe('formulario-preferencias/aluno-uuid/invoice-anexado-tardiamente.pdf')
   })
 
   it('[Step 5] Admin move para EM_PROCESSAMENTO (vínculo de projeto)', async () => {
