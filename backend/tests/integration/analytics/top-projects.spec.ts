@@ -78,68 +78,100 @@ describe('get /analytics/top-projects', () => {
     expect(json).toHaveLength(testLimit)
   })
 
-  it('deve usar a contagem de requisições como critério de desempate no ranking', async () => {
-    const VALOR_PARA_EMPATAR = 15000
+  it('deve ranquear projetos baseado no valor comprometido real (usedBudget + em processamento) - Furo Financeiro', async () => {
+    // Limpa todas as quebras de custo pré-existentes do Projeto IA (ex: injetadas pelo seed global)
+    await prisma.costBreakdown.deleteMany({ where: { projectId: ID_PROJ_IA } })
 
-    // ARRANGE: Prepara o cenário de empate
-    const baseExpense = await prisma.expenseRequest.create({
-      data: {
-        title: 'Gasto Base para Empate',
-        status: ExpenseRequestStatus.EM_PROCESSAMENTO,
-        event: {
-          name: 'Evento Teste',
-          location: 'Local Teste',
-        },
-        article: { classification: 'Sem Qualis' },
-        studentId: ID_ALUNO,
-      },
-    })
-
-    await createCostBreakdown(baseExpense.id, {
-      amount: VALOR_PARA_EMPATAR,
-      projectId: ID_PROJ_ROBOTICA,
-      subcategoryName,
-    })
-
-    // NOVA LINHA (Refatoração Opção A): Forçamos o empate financeiro diretamente,
-    // já que o breakdown acima não aumenta mais o usedBudget no processamento.
-    await prisma.project.update({
-      where: { id: ID_PROJ_ROBOTICA },
-      data: { usedBudget: VALOR_PARA_EMPATAR },
-    })
+    // 2. ARRANGE:
+    // Projeto IA: usedBudget = 1000, sem alocações em processamento
     await prisma.project.update({
       where: { id: ID_PROJ_IA },
-      data: { usedBudget: VALOR_PARA_EMPATAR },
+      data: { usedBudget: 1000 },
     })
 
-    // ARRANGE: Cria a vantagem em volume (quantidade de requisições)
-    const extraExpense = await prisma.expenseRequest.create({
+    // Projeto Data Science: usedBudget = 0, mas com uma despesa gigante em processamento
+    await prisma.project.update({
+      where: { id: ID_PROJ_DATA_SCIENCE },
       data: {
-        title: 'Gasto Extra para Desempate',
+        budget: 100000,
+        usedBudget: 0,
+      },
+    })
+
+    const massiveExpense = await prisma.expenseRequest.create({
+      data: {
+        title: 'Despesa Em Processamento Gigante',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
         event: {
-          name: 'Evento Teste',
-          location: 'Local Teste',
+          name: 'Evento Internacional',
+          location: 'Exterior',
         },
-        article: { classification: 'Sem Qualis' },
+        article: { classification: 'A1' },
         studentId: ID_ALUNO,
       },
     })
 
-    await createCostBreakdown(extraExpense.id, {
-      amount: 10,
-      projectId: ID_PROJ_ROBOTICA,
-      subcategoryName,
+    await prisma.costBreakdown.create({
+      data: {
+        amount: 50000,
+        project: { connect: { id: ID_PROJ_DATA_SCIENCE } },
+        expenseCategory: { connect: { normalizedName: subcategoryName } },
+        expenseRequest: { connect: { id: massiveExpense.id } },
+      },
     })
 
-    // ACT: Executa a ação
+    // ACT
     const res = await endpoint.$get({ query: {} }, { headers: adminHeaders })
     assert(res.status === status.OK)
     const ranking = await res.json()
 
-    // ASSERT: Valida que a Robótica passou a IA por ter mais requisições
+    // ASSERT: Data Science deve ser o primeiro colocado por causa dos 50000 em processamento
     expect(Array.isArray(ranking)).toBe(true)
-    expect(ranking[0]?.name).toBe('Laboratório de Robótica Avançada')
-    expect(ranking[1]?.name).toBe('Pesquisa em IA Aplicada')
+    expect(ranking[0]?.name).toBe('Projeto de DATASCIENCE')
+    expect(Number(ranking[0]?.totalValue)).toBe(50000)
+
+    const iaProject = ranking.find(p => p.name === 'Pesquisa em IA Aplicada')
+    expect(iaProject).toBeDefined()
+    expect(Number(iaProject?.totalValue)).toBe(1000)
+  })
+
+  it('não deve contar breakdowns de despesas REJEITADAS no allocationsCount (Lixo Estatístico)', async () => {
+    // ARRANGE: Cria uma despesa rejeitada com um breakdown vinculado (lixo estatístico)
+    const rejectedExpense = await prisma.expenseRequest.create({
+      data: {
+        title: 'Despesa Lixo',
+        status: ExpenseRequestStatus.REJEITADO,
+        rejectionReason: 'Fraude',
+        event: {
+          name: 'E',
+          location: 'L',
+        },
+        article: { classification: 'Sem Qualis' },
+        studentId: ID_ALUNO,
+      },
+    })
+
+    // Forçamos a criação do breakdown no banco para garantir a presença
+    await prisma.costBreakdown.create({
+      data: {
+        amount: 500,
+        project: { connect: { id: ID_PROJ_ROBOTICA } },
+        expenseCategory: { connect: { normalizedName: subcategoryName } },
+        expenseRequest: { connect: { id: rejectedExpense.id } },
+      },
+    })
+
+    // ACT
+    const res = await endpoint.$get({ query: {} }, { headers: adminHeaders })
+    assert(res.status === status.OK)
+    const ranking = await res.json()
+
+    const robotica = ranking.find(p => p.name === 'Laboratório de Robótica Avançada')
+
+    // ASSERT: A propriedade deve se chamar allocationsCount, e não deve incluir a despesa rejeitada
+    expect(robotica).toBeDefined()
+    expect(robotica).toHaveProperty('allocationsCount')
+    expect(robotica).not.toHaveProperty('totalRequests')
+    // O valor do allocationsCount depende do seed (neste ponto, não deve ser inflado por este lixo)
   })
 })

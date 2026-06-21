@@ -31,8 +31,8 @@ export const topProjects = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
-  summary: 'Top projects by approved expenses',
-  description: 'Returns the N most relevant projects based on the approved value of expense requests.',
+  summary: 'Top projects by allocated budget',
+  description: 'Returns the N most relevant projects based on their committed budget (used + pending cost breakdowns) and allocation volume.',
   tags,
   request: { query: TopProjectsQuerySchema },
   responses: {
