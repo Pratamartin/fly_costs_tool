@@ -29,7 +29,13 @@ async function main() {
   const expense = await prisma.expenseRequest.findFirst({
     where: { id: { startsWith: arg.toLowerCase() } },
     include: {
-      costBreakdowns: { select: { id: true, attachmentKey: true, amount: true } },
+      costBreakdowns: {
+        select: {
+          id: true,
+          attachmentKey: true,
+          amount: true,
+        },
+      },
     },
   })
 
