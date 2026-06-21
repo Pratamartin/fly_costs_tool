@@ -198,9 +198,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   const [passagem, setPassagem] = useState({ departureDate: "", returnDate: "", departureRoute: "", returnRoute: "" });
   const [flightFile, setFlightFile] = useState<File | null>(null);
 
-  // Inscrição
-  const [inscricaoFile, setInscricaoFile] = useState<File | null>(null);
-
   // Hospedagem
   const [hospedagem, setHospedagem] = useState(false);
 
@@ -260,12 +257,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       }
     }
 
-    if (inscricaoSelected && !inscricaoFile) {
-      return setErroLocal("Anexe o boleto/invoice para a categoria Inscrição.");
-    }
-
     if (!memorando) {
-      return setErroLocal("O memorando é obrigatório.");
+      return setErroLocal("O trabalho publicado é obrigatório.");
     }
 
     const token = getToken();
@@ -299,16 +292,10 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       }
 
       // Inscrição
-      if (inscricaoSelected && inscricaoSurvey && inscricaoFile) {
-        const uploadResult = await uploadSurveyFile(token, inscricaoFile);
-        if (!uploadResult.ok) {
-          setErroLocal("Erro ao enviar o boleto/invoice. Tente novamente.");
-          setUploadingFiles(false);
-          return;
-        }
+      if (inscricaoSelected && inscricaoSurvey) {
         surveyAnswers.push({
           expenseCategoryId: inscricaoSurvey.expenseCategoryId,
-          data: { invoiceKey: uploadResult.data.fileKey },
+          data: {},
         });
       }
 
@@ -348,7 +335,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Despesa</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Receita</h2>
             <p className="mt-0.5 text-sm text-[#4F46E5] dark:text-[#a5b4fc]">Preencha os dados do evento e categorias desejadas.</p>
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50">
@@ -462,7 +449,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 4 — Categorias */}
             <div>
-              <SectionHeader number={4} label="Categorias de Despesa" />
+              <SectionHeader number={4} label="Categoria de ajuda de custo" />
               {loadingSurveys ? (
                 <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                   <SpinnerIcon className="h-4 w-4 text-[#4F46E5]" /> Carregando categorias...
@@ -552,12 +539,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Inscrição em Evento</span>
                         </div>
                       </label>
-                      {inscricaoSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="mb-1 block text-xs font-medium text-gray-600">Boleto / Invoice <span className="text-red-500">*</span></label>
-                          <FileDropZone file={inscricaoFile} onChange={setInscricaoFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o boleto/invoice" disabled={isSubmitting} maxSizeMB={10} />
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -576,7 +557,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path fillRule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Hospedagem</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Diárias</span>
                         </div>
                       </label>
                       {hospedagemSelected && (
@@ -606,8 +587,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 5 — Memorando */}
             <div>
-              <SectionHeader number={5} label="Memorando" />
-              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o memorando" disabled={isSubmitting} maxSizeMB={5} />
+              <SectionHeader number={5} label="Trabalho publicado" />
+              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o trabalho publicado" disabled={isSubmitting} maxSizeMB={5} />
               {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
             </div>
 
