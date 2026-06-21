@@ -34,7 +34,7 @@ export const create = createRoute({
       'Breakdown saved successfully.',
     ),
     ...standardResponses,
-    ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE'),
+    ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE', 'PROJECT_PERIOD_EXPIRED'),
   },
 })
 

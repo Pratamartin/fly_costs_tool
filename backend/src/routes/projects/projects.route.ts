@@ -4,7 +4,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { registryResponses, standardResponses } from '@/lib/problems'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectSchema } from '@/schemas/project.schema'
+import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectPeriodSchema, UpdateProjectSchema } from '@/schemas/project.schema'
 import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Projects']
@@ -14,6 +14,7 @@ export type CreateRoute = typeof create
 export type IndexRoute = typeof index
 export type ReadRoute = typeof read
 export type UpdateRoute = typeof update
+export type UpdatePeriodRoute = typeof updatePeriod
 export type RemoveRoute = typeof remove
 
 export const index = createRoute({
@@ -84,6 +85,28 @@ export const update = createRoute({
     [codes.OK]: jsonContent(ProjectResponseSchema, 'Project updated successfully.'),
     ...standardResponses,
     ...registryResponses('INVALID_SUBCATEGORIES', 'PROJECT_NOT_FOUND', 'PROJECT_CODE_IN_USE'),
+  },
+})
+
+export const updatePeriod = createRoute({
+  path: '/{id}/period',
+  method: 'patch',
+  middleware: [requireAuth, requireRole(ADMIN_ONLY)],
+  security: [{ bearerAuth: [] }],
+  summary: 'Update project active period',
+  description: `
+    Allows updating the project's start and end dates.
+    Validates if the new period leaves any existing expense allocations orphaned (shrinkage conflict).
+  `,
+  tags,
+  request: {
+    params: z.object({ id: IdSchema }),
+    body: jsonContentRequired(UpdateProjectPeriodSchema, 'Period data for update'),
+  },
+  responses: {
+    [codes.OK]: jsonContent(ProjectResponseSchema, 'Project period updated successfully.'),
+    ...standardResponses,
+    ...registryResponses('PROJECT_NOT_FOUND', 'PROJECT_ARCHIVED', 'PROJECT_SHRINKAGE_CONFLICT'),
   },
 })
 

@@ -7,6 +7,7 @@ const router = createRouter().basePath('/projects')
   .openapi(routes.create, handlers.create)
   .openapi(routes.read, handlers.read)
   .openapi(routes.update, handlers.update)
+  .openapi(routes.updatePeriod, handlers.updatePeriod)
   .openapi(routes.remove, handlers.remove)
 
 export default router

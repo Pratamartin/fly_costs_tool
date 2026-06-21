@@ -8,6 +8,7 @@ import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile } from '@/lib/storage'
+import { validateDateWithinProjectPeriod } from './project.service'
 
 type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal, isActive: boolean }
 
@@ -84,7 +85,7 @@ export function extractUniqueProjectDetails(
 export async function createCostBreakdown(
   expenseId: string,
   data: z.infer<typeof CreateCostBreakdownSchema>,
-): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE'>> {
+): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE' | 'PROJECT_PERIOD_EXPIRED'>> {
   const result = await prisma.$transaction(async (tx) => {
     const [expense, project, pendingAmountResult] = await Promise.all([
       tx.expenseRequest.findUnique({
@@ -102,6 +103,8 @@ export async function createCostBreakdown(
           usedBudget: true,
           expenseCategories: { select: { normalizedName: true } },
           isActive: true,
+          startDate: true,
+          endDate: true,
         },
       }),
       tx.costBreakdown.aggregate({
@@ -137,7 +140,10 @@ export async function createCostBreakdown(
       return { error: 'PROJECT_ARCHIVED' }
     }
 
-
+    const periodResult = validateDateWithinProjectPeriod(new Date(), project)
+    if ('error' in periodResult) {
+      return periodResult
+    }
     const categoryResult = validateCategoryAllowedInProject(project.expenseCategories, data.subcategoryName)
     if ('error' in categoryResult) {
       return categoryResult
@@ -165,7 +171,7 @@ export async function createCostBreakdown(
     return costBreakdown
   }, { isolationLevel: 'Serializable' })
 
-  return result as ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE'>
+  return result as ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE' | 'PROJECT_PERIOD_EXPIRED'>
 }
 
 export async function uploadCostBreakdownReceipt(
