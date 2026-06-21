@@ -88,8 +88,8 @@ export async function getUsersByRoles(
   })
 }
 
-export async function updateUser(id: string, data: UpdateUserDTO): Promise<ServiceResult<UserWithProfile, 'USER_NOT_FOUND' | 'FORBIDDEN' | 'CPF_CONFLICT' | 'PROFILE_NOT_ALLOWED'>> {
-  const { name, ...profileData } = data
+export async function updateUser(id: string, data: UpdateUserDTO): Promise<ServiceResult<UserWithProfile, 'USER_NOT_FOUND' | 'FORBIDDEN' | 'CPF_CONFLICT' | 'EMAIL_ALREADY_EXISTS' | 'PROFILE_NOT_ALLOWED'>> {
+  const { name, email, ...profileData } = data
 
   const result = await getUserById(id)
 
@@ -119,10 +119,22 @@ export async function updateUser(id: string, data: UpdateUserDTO): Promise<Servi
     }
   }
 
+  if (email && email !== user.email) {
+    const emailInUse = await prisma.user.findFirst({
+      where: { email, id: { not: id } },
+      select: { id: true },
+    })
+
+    if (emailInUse) {
+      return { error: 'EMAIL_ALREADY_EXISTS' }
+    }
+  }
+
   return prisma.user.update({
     where: { id },
     data: {
       name,
+      email,
       profile: hasProfileData
         ? {
             upsert: {
