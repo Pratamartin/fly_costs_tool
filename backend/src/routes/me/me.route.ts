@@ -43,6 +43,6 @@ export const update = createRoute({
       'Profile updated successfully.',
     ),
     ...standardResponses,
-    ...registryResponses('CPF_CONFLICT', 'USER_NOT_FOUND', 'PROFILE_NOT_ALLOWED'),
+    ...registryResponses('CPF_CONFLICT', 'EMAIL_ALREADY_EXISTS', 'USER_NOT_FOUND', 'PROFILE_NOT_ALLOWED'),
   },
 })

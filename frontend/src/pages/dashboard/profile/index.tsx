@@ -17,6 +17,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 interface PersonalForm {
   name: string;
+  email: string;
   cpf: string;
   rgPassaporte: string;
   birthDate: string;
@@ -62,6 +63,7 @@ function roleAvatarClass(role: UserProfile["role"]) {
 function profileToPersonalForm(p: UserProfile): PersonalForm {
   return {
     name: p.name ?? "",
+    email: p.email ?? "",
     cpf: p.cpf ?? "",
     rgPassaporte: p.rgPassaporte ?? "",
     birthDate: p.birthDate ?? "",
@@ -203,7 +205,7 @@ export default function ProfilePage() {
   const [carregando, setCarregando] = useState(true);
 
   // Personal section
-  const [personalForm, setPersonalForm] = useState<PersonalForm>({ name: "", cpf: "", rgPassaporte: "", birthDate: "", profession: "", address: "" });
+  const [personalForm, setPersonalForm] = useState<PersonalForm>({ name: "", email: "", cpf: "", rgPassaporte: "", birthDate: "", profession: "", address: "" });
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [personalErrors, setPersonalErrors] = useState<Partial<Record<keyof PersonalForm, string>>>({});
@@ -273,6 +275,7 @@ export default function ProfilePage() {
     const isAluno = userProfile?.role === "ALUNO";
     const data: UpdateProfileData = {
       name: personalForm.name,
+      email: personalForm.email || undefined,
       ...(isAluno && {
         cpf: personalForm.cpf || undefined,
         rgPassaporte: personalForm.rgPassaporte || undefined,
@@ -297,9 +300,12 @@ export default function ProfilePage() {
     } else if (result.error === "FORBIDDEN") {
       toast.error("Sem permissão para editar dados de perfil.");
       setEditingPersonal(false);
-    } else if (result.error === "CONFLICT") {
+    } else if (result.error === "CPF_CONFLICT") {
       setPersonalErrors({ cpf: "Este CPF já está cadastrado por outro usuário." });
       toast.error("CPF já cadastrado.");
+    } else if (result.error === "EMAIL_CONFLICT") {
+      setPersonalErrors({ email: "Este e-mail já está cadastrado por outro usuário." });
+      toast.error("E-mail já cadastrado.");
     } else if (result.error === "VALIDATION_ERROR" && result.fieldErrors) {
       setPersonalErrors(result.fieldErrors as Partial<Record<keyof PersonalForm, string>>);
       toast.error("Corrija os campos destacados");
@@ -467,7 +473,7 @@ export default function ProfilePage() {
                   <div className="col-span-1 sm:col-span-2">
                     <FormField label="Nome Completo *" value={personalForm.name} onChange={(v) => setPersonalField("name", v)} error={personalErrors.name} />
                   </div>
-                  <FormField label="E-mail Principal" value={userProfile.email} onChange={() => {}} placeholder="Não editável" />
+                  <FormField label="E-mail Principal" value={personalForm.email} onChange={(v) => setPersonalField("email", v)} type="email" error={personalErrors.email} />
                   {isAluno && (
                     <>
                       <FormField label="CPF" value={personalForm.cpf} onChange={(v) => setPersonalField("cpf", v)} placeholder="000.000.000-00" error={personalErrors.cpf} />

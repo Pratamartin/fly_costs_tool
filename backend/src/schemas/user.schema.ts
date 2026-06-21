@@ -61,4 +61,7 @@ export const UserSchema = z.object({
     .nullish(),
 }).extend(TimestampSchema)
 
-export const UpdateProfileSchema = ProfileSchema.partial().extend({ name: z.string().optional() })
+export const UpdateProfileSchema = ProfileSchema.partial().extend({
+  name: z.string().optional(),
+  email: z.email().optional(),
+})
