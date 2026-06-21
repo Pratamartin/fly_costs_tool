@@ -8,7 +8,6 @@ import ModalSolicitarCorrecao from "@/components/ModalSolicitarCorrecao";
 import {
   getExpenseById,
   updateExpenseStatus,
-  assignProject,
   createCostBreakdown,
   uploadCostBreakdownReceipt,
   getCostBreakdownReceiptDownloadUrl,
@@ -16,7 +15,6 @@ import {
   concludeExpense,
   type Expense,
 } from "@/services/expenses";
-import { listProjects, type Project } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -66,7 +64,7 @@ function StatusBanner({ expense }: { expense: Expense }) {
             </div>
             <div>
               <p className="font-bold text-green-700">Aprovado pelo Coordenador</p>
-              <p className="text-sm text-green-600">Memorando recebido e aprovado. Analise os dados do aluno e prossiga com a vinculação de projeto.</p>
+              <p className="text-sm text-green-600">Trabalho publicado recebido e aprovado. Analise os dados do aluno e prossiga com a vinculação de projeto.</p>
             </div>
           </div>
           <div className="text-right hidden sm:block shrink-0 ml-4">
@@ -79,7 +77,7 @@ function StatusBanner({ expense }: { expense: Expense }) {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-green-600 shrink-0">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
             </svg>
-            <span className="text-xs font-semibold text-green-700">Memorando PDF anexado</span>
+            <span className="text-xs font-semibold text-green-700">Trabalho publicado PDF anexado</span>
           </div>
         )}
       </div>
@@ -310,11 +308,6 @@ export default function ExpenseDetalhe() {
   const [solicitandoCorrecao, setSolicitandoCorrecao] = useState(false);
   const [dadosConfirmados, setDadosConfirmados] = useState(false);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [vinculando, setVinculando] = useState(false);
-  const [erroVincular, setErroVincular] = useState<string | null>(null);
-
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(false);
 
@@ -361,10 +354,6 @@ export default function ExpenseDetalhe() {
     const result = await getExpenseById(token, expId);
     if (result.ok) {
       setExpense(result.data);
-      if (result.data.status === "APROVADO") {
-        const projResult = await listProjects(token, { isActive: true });
-        if (projResult.ok) setProjects(projResult.data);
-      }
       if (result.data.status === "EM_PROCESSAMENTO") {
         setCarregandoCategorias(true);
         const catResult = await listCategories(undefined, token);
@@ -393,8 +382,6 @@ export default function ExpenseDetalhe() {
     if (result.ok) {
       setExpense(result.data);
       toast.success("Despesa aprovada com sucesso!");
-      const projResult = await listProjects(token, { isActive: true });
-      if (projResult.ok) setProjects(projResult.data);
     } else {
       toast.error("Erro ao aprovar despesa.");
     }
@@ -427,27 +414,6 @@ export default function ExpenseDetalhe() {
       toast.success("Despesa rejeitada.");
     } else {
       toast.error("Erro ao rejeitar despesa.");
-    }
-  }
-
-  async function handleVincularProjeto() {
-    const token = getToken();
-    if (!token || !expense || !selectedProjectId) return;
-    setVinculando(true);
-    setErroVincular(null);
-    const result = await assignProject(token, expense.id, selectedProjectId);
-    setVinculando(false);
-    if (result.ok) {
-      setExpense(result.data);
-      toast.success("Projeto vinculado com sucesso!");
-      setCarregandoCategorias(true);
-      const catResult = await listCategories(undefined, token);
-      if (catResult.ok) setCategories(catResult.data);
-      setCarregandoCategorias(false);
-    } else if (result.error === "CONFLICT") {
-      setErroVincular("Esta despesa já está vinculada a um projeto.");
-    } else {
-      setErroVincular("Erro ao vincular projeto. Tente novamente.");
     }
   }
 
@@ -664,10 +630,10 @@ export default function ExpenseDetalhe() {
                   </div>
                 )}
 
-                {/* Memorando */}
+                {/* Trabalho publicado */}
                 {expense.attachmentKey && (
                   <div className="mb-5">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Memorando</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Trabalho publicado</p>
                     <div className="flex items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-600">
@@ -798,7 +764,7 @@ export default function ExpenseDetalhe() {
                           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Memorando</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Trabalho publicado</p>
                           {expense.attachmentKey ? (
                             <div className="flex items-center gap-1.5">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600">
@@ -852,71 +818,7 @@ export default function ExpenseDetalhe() {
                 )
               )}
 
-              {/* Vincular Projeto — only when APROVADO e dados confirmados */}
-              {expense.status === "APROVADO" && dadosConfirmados && (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-5">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
-                      <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-                      <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-                    </svg>
-                    <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Vincular Projeto</h2>
-                  </div>
-
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Selecione o projeto que irá financiar esta despesa. Após vinculação, o status passa para <strong>Em Processamento</strong>.
-                  </p>
-
-                  <div className="mb-4">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto Financiador</label>
-                    <select
-                      value={selectedProjectId}
-                      onChange={(e) => { setSelectedProjectId(e.target.value); setErroVincular(null); }}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-                    >
-                      <option value="">Selecionar projeto...</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.code})
-                        </option>
-                      ))}
-                    </select>
-                    {projects.length === 0 && (
-                      <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Nenhum projeto ativo disponível.</p>
-                    )}
-                  </div>
-
-                  {erroVincular && (
-                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                      <p className="text-sm text-red-700">{erroVincular}</p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleVincularProjeto}
-                    disabled={!selectedProjectId || vinculando}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    {vinculando ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        Vinculando...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                          <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.656-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.667l3-3z" />
-                          <path d="M11.603 7.963a.75.75 0 00-.977 1.138 2.5 2.5 0 01.142 3.667l-3 3a2.5 2.5 0 01-3.536-3.536l1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 105.656 5.656l3-3a4 4 0 00-.225-5.865z" />
-                        </svg>
-                        Vincular Projeto
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+              {/* TODO: vinculação de projeto agora ocorre via seletor por linha na discriminação de custos (B4) */}
 
               {/* Discriminação de Custos — only when EM_PROCESSAMENTO */}
               {expense.status === "EM_PROCESSAMENTO" && (
@@ -1115,7 +1017,7 @@ export default function ExpenseDetalhe() {
                   </div>
 
                   <div className="space-y-3">
-                    {/* Memorando */}
+                    {/* Trabalho publicado */}
                     {expense.attachmentKey && (
                       <div className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0">
@@ -1125,7 +1027,7 @@ export default function ExpenseDetalhe() {
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Memorando</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Trabalho publicado</p>
                             <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{expense.attachmentKey.split("/").pop()}</p>
                           </div>
                         </div>
@@ -1251,6 +1153,22 @@ export default function ExpenseDetalhe() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">QUALIS</p>
                     <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.article?.classification ?? "—"}</p>
                   </div>
+                  {expense.departureDate && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de ida</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        {new Date(expense.departureDate).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
+                  {expense.returnDate && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de volta</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        {new Date(expense.returnDate).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Criado em</p>
                     <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{fmtDate(expense.createdAt)}</p>
