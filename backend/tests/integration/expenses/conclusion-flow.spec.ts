@@ -2,6 +2,7 @@ import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
+import { MOCK_PROFILE } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
@@ -72,6 +73,16 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     expect(createRes.status).toBe(status.CREATED)
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
+
+    // 1.5 Coordenador visualiza despesa e valida dados bancários
+    const detailRes = await client.expenses[':id'].$get({ param: { id: expenseId } }, { headers: coordenadorHeaders })
+    expect(detailRes.status).toBe(status.OK)
+    assert(detailRes.status === status.OK)
+    const detailJson = await detailRes.json()
+    expect(detailJson.student).toBeDefined()
+    expect(detailJson.student?.profile).toBeDefined()
+    expect(detailJson.student?.profile?.pixKey).toBe(MOCK_PROFILE.pixKey)
+    expect(detailJson.student?.profile?.bankCode).toBe(MOCK_PROFILE.bankCode)
 
     // 2. Coordenador aprova
     const approveRes = await client.expenses[':id'].status.$patch({

@@ -1,4 +1,5 @@
 import { cpf } from 'cpf-cnpj-validator'
+import { EXAMPLE_CPF } from '@/schemas/schema.refine'
 
 const ID_ALUNO = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const ID_PROJ_ROBOTICA = 'a1b2c3d4-e5f6-4a5b-8c9d-0123456789ab'
@@ -21,6 +22,7 @@ const MOCK_PROFILE = {
   bankName: 'BANCO DO BRASIL',
   bankAgency: '1234-5',
   bankAccount: '12345678',
+  pixKey: EXAMPLE_CPF,
 } as const
 
 const MOCK_USER = {

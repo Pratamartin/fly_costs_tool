@@ -3,7 +3,7 @@ import { zodValidator } from 'cpf-cnpj-validator/zod'
 
 import { MOCK_PROFILE, MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
-import { maskBankAccountTransform, validBankAccount, validBankAgency, validBankCode, validBirthDate, validIdentityDoc } from './schema.refine'
+import { EXAMPLE_CNPJ, EXAMPLE_CPF, EXAMPLE_PHONE, maskBankAccountTransform, validBankAccount, validBankAgency, validBankCode, validBirthDate, validIdentityDoc, validPixKey } from './schema.refine'
 import { IdSchema, TimestampSchema } from './shared.schema'
 
 const { cpf: zCpf } = zodValidator(z)
@@ -45,6 +45,18 @@ export const ProfileSchema = z.object({
 
   bankAccount: validBankAccount.nullish()
     .openapi({ example: MOCK_PROFILE.bankAccount }),
+
+  pixKey: validPixKey
+    .nullish()
+    .openapi({
+      examples: [
+        'usuario@exemplo.com',
+        EXAMPLE_PHONE,
+        EXAMPLE_CPF,
+        EXAMPLE_CNPJ,
+        'b4d9bf08-b854-4647-b564-8a407a229230',
+      ],
+    }),
 })
 
 export const UserSchema = z.object({

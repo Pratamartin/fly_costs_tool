@@ -8,13 +8,23 @@ import { PreferenceSurveyAnswerSchema } from './preference-survey.schema'
 import ProjectSchema from './project.schema'
 import { reasonFieldRequired, validPDFCheck } from './schema.refine'
 import { FileItemSchema, IdSchema, TimestampSchema } from './shared.schema'
-import { UserSchema } from './user.schema'
+import { ProfileSchema, UserSchema } from './user.schema'
 
 export const ExpenseRelationsSchema = {
   student: UserSchema.pick({
     id: true,
     name: true,
-  }).optional(),
+  }).extend({
+    profile: ProfileSchema.pick({
+      bankCode: true,
+      bankName: true,
+      bankAgency: true,
+      bankAccount: true,
+      pixKey: true,
+    }).nullable()
+      .optional(),
+  })
+    .optional(),
   project: ProjectSchema.pick({
     name: true,
     code: true,
