@@ -8,6 +8,7 @@ import StudentSidebar from "@/components/StudentSidebar";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
+import { listProjects } from "@/services/projects";
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -37,13 +38,17 @@ function statusBackendToFrontend(status: string): Status {
   }
 }
 
-function expenseToDespesa(expense: Expense): Despesa {
+function expenseToDespesa(expense: Expense, projectMap: Record<string, string> = {}): Despesa {
+  const isConcluido = expense.status === "CONCLUIDO";
+  const projectName = isConcluido
+    ? (expense.project?.name ?? (expense.projectId ? projectMap[expense.projectId] : undefined))
+    : undefined;
   return {
     id: expense.id,
     data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
-    projeto: expense.project?.name || "Projeto ainda não vinculado",
+    projeto: projectName ?? "—",
     status: statusBackendToFrontend(expense.status),
     icone: "viagem",
   };
@@ -154,9 +159,17 @@ export default function DashboardAluno() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   async function carregarDespesas(token: string) {
-    const expensesResult = await listExpenses(token);
+    const [expensesResult, projectsResult] = await Promise.all([
+      listExpenses(token),
+      listProjects(token),
+    ]);
+
     if (expensesResult.ok) {
-      setDespesas(expensesResult.data.map(expenseToDespesa));
+      const projectMap: Record<string, string> = {};
+      if (projectsResult.ok) {
+        for (const p of projectsResult.data) projectMap[p.id] = p.name;
+      }
+      setDespesas(expensesResult.data.map((e) => expenseToDespesa(e, projectMap)));
     } else if (expensesResult.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
