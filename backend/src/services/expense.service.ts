@@ -1,14 +1,12 @@
 import type { z } from '@hono/zod-openapi'
-import type { Prisma } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
 import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
 import { EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, REQUIRED_ROLE_FOR_STATUS, STAFF_NOTIFICATION_TARGETS_BY_STATUS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
-import { ExpenseRequestStatus } from '@/generated/prisma/client'
-import { UserRole } from '@/generated/prisma/enums'
+import { Prisma } from '@/generated/prisma/client'
+import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
 import { deleteFile, deleteObjects, getSignedDownloadUrl, isStorageConfigured, uploadFile, validatePDF } from '@/lib/storage'
-import { getProjectBudgetMetrics } from './budget.service'
 import { notifyStatusChange } from './notifications'
 import { notifyStaffOnStatusChange } from './notifications/staff.notification'
 
@@ -24,18 +22,19 @@ export const expenseInclude = {
       name: true,
     },
   },
-  project: {
-    select: {
-      id: true,
-      name: true,
-      code: true,
-    },
-  },
   costBreakdowns: {
     select: {
       id: true,
       expenseRequestId: true,
       amount: true,
+      projectId: true,
+      project: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
       expenseCategory: {
         select: {
           id: true,
@@ -240,7 +239,7 @@ export async function updateExpenseStatus(
   })
 }
 
-export async function assignProjectToExpense(expenseId: string, projectId: string): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'PROJECT_INSUFFICIENT_FUNDS'>> {
+export async function startExpenseProcessing(expenseId: string): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'INVALID_EXPENSE_STATE'>> {
   const expense = await prisma.expenseRequest.findUnique({ where: { id: expenseId } })
   if (!expense) {
     return { error: 'EXPENSE_NOT_FOUND' }
@@ -259,28 +258,10 @@ export async function assignProjectToExpense(expenseId: string, projectId: strin
     }
   }
 
-  const result = await getProjectBudgetMetrics(projectId)
-  if ('error' in result) {
-    return { error: result.error }
-  }
-
-  const budgetMetrics = result
-
-  if (!budgetMetrics.isActive) {
-    return { error: 'PROJECT_ARCHIVED' }
-  }
-
-  if (budgetMetrics.available.lessThanOrEqualTo(0)) {
-    return { error: 'PROJECT_INSUFFICIENT_FUNDS' }
-  }
-
   const updatedExpense = await prisma.expenseRequest.update({
     where: { id: expenseId },
     include: expenseInclude,
-    data: {
-      status: ExpenseRequestStatus.EM_PROCESSAMENTO,
-      projectId,
-    },
+    data: { status: ExpenseRequestStatus.EM_PROCESSAMENTO },
   })
 
   await notifyStatusChange(
@@ -483,32 +464,63 @@ export async function concludeExpenseRequest(
     return { error: 'MISSING_RECEIPTS' }
   }
 
-  const updatedExpense = await prisma.expenseRequest.update({
-    where: { id },
-    data: { status: ExpenseRequestStatus.CONCLUIDO },
-    include: expenseInclude,
-  })
+  return prisma.$transaction(async (tx) => {
+    // 1. Agrupar os valores por projeto para evitar múltiplos updates no mesmo registro
+    const amountsByProject = expense.costBreakdowns.reduce((acc, cb) => {
+      const current = acc.get(cb.projectId) || new Prisma.Decimal(0)
+      acc.set(cb.projectId, current.plus(cb.amount))
+      return acc
+    }, new Map<string, Prisma.Decimal>())
 
-  await notifyStatusChange(
-    updatedExpense.studentId,
-    updatedExpense,
-    updatedExpense.status,
-  )
+    // 2. Ordenar IDs dos projetos para prevenção de deadlock
+    const sortedProjectIds = Array.from(amountsByProject.keys()).sort()
 
-  return updatedExpense
+    // 3. Executar um único incremento por projeto envolvido
+    for (const projectId of sortedProjectIds) {
+      const amount = amountsByProject.get(projectId)!
+      await tx.project.update({
+        where: { id: projectId },
+        data: { usedBudget: { increment: amount } },
+      })
+    }
+
+    // 4. Atualizar status para CONCLUIDO
+    const updatedExpense = await tx.expenseRequest.update({
+      where: { id },
+      data: { status: ExpenseRequestStatus.CONCLUIDO },
+      include: expenseInclude,
+    })
+
+    await notifyStatusChange(
+      updatedExpense.studentId,
+      updatedExpense,
+      updatedExpense.status,
+      null,
+      tx,
+    )
+
+    return updatedExpense
+  }, { isolationLevel: 'Serializable' })
 }
 
 export async function deleteExpenseRequest(
   id: string,
   userId: string,
   role: UserRole,
-): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'STORAGE_UNAVAILABLE'>> {
+): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'STORAGE_UNAVAILABLE' | 'INVALID_EXPENSE_STATE'>> {
   const expense = await prisma.expenseRequest.findUnique({
     where: { id },
     select: {
       studentId: true,
+      status: true,
       attachmentKey: true,
-      costBreakdowns: { select: { attachmentKey: true } },
+      costBreakdowns: {
+        select: {
+          attachmentKey: true,
+          projectId: true,
+          amount: true,
+        },
+      },
     },
   })
 
@@ -518,6 +530,11 @@ export async function deleteExpenseRequest(
 
   if (role !== UserRole.ADMIN && expense.studentId !== userId) {
     return { error: 'FORBIDDEN' }
+  }
+
+  // Bloquear deleção de despesas já concluídas para preservar integridade financeira
+  if (expense.status === ExpenseRequestStatus.CONCLUIDO) {
+    return { error: 'INVALID_EXPENSE_STATE' }
   }
 
   const keys = [
@@ -530,6 +547,7 @@ export async function deleteExpenseRequest(
   }
 
   return prisma.$transaction(async (tx) => {
+    // O saldo do projeto não é decrementado aqui porque só é incrementado quando a despesa é concluída
     if (keys.length > 0) {
       await deleteObjects(keys)
     }
