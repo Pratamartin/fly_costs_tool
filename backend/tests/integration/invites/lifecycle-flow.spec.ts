@@ -82,6 +82,9 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
         inviteCode: createdInviteCode,
         role: UserRole.ALUNO,
         birthDate: new Date(MOCK_PROFILE.birthDate),
+        bankAgency: MOCK_PROFILE.bankAgency,
+        bankAccount: MOCK_PROFILE.bankAccount,
+        pixKey: MOCK_PROFILE.pixKey,
       },
     })
 

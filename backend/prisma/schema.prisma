@@ -52,7 +52,8 @@ model Profile {
   bankName      String?
   bankAgency    String?
   bankAccount   String?
-  
+  pixKey       String?
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 

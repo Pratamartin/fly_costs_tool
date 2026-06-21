@@ -20,6 +20,15 @@ export const expenseInclude = {
     select: {
       id: true,
       name: true,
+      profile: {
+        select: {
+          bankCode: true,
+          bankName: true,
+          bankAgency: true,
+          bankAccount: true,
+          pixKey: true,
+        },
+      },
     },
   },
   costBreakdowns: {

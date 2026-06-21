@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi'
 import { MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
-import { validBankCode, validBirthDate } from './schema.refine'
+import { validBankCode, validBirthDate, validPixKey } from './schema.refine'
 import { ProfileSchema, UserSchema } from './user.schema'
 
 const RegisterBaseSchema = z.object({
@@ -22,11 +22,12 @@ const RegisterBaseSchema = z.object({
 })
 
 export const AlunoRegisterSchema = RegisterBaseSchema
-  .extend((ProfileSchema.required()).shape)
+  .extend((ProfileSchema.omit({ pixKey: true }).required()).shape)
   .extend({
     role: z.literal(UserRole.ALUNO),
     birthDate: validBirthDate,
     bankCode: validBankCode,
+    pixKey: validPixKey,
   })
 
 export const StaffRegisterSchema = RegisterBaseSchema
