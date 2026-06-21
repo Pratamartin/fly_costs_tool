@@ -34,7 +34,7 @@ export const create = createRoute({
       'Breakdown saved successfully.',
     ),
     ...standardResponses,
-    ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND'),
+    ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE'),
   },
 })
 
@@ -107,6 +107,6 @@ export const getReceiptDownload = createRoute({
       ReceiptDownloadUrlSchema,
       'URL generated successfully.',
     ),
-    ...registryResponses('EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'RECEIPT_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED'),
+    ...registryResponses('EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'RECEIPT_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'STORAGE_PROVIDER_ERROR', 'FORBIDDEN'),
   },
 })

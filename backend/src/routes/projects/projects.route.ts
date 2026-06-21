@@ -101,6 +101,6 @@ export const remove = createRoute({
   request: { params: z.object({ id: IdSchema }) },
   responses: {
     [codes.NO_CONTENT]: { description: 'Project archived successfully.' },
-    ...registryResponses('PROJECT_NOT_FOUND', 'UNAUTHORIZED', 'FORBIDDEN'),
+    ...registryResponses('PROJECT_NOT_FOUND', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })

@@ -17,7 +17,7 @@ export type IndexRoute = typeof index
 export type ReadRoute = typeof read
 export type UpdateRoute = typeof update
 export type UpdateStatusRoute = typeof updateStatus
-export type AssignProjectRoute = typeof assignProject
+export type StartProcessingRoute = typeof startProcessing
 export type UploadMemorandumRoute = typeof uploadMemorandum
 export type GetMemorandumDownloadRoute = typeof getMemorandumDownload
 export type ConcludeRoute = typeof conclude
@@ -136,32 +136,32 @@ export const updateStatus = createRoute({
   },
 })
 
-export const assignProject = createRoute({
-  path: '/{id}/assign-project',
+export const startProcessing = createRoute({
+  path: '/{id}/start-processing',
   method: 'patch',
   middleware: [requireAuth, requireRole([UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
-  summary: 'Assign Project to Expense',
+  summary: 'Start Financial Processing',
   description: `
-    Links a project to an APPROVED request.
-    The transition changes the status to 'EM_PROCESSAMENTO'.
+    Moves an APPROVED request to 'EM_PROCESSAMENTO' status.
+    This enables the addition of cost breakdowns with project allocation.
     Restricted access to ADMIN.
   `,
   tags,
   request: {
     params: z.object({ id: IdSchema }),
     body: jsonContent(
-      z.object({ projectId: IdSchema }),
-      'ID of the project to be linked',
+      z.object({}),
+      'Empty body required to initiate processing',
     ),
   },
   responses: {
     [codes.OK]: jsonContent(
       AssignProjectResponseSchema,
-      'Project linked and status changed to EM_PROCESSAMENTO.',
+      'Status changed to EM_PROCESSAMENTO.',
     ),
     ...standardResponses,
-    ...registryResponses('EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_ARCHIVED', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_EXPENSE_STATE', 'FORBIDDEN'),
+    ...registryResponses('EXPENSE_NOT_FOUND', 'INVALID_EXPENSE_STATE', 'FORBIDDEN'),
   },
 })
 
