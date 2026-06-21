@@ -20,7 +20,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:sync": "prisma db pull",
-    "jobs:ui": "cross-env PORT=5001 pg-boss-dashboard"
+    "jobs:ui": "cross-env PORT=5001 pg-boss-dashboard",
+    "dev:bypass-conclude": "tsx scripts/bypass-conclude.ts"
   },
   "dependencies": {
     "@apideck/better-ajv-errors": "^0.3.7",
