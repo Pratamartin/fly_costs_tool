@@ -5,8 +5,8 @@ type AbaAtual = "PENDENTE" | "APROVADO" | "REJEITADO";
 
 interface CoordinatorSidebarProps {
   active: AbaAtual | null;
-  onTabChange: (tab: AbaAtual) => void;
-  counts: { PENDENTE: number; APROVADO: number; REJEITADO: number };
+  onTabChange?: (tab: AbaAtual) => void;
+  counts?: { PENDENTE: number; APROVADO: number; REJEITADO: number };
   userName: string | null;
   onLogout: () => void;
 }
@@ -56,6 +56,8 @@ const NAV_ITEMS: {
 export default function CoordinatorSidebar({ active, onTabChange, counts, userName, onLogout }: CoordinatorSidebarProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const resolvedCounts = counts ?? { PENDENTE: 0, APROVADO: 0, REJEITADO: 0 };
+  const handleTabChange = onTabChange ?? (() => {});
 
   const onProfile = router.pathname === "/dashboard/profile";
   const onSettings = router.pathname === "/dashboard/settings";
@@ -123,7 +125,7 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
+                onClick={() => { handleTabChange(item.id); setMobileOpen(false); }}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
                   active === item.id
                     ? `${item.activeClass} dark:bg-white/10 dark:text-white`
@@ -134,9 +136,9 @@ export default function CoordinatorSidebar({ active, onTabChange, counts, userNa
                   {item.icon}
                   {item.label}
                 </div>
-                {counts[item.id] > 0 && (
+                {resolvedCounts[item.id] > 0 && (
                   <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full ${item.badgeClass} px-1.5 text-[10px] font-bold text-white`}>
-                    {counts[item.id]}
+                    {resolvedCounts[item.id]}
                   </span>
                 )}
               </button>
