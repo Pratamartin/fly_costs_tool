@@ -38,7 +38,7 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
         {
           amount: 15000,
           project: { connect: { id: ID_PROJ_ROBOTICA } },
-          expenseCategory: { connect: { normalizedName: 'hospedagem' } },
+          expenseCategory: { connect: { normalizedName: 'diarias' } },
         },
         {
           amount: 10,
@@ -74,7 +74,7 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
   },
   {
     id: 'ee128e58-fb1a-4be0-b2f3-9c6229b49784',
-    title: 'Hospedagem em Conferência',
+    title: 'Diárias em Conferência',
     description: 'Reserva de hotel para o período do evento.',
     status: ExpenseRequestStatus.EM_EDICAO,
     correctionReason: 'Por favor, corrija seus dados bancários',

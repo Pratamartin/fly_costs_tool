@@ -62,10 +62,10 @@
       }
     ]
   },
-  "hospedagem": {
+  "diarias": {
     "type": "Control",
     "scope": "#",
-    "label": "Auxílio Hospedagem",
+    "label": "Auxílio Diárias",
     "options": { 
       "toggle": true 
     }

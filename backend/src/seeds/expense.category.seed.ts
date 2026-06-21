@@ -10,8 +10,8 @@ export const dummyExpenseCategories: Prisma.ExpenseCategoryCreateInput[] = [
   },
   {
     id: '12a3c3b4-acd5-4446-aeec-dc0e6d224183',
-    name: 'Hospedagem',
-    normalizedName: 'hospedagem',
+    name: 'Diárias',
+    normalizedName: 'diarias',
   },
   {
     id: '131a5c24-ced2-47a9-bf86-6efe738d4f00',
