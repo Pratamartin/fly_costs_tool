@@ -72,10 +72,10 @@ describe('[Expense Status] - Integridade de transição de status', () => {
   it('[PROIBIDO]: PENDENTE -> EM_PROCESSAMENTO (Deve aprovar antes)', async () => {
     const id = await createPendingExpense()
 
-    const res = await client.expenses[':id']['assign-project'].$patch(
+    const res = await client.expenses[':id']['start-processing'].$patch(
       {
         param: { id },
-        json: { projectId: crypto.randomUUID() },
+        json: {},
       },
       { headers: adminHeaders },
     )
