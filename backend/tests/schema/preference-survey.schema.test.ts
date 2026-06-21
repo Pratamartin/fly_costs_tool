@@ -3,8 +3,8 @@ import { preferenceSurveyJSONSchema } from '@/json'
 import ajv from '@/lib/json-schema-validator'
 
 describe('preference Survey Schema Validation', () => {
-  describe('hospedagem', () => {
-    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.hospedagem)
+  describe('diarias', () => {
+    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.diarias)
 
     it('deve validar com sucesso um booleano', () => {
       expect(validate(true)).toBe(true)
