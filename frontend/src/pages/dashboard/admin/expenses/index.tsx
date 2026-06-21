@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuthStore } from "@/store/authStore";
 import { getToken } from "@/lib/getToken";
@@ -147,7 +147,20 @@ export default function AdminExpenses() {
     });
   }
 
-  const filtered = expenses
+  const projectMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const p of projects) map[p.id] = p.name;
+    return map;
+  }, [projects]);
+
+  const enrichedExpenses = useMemo(() => expenses.map((e) => {
+    const project = e.project ?? (e.projectId && projectMap[e.projectId]
+      ? { id: e.projectId, name: projectMap[e.projectId], code: "" }
+      : null);
+    return { ...e, project };
+  }), [expenses, projectMap]);
+
+  const filtered = enrichedExpenses
     .filter((e) => {
       if (filterStatus !== "all" && e.status !== filterStatus) return false;
       const q = search.toLowerCase();

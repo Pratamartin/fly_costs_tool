@@ -101,7 +101,8 @@ export const ExpenseListItemSchema = z.object({
   .extend({
     attachmentKey: z.string().nullable()
       .optional(),
-    ...ExpenseRelationsSchema,
+    student: ExpenseRelationsSchema.student,
+    project: ExpenseRelationsSchema.project,
     ...TimestampSchema,
   })
 

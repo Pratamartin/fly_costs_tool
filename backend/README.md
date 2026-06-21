@@ -95,6 +95,30 @@ Os testes de integração utilizam a tecnologia **Testcontainers** para provisio
 | `npm run test:coverage` | Gera o relatório de cobertura de código |
 
 
+## 🛠 Utilitários de Desenvolvimento Local
+
+### bypass-conclude
+
+Permite concluir uma despesa localmente **sem R2 configurado**, definindo um `attachmentKey` fake nos cost breakdowns que ainda não possuem recibo.
+
+**Pré-requisito:** A despesa deve estar no status `EM_PROCESSAMENTO` e ter pelo menos um cost breakdown cadastrado.
+
+**Como usar:**
+```bash
+# Forneça o ID (ou prefixo) da despesa
+npm run dev:bypass-conclude -- <expense-id-ou-prefixo>
+
+# Exemplos:
+npm run dev:bypass-conclude -- d290f1ee
+npm run dev:bypass-conclude -- d290f1ee-6c54-4b01-90e6-d701748f0851
+```
+
+O script localiza a despesa pelo prefixo, exibe os breakdowns existentes e define `attachmentKey = "local-bypass"` nos que ainda estão sem recibo. Após isso, o botão **Concluir** no painel admin funcionará normalmente.
+
+> ⚠️ **Apenas para ambiente local.** Não execute em produção.
+
+---
+
 ### 🛢️ Banco de Dados
 
 | Comando | Descrição |
