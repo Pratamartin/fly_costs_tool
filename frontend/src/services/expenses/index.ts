@@ -18,6 +18,8 @@ export type CostBreakdown = {
   expenseRequestId: string
   amount: number
   attachmentKey?: string | null
+  projectId?: string | null
+  project?: ProjectInfo | null
   subcategory: {
     id: string
     name: string
@@ -55,6 +57,8 @@ export type Expense = {
   studentId?: string
   projectId?: string | null
   attachmentKey?: string | null
+  departureDate?: string | null
+  returnDate?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -127,6 +131,7 @@ export type AssignProjectResult =
 export type CostBreakdownPayload = {
   subcategoryName: string
   amount: number
+  projectId?: string
 }
 
 export type CostBreakdownResponse = {
@@ -274,13 +279,19 @@ export async function createCostBreakdown(
   expenseId: string,
   payload: CostBreakdownPayload
 ): Promise<CreateCostBreakdownResult> {
+  const body: Record<string, unknown> = {
+    subcategoryName: payload.subcategoryName,
+    amount: payload.amount,
+  }
+  if (payload.projectId) body.projectId = payload.projectId
+
   const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   })
 
   if (res.status === 201) return { ok: true, data: await res.json() }
