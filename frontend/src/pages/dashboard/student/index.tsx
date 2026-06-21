@@ -20,7 +20,6 @@ interface Despesa {
   descricao: string;
   reqId: string;
   projeto: string;
-  valor: number;
   status: Status;
   icone: "componentes" | "livros" | "viagem" | "nuvem";
 }
@@ -39,14 +38,12 @@ function statusBackendToFrontend(status: string): Status {
 }
 
 function expenseToDespesa(expense: Expense): Despesa {
-  const valor = (expense.costBreakdowns ?? []).reduce((sum, cb) => sum + cb.amount, 0);
   return {
     id: expense.id,
     data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
-    projeto: expense.project?.name || "Sem projeto",
-    valor,
+    projeto: expense.project?.name || "Projeto ainda não vinculado",
     status: statusBackendToFrontend(expense.status),
     icone: "viagem",
   };
@@ -260,10 +257,6 @@ export default function DashboardAluno() {
     }
   }
 
-  const totalSubmetido = despesas.reduce((s, d) => s + d.valor, 0);
-  const totalPendente = despesas.filter((d) => d.status === "Pendente").reduce((s, d) => s + d.valor, 0);
-  const totalAprovado = despesas.filter((d) => d.status === "Aprovado").reduce((s, d) => s + d.valor, 0);
-
   const despesasFiltradas = despesas.filter((d) => {
     const matchFiltro = filtro === "Todos" || d.status === filtro;
     const matchBusca =
@@ -364,10 +357,8 @@ export default function DashboardAluno() {
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Submetido</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  R$ {totalSubmetido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total de Solicitações</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">{despesas.length}</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-500">
@@ -377,27 +368,27 @@ export default function DashboardAluno() {
             </div>
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Aguardando Aprovação</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Aprovadas</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-50">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-yellow-500">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Aprovado (Este Ano)</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  R$ {totalAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {despesas.filter((d) => d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Concluído").length}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-green-500">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes / Rejeitadas</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
+                  {despesas.filter((d) => d.status === "Pendente" || d.status === "Rejeitado" || d.status === "Correção Solicitada").length}
+                </p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-50">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-yellow-500">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
@@ -444,7 +435,6 @@ export default function DashboardAluno() {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Despesa</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Valor</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
                 </tr>
               </thead>
@@ -479,9 +469,9 @@ export default function DashboardAluno() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{d.projeto}</td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
+                      {/* <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
                         R$ {d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4">
                         <BadgeStatus status={d.status} />
                       </td>
@@ -521,12 +511,7 @@ export default function DashboardAluno() {
                       </div>
                       <div className="flex items-center justify-between pl-11">
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mr-2">{d.projeto}</p>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
-                            R$ {d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">{d.data}</p>
-                        </div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{d.data}</p>
                       </div>
                     </div>
                   ))}

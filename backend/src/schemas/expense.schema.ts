@@ -96,10 +96,12 @@ export const ExpenseListItemSchema = z.object({
     status: true,
     rejectionReason: true,
     correctionReason: true,
+    event: true,
   }).shape)
   .extend({
     attachmentKey: z.string().nullable()
       .optional(),
+    ...ExpenseRelationsSchema,
     ...TimestampSchema,
   })
 

@@ -116,47 +116,63 @@ function FileDropZone({
   accept,
   label,
   disabled,
+  maxSizeMB,
 }: {
   file: File | null;
   onChange: (f: File) => void;
   accept: string;
   label: string;
   disabled: boolean;
+  maxSizeMB?: number;
 }) {
   const [dragging, setDragging] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function handleFile(f: File) {
+    if (maxSizeMB && f.size > maxSizeMB * 1024 * 1024) {
+      setSizeError(`Arquivo muito grande. Tamanho máximo: ${maxSizeMB}MB.`);
+      return;
+    }
+    setSizeError(null);
+    onChange(f);
+  }
+
   return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) onChange(f); }}
-      onClick={() => inputRef.current?.click()}
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition ${
-        disabled ? "pointer-events-none opacity-50" :
-        dragging ? "border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950/20" :
-        file ? "border-green-400 bg-green-50 dark:bg-green-950/20" :
-        "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700/70"
-      }`}
-    >
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) onChange(e.target.files[0]); }} />
-      {file ? (
-        <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-green-500 dark:text-green-300">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-          </svg>
-          <p className="max-w-full truncate text-center text-xs font-medium text-green-700 dark:text-green-200">{file.name}</p>
-          <p className="mt-0.5 text-[10px] text-green-500 dark:text-green-400">Clique para substituir</p>
-        </>
-      ) : (
-        <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-gray-400 dark:text-gray-500">
-            <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
-          </svg>
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
-          <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG</p>
-        </>
-      )}
+    <div>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+        onClick={() => inputRef.current?.click()}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition ${
+          disabled ? "pointer-events-none opacity-50" :
+          sizeError ? "border-red-400 bg-red-50 dark:bg-red-950/20" :
+          dragging ? "border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950/20" :
+          file ? "border-green-400 bg-green-50 dark:bg-green-950/20" :
+          "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700/70"
+        }`}
+      >
+        <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+        {file ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-green-500 dark:text-green-300">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+            </svg>
+            <p className="max-w-full truncate text-center text-xs font-medium text-green-700 dark:text-green-200">{file.name}</p>
+            <p className="mt-0.5 text-[10px] text-green-500 dark:text-green-400">Clique para substituir</p>
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-gray-400 dark:text-gray-500">
+              <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
+            </svg>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG · máx. {maxSizeMB ?? 10}MB</p>
+          </>
+        )}
+      </div>
+      {sizeError && <p className="mt-1 text-[11px] text-red-500">{sizeError}</p>}
     </div>
   );
 }
@@ -511,7 +527,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           </div>
                           <div>
                             <label className="mb-1 block text-xs font-medium text-gray-600">Sugestão de Voo <span className="text-gray-400">(opcional)</span></label>
-                            <FileDropZone file={flightFile} onChange={setFlightFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o arquivo" disabled={isSubmitting} />
+                            <FileDropZone file={flightFile} onChange={setFlightFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o arquivo" disabled={isSubmitting} maxSizeMB={10} />
                           </div>
                         </div>
                       )}
@@ -539,7 +555,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                       {inscricaoSelected && (
                         <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
                           <label className="mb-1 block text-xs font-medium text-gray-600">Boleto / Invoice <span className="text-red-500">*</span></label>
-                          <FileDropZone file={inscricaoFile} onChange={setInscricaoFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o boleto/invoice" disabled={isSubmitting} />
+                          <FileDropZone file={inscricaoFile} onChange={setInscricaoFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o boleto/invoice" disabled={isSubmitting} maxSizeMB={10} />
                         </div>
                       )}
                     </div>
@@ -591,7 +607,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
             {/* 5 — Memorando */}
             <div>
               <SectionHeader number={5} label="Memorando" />
-              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o memorando" disabled={isSubmitting} />
+              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o memorando" disabled={isSubmitting} maxSizeMB={5} />
               {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
             </div>
 

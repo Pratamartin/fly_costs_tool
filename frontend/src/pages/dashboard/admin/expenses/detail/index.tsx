@@ -1044,7 +1044,15 @@ export default function ExpenseDetalhe() {
                             accept=".pdf,.jpg,.jpeg,.png"
                             className="sr-only"
                             disabled={adicionandoCusto}
-                            onChange={(e) => setCbAnexo(e.target.files?.[0] ?? null)}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0] ?? null;
+                              if (f && f.size > 10 * 1024 * 1024) {
+                                setErroCusto("Arquivo muito grande. Tamanho máximo: 10MB.");
+                                e.target.value = "";
+                                return;
+                              }
+                              setCbAnexo(f);
+                            }}
                           />
                         </label>
                         {cbAnexo && (
@@ -1056,7 +1064,7 @@ export default function ExpenseDetalhe() {
                             Remover anexo
                           </button>
                         )}
-                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">PDF, JPG ou PNG.</p>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">PDF, JPG ou PNG · máx. 10MB.</p>
                       </div>
 
                       {erroCusto && (
