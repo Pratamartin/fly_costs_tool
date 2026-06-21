@@ -18,7 +18,7 @@ const router = createRouter().basePath('/expenses')
   .openapi(routes.uploadMemorandum, handlers.uploadMemorandum)
   .openapi(routes.getMemorandumDownload, handlers.getMemorandumDownload)
   .openapi(routes.updateStatus, handlers.updateStatus)
-  .openapi(routes.assignProject, handlers.assignProject)
+  .openapi(routes.startProcessing, handlers.startProcessing)
   .openapi(routes.conclude, handlers.conclude)
   .openapi(routes.remove, handlers.remove)
 

@@ -87,9 +87,6 @@ export const ExpenseListItemSchema = z.object({
   id: IdSchema,
   studentId: IdSchema
     .optional(),
-  projectId: IdSchema
-    .nullable()
-    .optional(),
 })
   .extend(BaseSchema.pick({
     title: true,
