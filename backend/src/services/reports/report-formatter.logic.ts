@@ -23,6 +23,46 @@ export type ExtractedReportInfo = {
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}/
 
+type CostBreakdownWithProject = {
+  project?: { name: string, code: string } | null
+}
+
+export function getOneLinerUniqueProjectsFromBreakdowns(
+  costBreakdowns?: Array<CostBreakdownWithProject | null> | null,
+) {
+  if (!costBreakdowns || costBreakdowns.length === 0) {
+    return {
+      names: 'Não Atribuído',
+      codes: 'N/A',
+    }
+  }
+
+  const validBreakdowns = costBreakdowns.filter(
+    (breakdown): breakdown is NonNullable<typeof breakdown> => breakdown != null,
+  )
+
+  const names = [
+    ...new Set(
+      validBreakdowns
+        .map(breakdown => breakdown.project?.name)
+        .filter((name): name is string => !!name),
+    ),
+  ]
+
+  const codes = [
+    ...new Set(
+      validBreakdowns
+        .map(breakdown => breakdown.project?.code)
+        .filter((code): code is string => !!code),
+    ),
+  ]
+
+  return {
+    names: names.length > 0 ? names.join(', ') : 'Não Atribuído',
+    codes: codes.length > 0 ? codes.join(', ') : 'N/A',
+  }
+}
+
 export function formatCurrency(value: number | Prisma.Decimal): string {
   const amount = typeof value === 'number' ? value : value.toNumber()
 
