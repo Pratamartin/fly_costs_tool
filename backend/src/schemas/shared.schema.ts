@@ -79,3 +79,12 @@ export const FileUploadErrorSchema = z.object({
 export type FileUploadError = z.infer<typeof FileUploadErrorSchema>
 
 export const DeleteExpenseResponseSchema = z.object({ success: z.literal(true) }).openapi({ description: 'Standard success response for delete operations.' })
+
+export const ProjectPeriodExpiredSchema = z.object({
+  projectStartDate: z.string().nullable()
+    .openapi({ description: 'Actual start date of the project.' }),
+  projectEndDate: z.string().nullable()
+    .openapi({ description: 'Actual end date of the project.' }),
+})
+
+export const ProjectShrinkageConflictSchema = z.object({ orphanedCostAllocationsCount: z.number().openapi({ description: 'Number of orphaned cost allocations.' }) })

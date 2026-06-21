@@ -3,7 +3,7 @@ import { z } from '@hono/zod-openapi'
 import { createProblemTypeRegistry } from 'hono-problem-details'
 import { createProblemDetailsSchema } from 'hono-problem-details/openapi'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
-import { createResourceStateSchema, FileUploadErrorSchema, ValidationErrorItemSchema } from '@/schemas/shared.schema'
+import { createResourceStateSchema, FileUploadErrorSchema, ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItemSchema } from '@/schemas/shared.schema'
 
 export const PROBLEM_DEFINITIONS = {
   // --- AUTH & SECURITY ---
@@ -176,6 +176,20 @@ export const PROBLEM_DEFINITIONS = {
     title: 'Invalid subcategories',
     type: 'urn:sgda:domain:project:invalid-subcategories',
     detail: 'One or more subcategories provided are invalid for this project.',
+  },
+  PROJECT_PERIOD_EXPIRED: {
+    status: 409,
+    title: 'Project period expired',
+    type: 'urn:sgda:domain:project:allocation-outside-period',
+    detail: 'Cannot allocate cost because the expense date is outside the project period.',
+    schema: ProjectPeriodExpiredSchema,
+  },
+  PROJECT_SHRINKAGE_CONFLICT: {
+    status: 409,
+    title: 'Conflicting cost allocations',
+    type: 'urn:sgda:domain:project:conflicting-allocations',
+    detail: 'Cannot update project period because there are existing cost allocations outside the new period.',
+    schema: ProjectShrinkageConflictSchema,
   },
 
   // --- NOTIFICATIONS ---

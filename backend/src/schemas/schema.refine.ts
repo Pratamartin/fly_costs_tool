@@ -8,6 +8,14 @@ import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
 import { getInviteMinExpiry } from '@/services/invite.service'
 
+export const projectPeriodCheck = z.refine<{ startDate: Date, endDate: Date }>(
+  data => data.endDate >= data.startDate,
+  {
+    message: 'The end date must be greater than or equal to the start date.',
+    path: ['endDate'],
+  },
+)
+
 export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reason?: string | null }>(
   (value) => {
     if (!STATUSES_WHERE_REASON_REQUIRED.includes(value.status)) {
