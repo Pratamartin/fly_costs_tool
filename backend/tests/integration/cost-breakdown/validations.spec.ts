@@ -99,6 +99,8 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
         code: 'VAL-SALDO',
         budget: 500,
         usedBudget: 0,
+        startDate: new Date('2026-01-01T00:00:00Z'),
+        endDate: new Date('2026-12-31T00:00:00Z'),
         expenseCategories: { connect: { id: category.id! } },
       },
     })
@@ -145,5 +147,38 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
 
     // 5. Deve falhar com PROJECT_INSUFFICIENT_FUNDS (Task 1.4)
     await expectProblem(res, 'PROJECT_INSUFFICIENT_FUNDS')
+  })
+
+  it('deve bloquear alocação de custo fora do período de vigência do projeto (PROJECT_PERIOD_EXPIRED)', async () => {
+    // 1. Criar um projeto que já venceu (no passado)
+    const expiredProject = await prisma.project.create({
+      data: {
+        name: 'Projeto Vencido',
+        code: 'PROJ-EXPIRED',
+        budget: 500,
+        usedBudget: 0,
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        endDate: new Date('2020-12-31T00:00:00Z'),
+        expenseCategories: { connect: { id: category.id! } },
+      },
+    })
+
+    // 2. Tentar alocar despesa hoje
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: expenseId },
+        json: {
+          amount: 100,
+          projectId: expiredProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 3. Deve falhar com PROJECT_PERIOD_EXPIRED
+    const json = await expectProblem(res, 'PROJECT_PERIOD_EXPIRED')
+    expect(json.projectStartDate).toBe(expiredProject.startDate.toISOString())
+    expect(json.projectEndDate).toBe(expiredProject.endDate.toISOString())
   })
 })
