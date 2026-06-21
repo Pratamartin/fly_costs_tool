@@ -12,7 +12,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const result = await createCostBreakdown(id, data)
 
   if (result && 'error' in result) {
-    throw problems.create(result.error)
+    throw problems.create(result.error, { extensions: result.context })
   }
 
   const parsed = CostBreakdownResponseSchema.parse({
