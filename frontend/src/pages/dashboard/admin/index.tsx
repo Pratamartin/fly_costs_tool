@@ -98,6 +98,9 @@ export default function DashboardAdmin() {
       code: data.code,
       budget: data.budget,
       subcategories: data.topics,
+      resourceSource: data.resourceSource,
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
     setCriando(false);
     if (result.ok) {

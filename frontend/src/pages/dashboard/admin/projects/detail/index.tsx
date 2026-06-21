@@ -300,7 +300,7 @@ export default function DashboardAdminProjectDetalhe() {
               </div>
 
               <div>
-                <label className="block mb-1.5 text-sm font-medium text-gray-700">Código do Projeto <span className="text-red-500">*</span></label>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Sigla do Projeto <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={editCode}
@@ -430,7 +430,7 @@ export default function DashboardAdminProjectDetalhe() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Orçamento Total</p>
                     <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">{fmtBRL(project.budget)}</p>
                     <span className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
-                      Código: <span className="font-mono font-semibold text-gray-600 dark:text-gray-400">{project.code}</span>
+                      Sigla: <span className="font-mono font-semibold text-gray-600 dark:text-gray-400">{project.code}</span>
                     </span>
                   </div>
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
@@ -470,6 +470,35 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                 </div>
               </div>
+              {(project.resourceSource || project.startDate || project.endDate) && (
+                <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
+                  <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Informações do Projeto</h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {project.resourceSource && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Fonte de recurso</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{project.resourceSource}</p>
+                      </div>
+                    )}
+                    {project.startDate && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de início</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                          {new Date(project.startDate).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                    )}
+                    {project.endDate && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de fim</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                          {new Date(project.endDate).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Tendência de Despesas por Categoria</h2>
@@ -497,7 +526,7 @@ export default function DashboardAdminProjectDetalhe() {
                 <table className="hidden w-full md:table">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Item de Despesa</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Item de Receita</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Enviado Por</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
                       <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Valor</th>

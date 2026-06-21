@@ -30,7 +30,7 @@ export const novaDespesaBaseSchema = z.object({
 
 export const criarProjetoSchema = z.object({
   name: z.string().min(1, "Nome do projeto é obrigatório"),
-  code: z.string().min(1, "Código do projeto é obrigatório"),
+  code: z.string().min(1, "Sigla do projeto é obrigatória"),
   budget: z
     .string()
     .min(1, "Informe um orçamento válido")
