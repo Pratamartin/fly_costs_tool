@@ -4,7 +4,7 @@ import type { PinoLogger } from 'hono-pino'
 import type { ProblemDetails } from 'hono-problem-details'
 import type { JwtVariables } from 'hono/jwt'
 import type { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
-import type { ValidationErrorItem } from '@/schemas/shared.schema'
+import type { ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItem } from '@/schemas/shared.schema'
 
 export type AppAuthPayload = {
   sub: string
@@ -38,6 +38,8 @@ export type AppProblemExtensions = {
   FILE_TOO_LARGE: {
     maxSizeMB: number
   }
+  PROJECT_PERIOD_EXPIRED: z.infer<typeof ProjectPeriodExpiredSchema>
+  PROJECT_SHRINKAGE_CONFLICT: z.infer<typeof ProjectShrinkageConflictSchema>
 }
 
 /**
