@@ -19,7 +19,6 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   let adminHeaders: { Authorization: string }
   let coordenadorHeaders: { Authorization: string }
   let createdExpenseId: string
-  let projectId: string
   const categoryId = dummyExpenseCategories[0]!.id!
   const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o memorando.'
 
@@ -28,10 +27,6 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     await seedExpenseCategories()
     await seedPreferenceSurveys()
     await seedProjects()
-
-    const project = await prisma.project.findFirst()
-    assert(project)
-    projectId = project.id
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -162,10 +157,10 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   })
 
   it('[Step 5] Admin move para EM_PROCESSAMENTO (vínculo de projeto)', async () => {
-    const res = await client.expenses[':id']['assign-project'].$patch(
+    const res = await client.expenses[':id']['start-processing'].$patch(
       {
         param: { id: createdExpenseId },
-        json: { projectId },
+        json: {},
       },
       { headers: adminHeaders },
     )
@@ -175,6 +170,5 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     const json = await res.json()
 
     expect(json.status).toBe(ExpenseRequestStatus.EM_PROCESSAMENTO)
-    expect(json.project?.id).toBe(projectId)
   })
 })

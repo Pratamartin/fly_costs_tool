@@ -82,37 +82,62 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     assert(approveRes.status === status.OK)
 
     // 3. Admin vincula projeto (move para EM_PROCESSAMENTO)
-    const assignRes = await client.expenses[':id']['assign-project'].$patch({
+    const assignRes = await client.expenses[':id']['start-processing'].$patch({
       param: { id: expenseId },
-      json: { projectId },
+      json: {},
     }, { headers: adminHeaders })
     expect(assignRes.status).toBe(status.OK)
     assert(assignRes.status === status.OK)
+
+    // Capturar saldo inicial do projeto antes de adicionar discriminações
+    const projectBefore = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    const initialUsed = Number(projectBefore.usedBudget)
 
     // 4. Tenta concluir sem breakdowns -> Deve falhar (MISSING_BREAKDOWNS)
     const concludeFail1 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
     await expectProblem(concludeFail1, 'MISSING_BREAKDOWNS')
 
-    // 5. Adiciona breakdown sem comprovante
+    // 5. Adiciona PRIMEIRO breakdown sem comprovante
     const breakdownRes = await client.expenses[':id']['cost-breakdowns'].$post({
       param: { id: expenseId },
       json: {
         amount: 100,
+        projectId,
         subcategoryName,
       },
     }, { headers: adminHeaders })
     expect(breakdownRes.status).toBe(status.CREATED)
     assert(breakdownRes.status === status.CREATED)
-    const { id: breakdownId } = await breakdownRes.json()
+    const { id: breakdownId1 } = await breakdownRes.json()
+
+    // 5.1 Adiciona SEGUNDO breakdown no mesmo projeto (Agrupamento)
+    const breakdownRes2 = await client.expenses[':id']['cost-breakdowns'].$post({
+      param: { id: expenseId },
+      json: {
+        amount: 200,
+        projectId,
+        subcategoryName,
+      },
+    }, { headers: adminHeaders })
+    assert(breakdownRes2.status === status.CREATED)
+    const { id: breakdownId2 } = await breakdownRes2.json()
+
+    // [VALIDAÇÃO TDD Opção A]: O saldo do projeto NÃO deve ter mudado ainda
+    const projectMid = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    expect(Number(projectMid.usedBudget)).toBe(initialUsed)
 
     // 6. Tenta concluir com breakdown sem comprovante -> Deve falhar (MISSING_RECEIPTS)
     const concludeFail2 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
     await expectProblem(concludeFail2, 'MISSING_RECEIPTS')
 
-    // 7. Simula upload de comprovante via DB
+    // 7. Simula upload de comprovante via DB para ambos
     await prisma.costBreakdown.update({
-      where: { id: breakdownId },
-      data: { attachmentKey: 'fake-key' },
+      where: { id: breakdownId1 },
+      data: { attachmentKey: 'fake-key-1' },
+    })
+    await prisma.costBreakdown.update({
+      where: { id: breakdownId2 },
+      data: { attachmentKey: 'fake-key-2' },
     })
 
     // [VALIDAÇÃO]: Testar falha de upload (MIME Type)
@@ -143,6 +168,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     const finalExpense = await concludeSuccess.json()
     expect(finalExpense.status).toBe(ExpenseRequestStatus.CONCLUIDO)
+
+    // [VALIDAÇÃO TDD Opção A]: O saldo deve ter subido exatamente a soma das discriminações (300)
+    const projectAfter = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    expect(Number(projectAfter.usedBudget)).toBe(initialUsed + 300)
   })
 
   it('[PROIBIDO]: Apenas ADMIN pode concluir despesa', async () => {
@@ -172,9 +201,9 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     }, { headers: coordenadorHeaders })
     assert(approveRes.status === status.OK)
 
-    const assignRes = await client.expenses[':id']['assign-project'].$patch({
+    const assignRes = await client.expenses[':id']['start-processing'].$patch({
       param: { id: expenseId },
-      json: { projectId },
+      json: {},
     }, { headers: adminHeaders })
     assert(assignRes.status === status.OK)
 

@@ -35,7 +35,6 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
           location: 'Local de Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_IA,
         studentId: ID_ALUNO,
       },
     })
@@ -59,6 +58,7 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
         param: { id: expenseId },
         json: {
           amount: 0,
+          projectId: ID_PROJ_IA,
           subcategoryName: category.normalizedName,
         },
       },
@@ -81,6 +81,7 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
         param: { id: expenseId },
         json: {
           amount: 100,
+          projectId: ID_PROJ_IA,
           subcategoryName: 'CATEGORIA_QUE_NAO_EXISTE',
         },
       },
@@ -88,5 +89,61 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
     )
 
     await expectProblem(res, 'INVALID_SUBCATEGORIES')
+  })
+
+  it('deve bloquear discriminação que exceda o budget considerando valores pendentes (EM_PROCESSAMENTO)', async () => {
+    // 1. Criar um projeto isolado com saldo limitado
+    const limitedProject = await prisma.project.create({
+      data: {
+        name: 'Projeto de Validação de Saldo',
+        code: 'VAL-SALDO',
+        budget: 500,
+        usedBudget: 0,
+        expenseCategories: { connect: { id: category.id! } },
+      },
+    })
+
+    // 2. Criar uma segunda despesa para simular concorrência de pendentes
+    const otherExpense = await prisma.expenseRequest.create({
+      data: {
+        title: 'Outra Despesa Pendente',
+        status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'E',
+          location: 'L',
+        },
+        article: { classification: 'Sem Qualis' },
+        studentId: ID_ALUNO,
+      },
+    })
+
+    // 3. Adicionar R$ 400 na primeira despesa (Saldo restante: 100)
+    await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: expenseId },
+        json: {
+          amount: 400,
+          projectId: limitedProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 4. Tentar adicionar R$ 200 na outra despesa (Total ficaria 600 > 500)
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: otherExpense.id },
+        json: {
+          amount: 200,
+          projectId: limitedProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 5. Deve falhar com PROJECT_INSUFFICIENT_FUNDS (Task 1.4)
+    await expectProblem(res, 'PROJECT_INSUFFICIENT_FUNDS')
   })
 })

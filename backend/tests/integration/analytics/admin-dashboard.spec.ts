@@ -1,6 +1,7 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { analytics } from '@/routes'
@@ -28,6 +29,7 @@ describe('get /analytics/admin-dashboard', () => {
 
   afterAll(async () => {
     await prisma.preferenceSurveyAnswer.deleteMany()
+    await prisma.costBreakdown.deleteMany()
     await prisma.expenseRequest.deleteMany()
     await prisma.preferenceSurvey.deleteMany()
     await prisma.project.deleteMany()
@@ -67,9 +69,16 @@ describe('get /analytics/admin-dashboard', () => {
       .reduce((acc, proj) => acc + Number(proj.budget), 0)
       .toString()
 
-    const expectedBudgetCommitted = dummyProjects
-      .reduce((acc, proj) => acc + Number(proj.usedBudget ?? 0), 0)
-      .toString()
+    // O budget committed agora é = (usedBudget dos projetos) + (costBreakdowns em EM_PROCESSAMENTO)
+    const dbProjects = await prisma.project.findMany()
+    const dbPending = await prisma.costBreakdown.aggregate({
+      where: { expenseRequest: { status: ExpenseRequestStatus.EM_PROCESSAMENTO } },
+      _sum: { amount: true },
+    })
+
+    const realUsed = dbProjects.reduce((acc, proj) => acc + Number(proj.usedBudget), 0)
+    const pendingAmount = Number(dbPending._sum.amount || 0)
+    const expectedBudgetCommitted = (realUsed + pendingAmount).toString()
 
     expect(typeof json.totalValue).toBe('string')
     expect(typeof json.budgetCommitted).toBe('string')

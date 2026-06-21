@@ -1,7 +1,7 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
-import { ID_ALUNO, ID_PROJ_DATA_SCIENCE, ID_PROJ_ROBOTICA } from '@/constants/seed.constant'
+import { ID_ALUNO, ID_PROJ_DATA_SCIENCE, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
@@ -60,13 +60,13 @@ describe('get /analytics/top-projects', () => {
           location: 'Local Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_DATA_SCIENCE,
         studentId: ID_ALUNO,
       },
     })
 
     await createCostBreakdown(expense.id, {
       amount: 100,
+      projectId: ID_PROJ_DATA_SCIENCE,
       subcategoryName,
     })
 
@@ -91,18 +91,29 @@ describe('get /analytics/top-projects', () => {
           location: 'Local Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
       },
     })
 
     await createCostBreakdown(baseExpense.id, {
       amount: VALOR_PARA_EMPATAR,
+      projectId: ID_PROJ_ROBOTICA,
       subcategoryName,
     })
 
+    // NOVA LINHA (Refatoração Opção A): Forçamos o empate financeiro diretamente,
+    // já que o breakdown acima não aumenta mais o usedBudget no processamento.
+    await prisma.project.update({
+      where: { id: ID_PROJ_ROBOTICA },
+      data: { usedBudget: VALOR_PARA_EMPATAR },
+    })
+    await prisma.project.update({
+      where: { id: ID_PROJ_IA },
+      data: { usedBudget: VALOR_PARA_EMPATAR },
+    })
+
     // ARRANGE: Cria a vantagem em volume (quantidade de requisições)
-    await prisma.expenseRequest.create({
+    const extraExpense = await prisma.expenseRequest.create({
       data: {
         title: 'Gasto Extra para Desempate',
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
@@ -111,9 +122,14 @@ describe('get /analytics/top-projects', () => {
           location: 'Local Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_ROBOTICA,
         studentId: ID_ALUNO,
       },
+    })
+
+    await createCostBreakdown(extraExpense.id, {
+      amount: 10,
+      projectId: ID_PROJ_ROBOTICA,
+      subcategoryName,
     })
 
     // ACT: Executa a ação
