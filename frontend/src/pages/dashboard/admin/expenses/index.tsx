@@ -427,6 +427,7 @@ export default function AdminExpenses() {
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Destino</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ida / Volta</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ações</th>
                     </tr>
@@ -434,7 +435,7 @@ export default function AdminExpenses() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {paginated.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
+                        <td colSpan={9} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
                           Nenhuma despesa encontrada com os filtros aplicados.
                         </td>
                       </tr>
@@ -476,6 +477,16 @@ export default function AdminExpenses() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(expense.createdAt)}</p>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {expense.departureDate ? (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                              <p>↗ {new Date(expense.departureDate).toLocaleDateString("pt-BR")}</p>
+                              {expense.returnDate && <p>↙ {new Date(expense.returnDate).toLocaleDateString("pt-BR")}</p>}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge status={expense.status} />

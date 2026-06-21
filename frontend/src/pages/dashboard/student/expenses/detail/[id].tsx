@@ -243,7 +243,7 @@ export default function StudentExpenseDetail() {
                           </svg>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Memorando</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Trabalho publicado</p>
                           <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{expense.attachmentKey.split("/").pop()}</p>
                         </div>
                       </div>

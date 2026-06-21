@@ -127,7 +127,7 @@ export default function DashboardAdmin() {
         <header className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
           <div>
             <h1 className="text-base font-bold text-gray-900 dark:text-gray-50 sm:text-xl">Painel Global</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Visão geral de todos os projetos e despesas acadêmicas</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Visão geral de todos os projetos e receitas acadêmicas</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative flex-1 sm:flex-none">
@@ -136,7 +136,7 @@ export default function DashboardAdmin() {
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
                 </svg>
               </span>
-              <input type="text" placeholder="Pesquisar projetos, despesas..." className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56" />
+              <input type="text" placeholder="Pesquisar projetos, receitas..." className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2 pl-9 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#1e2d3d] focus:ring-1 focus:ring-[#1e2d3d] sm:w-56" />
             </div>
             <ThemeToggle />
             <NotificationsPanel role="admin" />
@@ -159,11 +159,11 @@ export default function DashboardAdmin() {
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total de Gastos</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total de receitas</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                   {carregando ? "—" : `R$ ${fmt(totalValue)}`}
                 </p>
-                <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">valor total das despesas</p>
+                <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">valor total das receitas</p>
               </div>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-600">
@@ -175,7 +175,7 @@ export default function DashboardAdmin() {
             <div className="flex flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Orçamento Comprometido</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total das despesas</p>
                   <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
                     {carregando ? "—" : `R$ ${fmt(budgetCommitted)}`}
                   </p>
@@ -212,7 +212,7 @@ export default function DashboardAdmin() {
             <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* Status breakdown */}
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
-                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Despesas por Status</h2>
+                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Status das receitas</h2>
                 <div className="space-y-3">
                   {([
                     { key: "PENDENTE",         label: "Pendente",          color: "bg-yellow-400" },
@@ -266,7 +266,7 @@ export default function DashboardAdmin() {
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
               <div>
                 <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Atividade Recente</h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Últimas despesas registradas</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Últimas receitas registradas</p>
               </div>
               <button
                 onClick={() => router.push("/dashboard/admin/expenses")}
@@ -288,7 +288,7 @@ export default function DashboardAdmin() {
                 <table className="hidden w-full md:table">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">ID Despesa</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">ID Receita</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Solicitação</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
@@ -299,7 +299,7 @@ export default function DashboardAdmin() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {recentExpenses.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Nenhuma despesa registrada.</td>
+                        <td colSpan={6} className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Nenhuma receita registrada.</td>
                       </tr>
                     ) : recentExpenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -335,7 +335,7 @@ export default function DashboardAdmin() {
                 </table>
 
                 <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-4">
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Exibindo {recentExpenses.length} despesas mais recentes</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Exibindo {recentExpenses.length} receitas mais recentes</p>
                 </div>
 
                 {/* Cards — mobile */}

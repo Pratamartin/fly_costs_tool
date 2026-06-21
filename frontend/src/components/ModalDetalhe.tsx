@@ -97,10 +97,10 @@ export default function ModalDetalhe({ despesa, token, onClose }: ModalDetalhePr
             </div>
           )}
 
-          {/* Memorando */}
+          {/* Trabalho publicado */}
           {despesa.attachmentKey && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Memorando</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Trabalho publicado</h4>
               <div className="flex items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-indigo-600">
