@@ -14,8 +14,8 @@
  *   without needing a real R2 bucket configured.
  */
 
-import 'dotenv/config'
 import prisma from '@/lib/orm'
+import 'dotenv/config'
 
 const arg = process.argv[2]
 
@@ -28,7 +28,9 @@ if (!arg) {
 async function main() {
   const expense = await prisma.expenseRequest.findFirst({
     where: { id: { startsWith: arg.toLowerCase() } },
-    include: { costBreakdowns: { select: { id: true, attachmentKey: true, amount: true } } },
+    include: {
+      costBreakdowns: { select: { id: true, attachmentKey: true, amount: true } },
+    },
   })
 
   if (!expense) {
@@ -36,12 +38,12 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`Despesa : ${expense.id}`)
-  console.log(`Status  : ${expense.status}`)
-  console.log(`Breakdowns: ${expense.costBreakdowns.length}`)
+  console.warn(`Despesa : ${expense.id}`)
+  console.warn(`Status  : ${expense.status}`)
+  console.warn(`Breakdowns: ${expense.costBreakdowns.length}`)
   for (const cb of expense.costBreakdowns) {
     const tag = cb.attachmentKey ? '✓ já tem receipt' : '✗ sem receipt'
-    console.log(`  - R$${cb.amount}  [${tag}]  id: ${cb.id}`)
+    console.warn(`  - R$${cb.amount}  [${tag}]  id: ${cb.id}`)
   }
 
   if (expense.costBreakdowns.length === 0) {
@@ -50,16 +52,19 @@ async function main() {
   }
 
   const updated = await prisma.costBreakdown.updateMany({
-    where: { expenseRequestId: expense.id, attachmentKey: null },
+    where: {
+      expenseRequestId: expense.id,
+      attachmentKey: null,
+    },
     data: { attachmentKey: 'local-bypass' },
   })
 
   if (updated.count === 0) {
-    console.log('\nTodos os breakdowns já possuem attachmentKey. Pode concluir no admin.')
+    console.warn('\nTodos os breakdowns já possuem attachmentKey. Pode concluir no admin.')
   }
   else {
-    console.log(`\n✓ ${updated.count} breakdown(s) atualizados com attachmentKey = "local-bypass"`)
-    console.log('Agora clique em Concluir no admin.')
+    console.warn(`\n✓ ${updated.count} breakdown(s) atualizados com attachmentKey = "local-bypass"`)
+    console.warn('Agora clique em Concluir no admin.')
   }
 }
 
