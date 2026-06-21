@@ -121,7 +121,10 @@ export async function updateUser(id: string, data: UpdateUserDTO): Promise<Servi
 
   if (email && email !== user.email) {
     const emailInUse = await prisma.user.findFirst({
-      where: { email, id: { not: id } },
+      where: {
+        email,
+        id: { not: id },
+      },
       select: { id: true },
     })
 
