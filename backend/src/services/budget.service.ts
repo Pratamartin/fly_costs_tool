@@ -41,7 +41,13 @@ export function validateCategoryAllowedInProject(
 ): ServiceResult<{ success: true }, 'INVALID_SUBCATEGORIES'> {
   const validCategories = projectCategories.map(c => c.normalizedName)
   if (!validCategories.includes(requestedCategory)) {
-    return { error: 'INVALID_SUBCATEGORIES' }
+    return {
+      error: 'INVALID_SUBCATEGORIES',
+      context: {
+        invalidNames: [requestedCategory],
+        allowedNames: validCategories,
+      },
+    }
   }
   return { success: true }
 }
@@ -56,7 +62,10 @@ export function validateSufficientBudget(
   const requested = new Prisma.Decimal(requestedAmount)
 
   if (requested.greaterThan(available)) {
-    return { error: 'PROJECT_INSUFFICIENT_FUNDS' }
+    return {
+      error: 'PROJECT_INSUFFICIENT_FUNDS',
+      context: { availableBudget: available.toFixed(2) },
+    }
   }
   return { success: true }
 }

@@ -94,11 +94,17 @@ export async function revokeInvite(id: string): Promise<ServiceResult<InviteCode
 
   const status = mapInviteStatus(invite)
   if (status === INVITE_STATUS.USED) {
-    return { error: 'INVITE_ALREADY_USED' }
+    return {
+      error: 'INVITE_ALREADY_USED',
+      context: { usedAt: invite.usedAt?.toISOString() ?? null },
+    }
   }
 
   if (status === INVITE_STATUS.EXPIRED) {
-    return { error: 'INVITE_ALREADY_EXPIRED' }
+    return {
+      error: 'INVITE_ALREADY_EXPIRED',
+      context: { expiredAt: invite.expiresAt.toISOString() },
+    }
   }
 
   return prisma.inviteCode.update({
@@ -116,11 +122,17 @@ export async function findInviteByCode(code: string, tx: Prisma.TransactionClien
 
   const status = mapInviteStatus(invite)
   if (status === INVITE_STATUS.USED) {
-    return { error: 'INVITE_ALREADY_USED' }
+    return {
+      error: 'INVITE_ALREADY_USED',
+      context: { usedAt: invite.usedAt?.toISOString() ?? null },
+    }
   }
 
   if (status === INVITE_STATUS.EXPIRED) {
-    return { error: 'INVITE_ALREADY_EXPIRED' }
+    return {
+      error: 'INVITE_ALREADY_EXPIRED',
+      context: { expiredAt: invite.expiresAt.toISOString() },
+    }
   }
 
   return invite

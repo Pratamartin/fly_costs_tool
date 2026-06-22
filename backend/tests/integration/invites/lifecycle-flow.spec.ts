@@ -18,6 +18,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
   let adminHeaders: { Authorization: string }
   let studentHeaders: { Authorization: string }
   let createdInviteCode: string
+  let exactUsedAt: string
 
   beforeAll(async () => {
     await seedUsers()
@@ -98,6 +99,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
     assert(inviteInDb, 'O convite deveria existir no banco')
     expect(inviteInDb.usedById).toBe(json.id)
     expect(inviteInDb.usedAt).toBeDefined()
+    exactUsedAt = inviteInDb.usedAt!.toISOString()
   })
 
   it('[Passo 5] Tentativa de usar o mesmo código novamente retorna 409', async () => {
@@ -114,7 +116,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       },
     })
 
-    await expectProblem(res, 'INVITE_ALREADY_USED')
+    await expectProblem(res, 'INVITE_ALREADY_USED', { usedAt: exactUsedAt })
   })
 
   it('[Passo 6] ADMIN não pode revogar um convite já utilizado', async () => {
@@ -126,7 +128,7 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       { headers: adminHeaders },
     )
 
-    await expectProblem(res, 'INVITE_ALREADY_USED')
+    await expectProblem(res, 'INVITE_ALREADY_USED', { usedAt: exactUsedAt })
   })
 
   it('[Passo 7] ADMIN revoga um convite ATIVO e ele se torna inutilizável', async () => {
@@ -154,6 +156,9 @@ describe('[Invite Lifecycle Flow] Create → Validate → Consume → Block', ()
       },
     })
 
-    await expectProblem(registerRes, 'INVITE_ALREADY_EXPIRED')
+    const revokedInvite = await prisma.inviteCode.findUnique({ where: { id: inviteId } })
+    assert(revokedInvite?.expiresAt)
+
+    await expectProblem(registerRes, 'INVITE_ALREADY_EXPIRED', { expiredAt: revokedInvite.expiresAt.toISOString() })
   })
 })

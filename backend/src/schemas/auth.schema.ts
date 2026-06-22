@@ -6,7 +6,7 @@ import { ProfileSchema, UserSchema } from './user.schema'
 
 const RegisterBaseSchema = z.object({
   name: z.string().openapi({ example: MOCK_USER.name }),
-  email: z.email().meta({ example: MOCK_USER.email }),
+  email: z.email().openapi({ example: MOCK_USER.email }),
   password: z.string()
     .min(8, 'Password must be at least 8 characters long')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -24,14 +24,14 @@ const RegisterBaseSchema = z.object({
 export const AlunoRegisterSchema = RegisterBaseSchema
   .extend((ProfileSchema.omit({ pixKey: true }).required()).shape)
   .extend({
-    role: z.literal(UserRole.ALUNO),
+    role: z.literal(UserRole.ALUNO).openapi({ example: UserRole.ALUNO }),
     birthDate: validBirthDate,
     bankCode: validBankCode,
     pixKey: validPixKey,
   })
 
 export const StaffRegisterSchema = RegisterBaseSchema
-  .extend({ role: z.enum([UserRole.ADMIN, UserRole.COORDENADOR]) })
+  .extend({ role: z.enum([UserRole.ADMIN, UserRole.COORDENADOR]).openapi({ examples: [UserRole.ADMIN, UserRole.COORDENADOR] }) })
 
 export const RegisterSchema = z.discriminatedUnion('role', [
   StaffRegisterSchema.strict(),

@@ -29,7 +29,7 @@ export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
   const result = await revokeInvite(id)
 
   if (result && 'error' in result) {
-    throw problems.create(result.error)
+    throw problems.create(result.error, { extensions: result.context })
   }
 
   return c.body(null, codes.NO_CONTENT)

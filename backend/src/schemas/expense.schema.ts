@@ -22,16 +22,20 @@ export const ExpenseRelationsSchema = {
       bankAccount: true,
       pixKey: true,
     }).nullable()
-      .optional(),
+      .optional()
+      .openapi({ description: 'Student profile financial details' }),
   })
-    .optional(),
+    .optional()
+    .openapi({ description: 'Student details' }),
   project: ProjectSchema.pick({
     name: true,
     code: true,
   }).extend({ id: IdSchema })
     .nullable()
-    .optional(),
-  costBreakdowns: z.array(CostBreakdownResponseSchema).optional(),
+    .optional()
+    .openapi({ description: 'Assigned project details' }),
+  costBreakdowns: z.array(CostBreakdownResponseSchema).optional()
+    .openapi({ description: 'List of cost breakdowns associated with the request' }),
 }
 
 const BaseSchema = z.object({
@@ -97,7 +101,8 @@ export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial(
 export const ExpenseListItemSchema = z.object({
   id: IdSchema,
   studentId: IdSchema
-    .optional(),
+    .optional()
+    .openapi({ description: 'ID of the student who created the request' }),
 })
   .extend(BaseSchema.pick({
     title: true,
@@ -107,7 +112,8 @@ export const ExpenseListItemSchema = z.object({
   }).shape)
   .extend({
     attachmentKey: z.string().nullable()
-      .optional(),
+      .optional()
+      .openapi({ description: 'Memorandum key (PDF) in R2 storage.' }),
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
       id: IdSchema,
@@ -132,7 +138,15 @@ export const UpdateExpenseStatusSchema = z.object({
     }),
 }).check(reasonFieldRequired)
 
-export const UploadMemorandumSchema = z.object({ file: FileItemSchema.superRefine(validPDFCheck(MEMORANDUM_UPLOAD_MAX_SIZE_MB)) })
+export const UploadMemorandumSchema = z.object({
+  file: FileItemSchema
+    .openapi({
+      description: `The memorandum PDF file (application/pdf). Maximum size allowed: ${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB.`,
+      type: 'string',
+      format: 'binary',
+    })
+    .superRefine(validPDFCheck(MEMORANDUM_UPLOAD_MAX_SIZE_MB)),
+})
 
 export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
 
@@ -148,7 +162,8 @@ export const UpdateExpenseSchema = BaseSchema
   .partial()
   .extend({
     surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Select at least one preference to continue.' })
-      .optional(),
+      .optional()
+      .openapi({ description: 'List of categories and requested form responses' }),
   })
 
 export const ExpenseReportQuerySchema = z.object({

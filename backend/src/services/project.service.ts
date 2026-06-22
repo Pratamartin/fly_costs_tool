@@ -56,7 +56,14 @@ export async function createProject(
   }
 
   if (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES) {
-    return { error: 'INVALID_SUBCATEGORIES' }
+    return {
+      error: 'INVALID_SUBCATEGORIES',
+      context: {
+        minAllowed: MIN_SUBCATEGORIES,
+        maxAllowed: MAX_SUBCATEGORIES,
+        received: data.subcategories.length,
+      },
+    }
   }
 
   if (!await validateSubcategoriesExist(data.subcategories)) {
@@ -158,7 +165,14 @@ export async function updateProject(
   }
 
   if (data.subcategories && (data.subcategories.length < MIN_SUBCATEGORIES || data.subcategories.length > MAX_SUBCATEGORIES)) {
-    return { error: 'INVALID_SUBCATEGORIES' }
+    return {
+      error: 'INVALID_SUBCATEGORIES',
+      context: {
+        minAllowed: MIN_SUBCATEGORIES,
+        maxAllowed: MAX_SUBCATEGORIES,
+        received: data.subcategories.length,
+      },
+    }
   }
 
   if (data.subcategories && !await validateSubcategoriesExist(data.subcategories)) {

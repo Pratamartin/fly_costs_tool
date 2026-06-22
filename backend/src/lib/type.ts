@@ -4,7 +4,7 @@ import type { PinoLogger } from 'hono-pino'
 import type { ProblemDetails } from 'hono-problem-details'
 import type { JwtVariables } from 'hono/jwt'
 import type { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
-import type { ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItem } from '@/schemas/shared.schema'
+import type { FileUploadErrorSchema, InvalidSubcategoriesSchema, InviteAlreadyExpiredSchema, InviteAlreadyUsedSchema, ProjectInsufficientFundsSchema, ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItem } from '@/schemas/shared.schema'
 
 export type AppAuthPayload = {
   sub: string
@@ -26,18 +26,18 @@ export type AppContext = {
 export type AppProblemExtensions = {
   VALIDATION_ERROR: { errors: ValidationErrorItem[] }
   INTERNAL_SERVER_ERROR: { stack?: string }
+  INVITE_ALREADY_USED: z.infer<typeof InviteAlreadyUsedSchema>
+  INVITE_ALREADY_EXPIRED: z.infer<typeof InviteAlreadyExpiredSchema>
+  PROJECT_INSUFFICIENT_FUNDS: z.infer<typeof ProjectInsufficientFundsSchema>
+  INVALID_SUBCATEGORIES: z.infer<typeof InvalidSubcategoriesSchema>
   INVALID_TRANSITION: {
     resourceState: {
       current: ExpenseRequestStatus
       allowed: ExpenseRequestStatus[]
     }
   }
-  UNSUPPORTED_MEDIA_TYPE: {
-    allowedMimeTypes: string[]
-  }
-  FILE_TOO_LARGE: {
-    maxSizeMB: number
-  }
+  UNSUPPORTED_MEDIA_TYPE: z.infer<typeof FileUploadErrorSchema>
+  FILE_TOO_LARGE: z.infer<typeof FileUploadErrorSchema>
   PROJECT_PERIOD_EXPIRED: z.infer<typeof ProjectPeriodExpiredSchema>
   PROJECT_SHRINKAGE_CONFLICT: z.infer<typeof ProjectShrinkageConflictSchema>
 }
