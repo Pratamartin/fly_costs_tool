@@ -12,8 +12,9 @@ export type IndexRoute = typeof index
 export const index = createRoute({
   path: '/',
   method: 'get',
-  summary: 'Get current user profile',
-  description: 'Returns detailed data for the currently authenticated user.',
+  operationId: 'getCurrentUser',
+  summary: 'Get authenticated user',
+  description: 'Returns detailed profile data for the currently authenticated user based on their JWT token.',
   tags,
   middleware: [requireAuth],
   security: [{ Bearer: [] }],
@@ -31,8 +32,9 @@ export type UpdateRoute = typeof update
 export const update = createRoute({
   path: '/',
   method: 'patch',
-  summary: 'Update current user profile',
-  description: 'Updates profile information for the authenticated user.',
+  operationId: 'updateCurrentUser',
+  summary: 'Update authenticated user',
+  description: 'Updates profile information for the authenticated user. Students (`ALUNO`) can update their banking details. Staff roles (`ADMIN/COORDENADOR`) are blocked from adding beneficiary profiles by business rule. Validates for CPF uniqueness across the platform.',
   tags,
   middleware: [requireAuth],
   security: [{ Bearer: [] }],

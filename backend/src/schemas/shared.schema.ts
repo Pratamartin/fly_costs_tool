@@ -71,9 +71,9 @@ export function createResourceStateSchema<T extends z.ZodTypeAny>(statusSchema: 
  */
 export const FileUploadErrorSchema = z.object({
   allowedMimeTypes: z.array(z.string()).optional()
-    .openapi({ description: 'Lista de tipos MIME aceitos pelo servidor.' }),
+    .openapi({ description: 'List of MIME types accepted by the server.' }),
   maxSizeMB: z.number().optional()
-    .openapi({ description: 'Tamanho máximo permitido em Megabytes.' }),
+    .openapi({ description: 'Maximum file size allowed in Megabytes.' }),
 })
 
 export type FileUploadError = z.infer<typeof FileUploadErrorSchema>
@@ -88,3 +88,58 @@ export const ProjectPeriodExpiredSchema = z.object({
 })
 
 export const ProjectShrinkageConflictSchema = z.object({ orphanedCostAllocationsCount: z.number().openapi({ description: 'Number of orphaned cost allocations.' }) })
+
+export const InviteAlreadyUsedSchema = z.object({
+  usedAt: z.string().nullable()
+    .openapi({
+      description: 'ISO 8601 timestamp of when the invite was consumed.',
+      example: '2026-06-15T14:32:00.000Z',
+    }),
+})
+
+export const InviteAlreadyExpiredSchema = z.object({
+  expiredAt: z.string()
+    .openapi({
+      description: 'ISO 8601 timestamp of when the invite expired.',
+      example: '2026-06-01T00:00:00.000Z',
+    }),
+})
+
+export const ProjectInsufficientFundsSchema = z.object({
+  availableBudget: z.string()
+    .openapi({
+      description: 'Remaining available budget in the project at the time of the request.',
+      example: '1250.00',
+    }),
+})
+
+export const InvalidSubcategoriesSchema = z.object({
+  invalidNames: z.array(z.string()).optional()
+    .openapi({
+      description: 'Subcategory names that were rejected because they do not belong to the project.',
+      example: ['passagem-aerea'],
+    }),
+  allowedNames: z.array(z.string()).optional()
+    .openapi({
+      description: 'Full list of subcategory names accepted by this project.',
+      example: ['inscricao', 'diarias'],
+    }),
+  minAllowed: z.number().int()
+    .optional()
+    .openapi({
+      description: 'Minimum number of subcategories required.',
+      example: 1,
+    }),
+  maxAllowed: z.number().int()
+    .optional()
+    .openapi({
+      description: 'Maximum number of subcategories allowed.',
+      example: 10,
+    }),
+  received: z.number().int()
+    .optional()
+    .openapi({
+      description: 'Number of subcategories received in the request.',
+      example: 0,
+    }),
+})

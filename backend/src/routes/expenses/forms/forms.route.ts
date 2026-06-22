@@ -12,8 +12,9 @@ export const index = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
+  operationId: 'getExpenseForms',
   summary: 'Get expense forms (schemas + ui)',
-  description: 'Returns JSON Schemas and UI Schemas for Event and Article.',
+  description: 'Returns the JSON Schema and UI Schema definitions for Event and Article form rendering.',
   tags,
   responses: {
     [codes.OK]: jsonContent(FormsResponseSchema, 'Base forms.'),

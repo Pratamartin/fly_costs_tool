@@ -88,7 +88,7 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
       { headers: adminHeaders },
     )
 
-    await expectProblem(res, 'INVALID_SUBCATEGORIES')
+    await expectProblem(res, 'INVALID_SUBCATEGORIES', { invalidNames: ['categoria-que-nao-existe'] })
   })
 
   it('deve bloquear discriminação que exceda o budget considerando valores pendentes (EM_PROCESSAMENTO)', async () => {
@@ -146,7 +146,7 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
     )
 
     // 5. Deve falhar com PROJECT_INSUFFICIENT_FUNDS (Task 1.4)
-    await expectProblem(res, 'PROJECT_INSUFFICIENT_FUNDS')
+    await expectProblem(res, 'PROJECT_INSUFFICIENT_FUNDS', { availableBudget: '100.00' })
   })
 
   it('deve bloquear alocação de custo fora do período de vigência do projeto (PROJECT_PERIOD_EXPIRED)', async () => {

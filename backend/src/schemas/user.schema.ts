@@ -68,12 +68,21 @@ export const UserSchema = z.object({
   isActive: z.boolean().openapi({ example: true }),
   profile: ProfileSchema.extend({
     bankAccount: z.string().transform(maskBankAccountTransform)
-      .nullish(),
+      .nullish()
+      .openapi({
+        example: '***56-7',
+        description: 'Masked bank account for privacy',
+      }),
   })
     .nullish(),
 }).extend(TimestampSchema)
 
 export const UpdateProfileSchema = ProfileSchema.partial().extend({
-  name: z.string().optional(),
+  name: z.string()
+    .optional()
+    .openapi({
+      example: MOCK_USER.name,
+      description: 'Optional user name update',
+    }),
   email: z.email().optional(),
 })

@@ -133,3 +133,23 @@ Refatorar testes para garantir a nova arquitetura:
 - [x] **Cobertura**: Refatoração integração cobrindo novos contratos de erro.
 - [x] **Propagação Total**: Handlers utilizam `extensions: result.context` em todos os erros de serviço.
 - [x] **OpenAPI "OneOf"**: O contrato reflete as extensões via `registryResponses` resolvendo o "erasing" por colisões de HTTP status.
+
+---
+
+## 7. Catálogo Vivo de Extensões (Metadados Atuais)
+
+Sempre que adicionarmos novos metadados semânticos a um erro, ele deve ser tipado em `src/schemas/shared.schema.ts`, atrelado no `AppProblemExtensions` usando `z.infer`, e **registrado nesta tabela** para servir como contrato humano de UX para a equipe de Frontend.
+
+| Código de Erro (AppProblemExtensions) | Zod Schema / Tipagem | O que informa? (UX / Motivo) | Exemplo de Origem |
+| :--- | :--- | :--- | :--- |
+| `VALIDATION_ERROR` | `{ errors: ValidationErrorItem[] }` | Array de erros de validação Zod (field, code, message). Permite mapeamento de erros em formulários no front. | Zod Middleware |
+| `INTERNAL_SERVER_ERROR` | `{ stack?: string }` | Stacktrace (se habilitado). Útil apenas para debug; mascarado em produção. | Error Handler Geral |
+| `INVALID_SUBCATEGORIES` | `InvalidSubcategoriesSchema` | Informa quais strings de categoria falharam a validação no banco (`invalidNames`) e quais são as opções válidas. Permite ao Frontend pintar o campo exato de vermelho. | `project.service.ts` |
+| `PROJECT_INSUFFICIENT_FUNDS` | `ProjectInsufficientFundsSchema` | Fornece o `availableBudget` em tempo real. Evita que o usuário precise "adivinhar" o limite ou que o Frontend tenha que refazer a conta. | `project.service.ts` |
+| `INVITE_ALREADY_USED` | `InviteAlreadyUsedSchema` | Retorna `usedAt` informando quando o convite foi gasto. Útil para auditoria do admin. | `invite.service.ts` |
+| `INVITE_ALREADY_EXPIRED` | `InviteAlreadyExpiredSchema` | Retorna `expiredAt` informando a data exata da revogação/expiração. | `invite.service.ts` |
+| `PROJECT_PERIOD_EXPIRED` | `ProjectPeriodExpiredSchema` | Retorna `expiredAt` e `availableUntil` (data limite da vigência do projeto). | `project.service.ts` |
+| `PROJECT_SHRINKAGE_CONFLICT` | `ProjectShrinkageConflictSchema` | Usado ao tentar diminuir vigência/budget de um projeto abaixo do já consumido. Retorna as restrições calculadas no momento da falha. | `project.service.ts` |
+| `INVALID_TRANSITION` | `{ resourceState: { current, allowed } }` | Máquina de estados. Bloqueia avanço de status ilegal (ex: EM_PROCESSAMENTO para PAGO pulando APROVADO). | `expense.service.ts` |
+| `UNSUPPORTED_MEDIA_TYPE` | `{ allowedMimeTypes: string[] }` | Informa extensões válidas dinamicamente baseadas no config para bloquear upload malicioso. | `attachment.service.ts` |
+| `FILE_TOO_LARGE` | `{ maxSizeMB: number }` | Retorna o teto configurado de megabytes permitidos. Permite avisos na UI "Máximo X MB". | `attachment.service.ts` |

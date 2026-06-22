@@ -17,8 +17,9 @@ export const adminDashboard = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'getAdminDashboard',
   summary: 'Admin dashboard statistics',
-  description: 'Returns aggregated metrics of requests for the administrative panel.',
+  description: 'Returns aggregated metrics: total requests, breakdown by status, total project budget value, and committed budget (used + pending cost breakdowns in `EM_PROCESSAMENTO`). `ADMIN` only.',
   tags,
   responses: {
     [codes.OK]: jsonContent(AdminDashboardResponseSchema, 'Administrative statistics retrieved successfully.'),
@@ -31,8 +32,9 @@ export const topProjects = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'getTopProjects',
   summary: 'Top projects by allocated budget',
-  description: 'Returns the N most relevant projects based on their committed budget (used + pending cost breakdowns) and allocation volume.',
+  description: 'Returns the top N projects ranked by committed budget (`usedBudget` + pending cost breakdowns) and allocation volume. `ADMIN` only.',
   tags,
   request: { query: TopProjectsQuerySchema },
   responses: {

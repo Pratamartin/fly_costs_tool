@@ -23,8 +23,9 @@ export const index = createRoute({
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
   request: { query: ListProjectQuerySchema },
-  summary: 'List all projects',
-  description: 'Returns the complete list of projects registered in the system, including budgets and metadata.',
+  operationId: 'listProjects',
+  summary: 'List projects',
+  description: 'Returns a complete list of projects registered in the system, including their budgets and metadata. Role-based constraints: Only `ADMIN` users can access this endpoint.',
   tags,
   responses: {
     [codes.OK]: jsonContent(ListProjectResponseSchema, 'Project list retrieved successfully.'),
@@ -37,11 +38,9 @@ export const create = createRoute({
   method: 'post',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'createProject',
   summary: 'Create a new project',
-  description: `
-    Allows creating a new project by defining a unique identification code, total budget, and categories.
-    Initial creation sets the used budget to zero and status as active by default.
-  `,
+  description: 'Creates a project by defining a unique identification code, total budget, and associated expense categories. Initial creation automatically sets the used budget to zero and status as active. Returns 409 if the code is already in use.',
   tags,
   request: { body: jsonContentRequired(CreateProjectSchema, 'Project data') },
   responses: {
@@ -56,8 +55,9 @@ export const read = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'getProject',
   summary: 'Get project by ID',
-  description: 'Retrieves details of a specific project, presenting the balance between total, used, and available budget.',
+  description: 'Retrieves details of a specific project, presenting the real-time balance between total, used, and available budget.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
@@ -71,11 +71,9 @@ export const update = createRoute({
   method: 'patch',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'updateProject',
   summary: 'Update project',
-  description: `
-    Allows updating project registration and financial information.
-    If the code is changed, the system will validate that the new value does not already belong to another existing project.
-  `,
+  description: 'Updates project registration and financial information. If the code is changed, it validates that the new code does not conflict with existing projects (`PROJECT_CODE_IN_USE`).',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -93,11 +91,9 @@ export const updatePeriod = createRoute({
   method: 'patch',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
-  summary: 'Update project active period',
-  description: `
-    Allows updating the project's start and end dates.
-    Validates if the new period leaves any existing expense allocations orphaned (shrinkage conflict).
-  `,
+  operationId: 'updateProjectPeriod',
+  summary: 'Update active period',
+  description: 'Updates the project\'s temporal validity (start and end dates). Validation applies a "Temporal Shrinkage" check: it blocks the reduction of the period if there are already expense allocations (`CostBreakdown`) that would fall outside the new date bounds (`PROJECT_SHRINKAGE_CONFLICT`).',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -115,11 +111,9 @@ export const remove = createRoute({
   method: 'delete',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
-  summary: 'Archive project (Soft Delete)',
-  description: `
-    Performs logical archiving of the project (isActive=false).
-    The project will no longer accept new expenses, but its historical data remains preserved for audit purposes.
-  `,
+  operationId: 'archiveProject',
+  summary: 'Archive project',
+  description: 'Performs a logical soft delete (`isActive=false`). The project will no longer accept new expenses, but its historical data remains preserved for audits. Fails if the project is already archived.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {

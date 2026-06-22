@@ -26,18 +26,20 @@ export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true })
 
 export const CostBreakdownResponseSchema = z.object({
   id: IdSchema,
-  expenseRequestId: IdSchema,
-  projectId: IdSchema,
+  expenseRequestId: IdSchema.openapi({ description: 'ID of the parent expense request' }),
+  projectId: IdSchema.openapi({ description: 'Target project ID' }),
   amount: z.coerce.number()
     .openapi({ example: 150.50 }),
-  subcategory: ExpenseCategoryBaseSchema,
+  subcategory: ExpenseCategoryBaseSchema.openapi({ description: 'Category details for the breakdown' }),
   project: ProjectSchema.pick({
     name: true,
     code: true,
   }).extend({ id: IdSchema })
-    .optional(),
+    .optional()
+    .openapi({ description: 'Target project details' }),
   attachmentKey: z.string().nullable()
-    .optional(),
+    .optional()
+    .openapi({ description: 'Receipt key in R2 storage.' }),
 })
 
 export const UploadReceiptSchema = z.object({
