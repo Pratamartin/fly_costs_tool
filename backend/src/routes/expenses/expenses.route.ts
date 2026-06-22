@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
+import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS, MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { articleJSONSchema, eventJSONSchema } from '@/json'
 import { registryResponses, standardResponses } from '@/lib/problems'
@@ -30,8 +31,9 @@ export const index = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
+  operationId: 'listExpenses',
   summary: 'List expenses',
-  description: 'Returns all expenses if ADMIN/COORDENADOR or only own expenses if ALUNO.',
+  description: 'Visibility is role-scoped: `ALUNO` sees only own expenses (all statuses). `COORDENADOR` sees `PENDENTE`, `APROVADO`, `REJEITADO`. `ADMIN` sees `APROVADO`, `EM_EDICAO`, `EM_PROCESSAMENTO`, `CONCLUIDO`.',
   request: { query: ExpenseListQuerySchema },
   tags,
   responses: {
@@ -50,11 +52,9 @@ export const create = createRoute({
     validateJsonSchema('article', articleJSONSchema),
   ],
   security: [{ bearerAuth: [] }],
+  operationId: 'createExpense',
   summary: 'Create expense request',
-  description: `
-    Allows a PPGI student to request a new cost allowance.
-    Restricted to users with role: ${ALLOWED_ROLES.join(', ')}.
-  `,
+  description: `Creates a new expense request in \`PENDENTE\` status. Event and article payloads are validated against JSON Schema (AJV) before Zod validation. Restricted to role: ${ALLOWED_ROLES.join(', ')}.`,
   tags,
   request: { body: jsonContentRequired(CreateExpenseSchema, 'Request data') },
   responses: {
@@ -72,8 +72,9 @@ export const read = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
+  operationId: 'getExpense',
   summary: 'Get expense by ID',
-  description: 'Returns details of an expense request. Students can only access their own requests.',
+  description: 'Returns full expense details. Students can only access their own requests; other students\' expenses return `FORBIDDEN`.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
@@ -92,11 +93,9 @@ export const update = createRoute({
     validateJsonSchema('article', articleJSONSchema),
   ],
   security: [{ bearerAuth: [] }],
+  operationId: 'updateExpense',
   summary: 'Update expense',
-  description: `
-    Allows the student to update an expense request that is in 'EM_EDICAO' status.
-    Upon saving, the status returns to 'APROVADO' and the correction reason is cleared.
-  `,
+  description: 'Allows a student to update an expense in `EM_EDICAO` status (correction cycle). Upon saving, the status automatically transitions back to `APROVADO` and the `correctionReason` is cleared.',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -115,12 +114,9 @@ export const updateStatus = createRoute({
   method: 'patch',
   middleware: [requireAuth, requireRole(EVALUATOR_ROLES)],
   security: [{ bearerAuth: [] }],
+  operationId: 'updateExpenseStatus',
   summary: 'Update expense status',
-  description: `
-    Allows updating the status of an expense request.
-    Flow: PENDENTE -> APROVADO/REJEITADO (Coordinator/Admin).
-    Admin can transition APROVADO back to EM_EDICAO (returning it to the student).
-  `,
+  description: 'State machine transitions. `COORDENADOR/ADMIN`: `PENDENTE` → `APROVADO | REJEITADO`. `ADMIN` only: `APROVADO` → `EM_EDICAO`. Requires a `reason` when transitioning to `REJEITADO` or `EM_EDICAO`. `REJEITADO` is a terminal state.',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -141,12 +137,9 @@ export const startProcessing = createRoute({
   method: 'patch',
   middleware: [requireAuth, requireRole([UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
-  summary: 'Start Financial Processing',
-  description: `
-    Moves an APPROVED request to 'EM_PROCESSAMENTO' status.
-    This enables the addition of cost breakdowns with project allocation.
-    Restricted access to ADMIN.
-  `,
+  operationId: 'startExpenseProcessing',
+  summary: 'Start financial processing',
+  description: 'Transitions an `APROVADO` expense to `EM_PROCESSAMENTO`, unlocking cost breakdown allocation. `ADMIN` only.',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -170,9 +163,9 @@ export const uploadMemorandum = createRoute({
   method: 'post',
   middleware: [requireAuth, requireRole(ALLOWED_ROLES), uploadMemorandumSettings.size, uploadMemorandumSettings.content],
   security: [{ bearerAuth: [] }],
-  summary: 'Upload memorandum (PDF)',
-  description:
-    'Student attaches a PDF to a **PENDENTE** request. Send `multipart/form-data` with **file** field.',
+  operationId: 'uploadExpenseMemorandum',
+  summary: 'Upload memorandum',
+  description: `Student uploads a memorandum PDF. Format: \`application/pdf\`. Max size: **${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB**.`,
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -193,9 +186,9 @@ export const getMemorandumDownload = createRoute({
   method: 'get',
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
-  summary: 'Signed URL for memorandum download',
-  description:
-    'Student (own), coordinator, or admin obtains a temporary URL (1h) to download the PDF from R2.',
+  operationId: 'getMemorandumDownloadUrl',
+  summary: 'Get memorandum download URL',
+  description: `Generates a signed R2 URL to download the memorandum PDF. Valid for **${MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS}s**. Accessible by: expense owner, \`COORDENADOR\`, or \`ADMIN\`.`,
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
@@ -215,12 +208,9 @@ export const remove = createRoute({
   method: 'delete',
   middleware: [requireAuth, requireRole([UserRole.ALUNO, UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
+  operationId: 'deleteExpense',
   summary: 'Delete expense request',
-  description: `
-    Permanently deletes an expense request and all associated files from R2.
-    ALUNO can only delete their own expenses. ADMIN can delete any.
-    All cost breakdown receipts and memorandum files are removed from storage.
-  `,
+  description: 'Hard deletes the expense, all cost breakdowns, and all attached R2 files. Blocked for `CONCLUIDO` expenses (`INVALID_EXPENSE_STATE`). Deletion during `EM_PROCESSAMENTO` does NOT affect project budget.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
@@ -235,12 +225,9 @@ export const conclude = createRoute({
   method: 'post',
   middleware: [requireAuth, requireRole([UserRole.ADMIN])],
   security: [{ bearerAuth: [] }],
+  operationId: 'concludeExpense',
   summary: 'Conclude expense request',
-  description: `
-    Finalizes the expense request, formally sending the documents to the student.
-    Requires the expense to be in 'EM_PROCESSAMENTO' status, have at least one cost breakdown, and ALL breakdowns must have receipts attached.
-    Restricted access to ADMIN.
-  `,
+  description: 'Finalizes the expense to `CONCLUIDO`. **Preconditions:** status must be `EM_PROCESSAMENTO`, at least one cost breakdown exists (`MISSING_BREAKDOWNS`), ALL breakdowns must have receipts (`MISSING_RECEIPTS`). **Side effect:** debits project `usedBudget` by the sum of all breakdown amounts. `ADMIN` only.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {

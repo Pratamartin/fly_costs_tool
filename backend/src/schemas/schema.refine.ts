@@ -90,6 +90,10 @@ export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
     })
   }
 })
+  .openapi({
+    example: '2000-01-15T00:00:00Z',
+    description: 'Must be at least 18 years old.',
+  })
 
 const bankCodeRegex = /^\d{3}$/
 export const validBankCode = z.string().superRefine((val, ctx) => {
@@ -104,6 +108,10 @@ export const validBankCode = z.string().superRefine((val, ctx) => {
     })
   }
 })
+  .openapi({
+    example: '001',
+    description: '3-digit COMPE bank code.',
+  })
 const { cpf: zCpf, cnpj: zCnpj } = zodValidator(z)
 
 export const EXAMPLE_CPF = cpf.format('52998224725')

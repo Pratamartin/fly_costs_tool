@@ -3,7 +3,7 @@ import { z } from '@hono/zod-openapi'
 import { createProblemTypeRegistry } from 'hono-problem-details'
 import { createProblemDetailsSchema } from 'hono-problem-details/openapi'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
-import { createResourceStateSchema, FileUploadErrorSchema, ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItemSchema } from '@/schemas/shared.schema'
+import { createResourceStateSchema, FileUploadErrorSchema, InvalidSubcategoriesSchema, InviteAlreadyExpiredSchema, InviteAlreadyUsedSchema, ProjectInsufficientFundsSchema, ProjectPeriodExpiredSchema, ProjectShrinkageConflictSchema, ValidationErrorItemSchema } from '@/schemas/shared.schema'
 
 export const PROBLEM_DEFINITIONS = {
   // --- AUTH & SECURITY ---
@@ -69,12 +69,14 @@ export const PROBLEM_DEFINITIONS = {
     title: 'Invite already used',
     type: 'urn:sgda:domain:invite:already-used',
     detail: 'Cannot revoke or use an invite that has already been used.',
+    schema: InviteAlreadyUsedSchema,
   },
   INVITE_ALREADY_EXPIRED: {
     status: 410,
     title: 'Invite already expired',
     type: 'urn:sgda:domain:invite:already-expired',
     detail: 'This invite has already expired.',
+    schema: InviteAlreadyExpiredSchema,
   },
   INVITE_NOT_FOUND: {
     status: 404,
@@ -170,12 +172,14 @@ export const PROBLEM_DEFINITIONS = {
     title: 'Insufficient project funds',
     type: 'urn:sgda:domain:project:insufficient-funds',
     detail: 'Project does not have sufficient budget for this breakdown.',
+    schema: ProjectInsufficientFundsSchema,
   },
   INVALID_SUBCATEGORIES: {
     status: 400,
     title: 'Invalid subcategories',
     type: 'urn:sgda:domain:project:invalid-subcategories',
     detail: 'One or more subcategories provided are invalid for this project.',
+    schema: InvalidSubcategoriesSchema,
   },
   PROJECT_PERIOD_EXPIRED: {
     status: 409,
