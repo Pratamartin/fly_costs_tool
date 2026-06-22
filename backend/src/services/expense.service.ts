@@ -141,6 +141,15 @@ export async function getAllExpenseRequests(
   const data = await prisma.expenseRequest.findMany({
     where: { AND: [filters, visibility] },
     orderBy: { createdAt: 'desc' },
+    include: {
+      surveyAnswers: {
+        select: {
+          id: true,
+          data: true,
+          surveyId: true,
+        },
+      },
+    },
   })
 
   return data

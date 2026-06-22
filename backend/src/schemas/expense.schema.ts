@@ -4,7 +4,7 @@ import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { articleJSONSchema, eventJSONSchema } from '@/json'
 import { CostBreakdownResponseSchema } from './cost-breakdown.schema'
-import { PreferenceSurveyAnswerSchema } from './preference-survey.schema'
+import { DynamicSurveyDataSchema, PreferenceSurveyAnswerSchema } from './preference-survey.schema'
 import ProjectSchema from './project.schema'
 import { reasonFieldRequired, validPDFCheck } from './schema.refine'
 import { FileItemSchema, IdSchema, TimestampSchema } from './shared.schema'
@@ -86,9 +86,10 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
       id: IdSchema,
-      data: z.any(),
+      data: DynamicSurveyDataSchema,
       surveyId: IdSchema,
-    })).optional(),
+    })).optional()
+      .openapi({ description: 'List of submitted preference surveys (e.g. flights, daily allowances, registrations)' }),
   })
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
@@ -108,6 +109,12 @@ export const ExpenseListItemSchema = z.object({
     attachmentKey: z.string().nullable()
       .optional(),
     ...TimestampSchema,
+    surveyAnswers: z.array(z.object({
+      id: IdSchema,
+      data: DynamicSurveyDataSchema,
+      surveyId: IdSchema,
+    })).optional()
+      .openapi({ description: 'List of submitted preference surveys (e.g. flights, daily allowances, registrations)' }),
   })
 
 export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)

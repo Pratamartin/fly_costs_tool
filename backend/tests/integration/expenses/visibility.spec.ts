@@ -47,11 +47,27 @@ describe('[Expense Visibility] - Role-based isolation', () => {
 
     await prisma.expenseRequest.deleteMany()
 
-    await createExpenseWithStatus('Pendente Test', ExpenseRequestStatus.PENDENTE)
+    const exp1 = await createExpenseWithStatus('Pendente Test', ExpenseRequestStatus.PENDENTE)
     await createExpenseWithStatus('Aprovado Test', ExpenseRequestStatus.APROVADO)
     await createExpenseWithStatus('Rejeitado Test', ExpenseRequestStatus.REJEITADO)
     await createExpenseWithStatus('Em Edicao Test', ExpenseRequestStatus.EM_EDICAO)
     await createExpenseWithStatus('Em Processamento Test', ExpenseRequestStatus.EM_PROCESSAMENTO)
+
+    const survey = await prisma.preferenceSurvey.findFirst({ where: { expenseCategory: { normalizedName: 'passagem-aerea' } } })
+    if (survey) {
+      await prisma.preferenceSurveyAnswer.create({
+        data: {
+          expenseRequestId: exp1.id,
+          surveyId: survey.id,
+          data: {
+            departureDate: '2026-06-25',
+            returnDate: '2026-06-30',
+            departureRoute: 'GRU -> JFK',
+            returnRoute: 'JFK -> GRU',
+          },
+        },
+      })
+    }
   })
 
   afterAll(async () => {
@@ -68,6 +84,14 @@ describe('[Expense Visibility] - Role-based isolation', () => {
     assert(res.status === status.OK)
     const json = await res.json()
     expect(json).toHaveLength(5) // Todas as 5 criadas no beforeAll são do alunoId
+
+    // Assert that surveyAnswers are returned in the list endpoint
+    const expWithSurvey = json.find(e => e.title === 'Pendente Test')
+    assert(expWithSurvey)
+    expect(expWithSurvey).toHaveProperty('surveyAnswers')
+    assert(expWithSurvey.surveyAnswers)
+    expect(expWithSurvey.surveyAnswers.length).toBeGreaterThan(0)
+    expect(expWithSurvey.surveyAnswers[0]?.data).toHaveProperty('departureDate', '2026-06-25')
   })
 
   it('coordenador visualiza despesas PENDENTE, APROVADO, REJEITADO', async () => {

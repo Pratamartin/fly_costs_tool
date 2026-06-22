@@ -2,6 +2,15 @@ import { z } from '@hono/zod-openapi'
 import { preferenceSurveyJSONSchema, preferenceSurveyJSONUi } from '@/json'
 import { IdSchema, TimestampSchema } from './shared.schema'
 
+export const DynamicSurveyDataSchema = z.record(z.string(), z.any()).openapi({
+  description: 'Dynamic JSON payload containing the form answers. Structure depends on the expense category.',
+  oneOf: [
+    preferenceSurveyJSONSchema.definitions.diarias as any,
+    preferenceSurveyJSONSchema.definitions.inscricao as any,
+    preferenceSurveyJSONSchema.definitions['passagem-aerea'] as any,
+  ],
+})
+
 export const PreferenceSurveySchema = z.object({
   id: IdSchema,
   schema: z.fromJSONSchema(preferenceSurveyJSONSchema as any, { defaultTarget: 'draft-7' }).openapi({ example: preferenceSurveyJSONSchema.definitions['passagem-aerea'] }),
@@ -21,8 +30,5 @@ export const ListPreferenceSurveyResponseSchema = z.array(PreferenceSurveySchema
 
 export const PreferenceSurveyAnswerSchema = z.object({
   expenseCategoryId: IdSchema,
-  data: z.record(z.string(), z.any()).openapi({
-    description: 'Data filled in the category form.',
-    example: { invoiceKey: 'formulario-preferencias/user-uuid/arquivo-anexo.pdf' },
-  }),
+  data: DynamicSurveyDataSchema,
 })
