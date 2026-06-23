@@ -89,8 +89,8 @@ export const update = createRoute({
   middleware: [
     requireAuth,
     requireRole(ALLOWED_ROLES),
-    validateJsonSchema('event', eventJSONSchema),
-    validateJsonSchema('article', articleJSONSchema),
+    validateJsonSchema('event', eventJSONSchema, true),
+    validateJsonSchema('article', articleJSONSchema, true),
   ],
   security: [{ bearerAuth: [] }],
   operationId: 'updateExpense',

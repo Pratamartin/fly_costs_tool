@@ -4,7 +4,14 @@
   "definitions": {
     "diarias": {
       "title": "Auxílio Diárias",
-      "type": "boolean"
+      "type": "object",
+      "required": ["requested"],
+      "properties": {
+        "requested": {
+          "type": "boolean",
+          "title": "Solicitar Diárias?"
+        }
+      }
     },
     "inscricao": {
       "title": "Solicitação de Inscrição",
@@ -13,7 +20,9 @@
         "invoiceKey": {
           "type": "string",
           "format": "r2-key",
-          "title": "Anexar Boleto/Invoice"
+          "title": "Chave do Comprovante (Boleto/Invoice)",
+          "description": "Caminho (key) do arquivo salvo no R2 referente ao boleto ou invoice.",
+          "pattern": "^formulario-preferencias\\/[\\w/.-]+$"
         }
       }
     },
@@ -49,7 +58,9 @@
         "flightSuggestionKey": { 
           "type": "string", 
           "format": "r2-key", 
-          "title": "Sugestão de Voo" 
+          "title": "Sugestão de Voo (R2 Key)",
+          "description": "Caminho (key) do arquivo salvo no R2 referente à sugestão de voo.",
+          "pattern": "^formulario-preferencias\\/[\\w/.-]+$"
         }
       },
       "required": [

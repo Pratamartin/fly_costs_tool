@@ -6,15 +6,16 @@ describe('preference Survey Schema Validation', () => {
   describe('diarias', () => {
     const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.diarias)
 
-    it('deve validar com sucesso um booleano', () => {
-      expect(validate(true)).toBe(true)
-      expect(validate(false)).toBe(true)
+    it('deve validar com sucesso um booleano dentro do objeto', () => {
+      expect(validate({ requested: true })).toBe(true)
+      expect(validate({ requested: false })).toBe(true)
     })
 
-    it('deve falhar para valores não booleanos', () => {
-      expect(validate('true')).toBe(false)
-      expect(validate(1)).toBe(false)
+    it('deve falhar para valores não booleanos ou formatos incorretos', () => {
+      expect(validate({ requested: 'true' })).toBe(false)
+      expect(validate({ requested: 1 })).toBe(false)
       expect(validate({})).toBe(false)
+      expect(validate(true)).toBe(false)
     })
   })
 
