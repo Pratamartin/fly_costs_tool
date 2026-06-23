@@ -67,7 +67,7 @@ const BaseSchema = z.object({
   correctionReason: z.string().nullable()
     .openapi({
       description: 'Recorded reason if the request was returned for correction.',
-      example: 'Please adjust the expense title to match the memorandum.',
+      example: 'Please adjust the expense title to match the published work.',
     }),
 })
 
@@ -85,7 +85,7 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
     ...BaseSchema.shape,
     attachmentKey: z.string().nullable()
       .optional()
-      .openapi({ description: 'Memorandum key (PDF) in R2 storage.' }),
+      .openapi({ description: 'Published work key (PDF) in R2 storage.' }),
     ...ExpenseRelationsSchema,
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
@@ -113,7 +113,7 @@ export const ExpenseListItemSchema = z.object({
   .extend({
     attachmentKey: z.string().nullable()
       .optional()
-      .openapi({ description: 'Memorandum key (PDF) in R2 storage.' }),
+      .openapi({ description: 'Published work key (PDF) in R2 storage.' }),
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
       id: IdSchema,
@@ -141,7 +141,7 @@ export const UpdateExpenseStatusSchema = z.object({
 export const UploadMemorandumSchema = z.object({
   file: FileItemSchema
     .openapi({
-      description: `The memorandum PDF file (application/pdf). Maximum size allowed: ${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB.`,
+      description: `The published work PDF file (application/pdf). Maximum size allowed: ${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB.`,
       type: 'string',
       format: 'binary',
     })

@@ -119,9 +119,9 @@ export const PROBLEM_DEFINITIONS = {
   },
   MISSING_MEMO: {
     status: 400,
-    title: 'Missing memo',
+    title: 'Missing published work',
     type: 'urn:sgda:domain:expense:missing-memo',
-    detail: 'A memorandum is required to proceed with this action.',
+    detail: 'A published work is required to proceed with this action.',
   },
   MISSING_REASON: {
     status: 400,

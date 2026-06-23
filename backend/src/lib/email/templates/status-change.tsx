@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<ExpenseRequestStatus, StatusConfig> = {
     label: 'Aprovado',
     color: '#059669',
     bgColor: '#ecfdf5',
-    message: 'Excelente notícia! Sua solicitação foi aprovada pela coordenação com base no memorando e seguirá para os próximos trâmites financeiros.',
+    message: 'Excelente notícia! Sua solicitação foi aprovada pela coordenação com base no trabalho publicado e seguirá para os próximos trâmites financeiros.',
     actionLabel: 'Ver Detalhes',
   },
   REJEITADO: {
@@ -125,7 +125,7 @@ export const StatusChangeEmail: FC<StatusChangeEmailProps> = ({
               </tr>
             )}
             <tr>
-              <td style="padding-bottom: 12px; color: #6b7280; font-size: 14px;">Memorando:</td>
+              <td style="padding-bottom: 12px; color: #6b7280; font-size: 14px;">Trabalho Publicado:</td>
               <td style="padding-bottom: 12px; color: #111827; font-size: 14px;">
                 {hasMemorandum ? '✅ Anexado' : '❌ Não enviado'}
               </td>
