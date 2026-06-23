@@ -63,11 +63,16 @@
     ]
   },
   "diarias": {
-    "type": "Control",
-    "scope": "#",
+    "type": "Group",
     "label": "Auxílio Diárias",
-    "options": { 
-      "toggle": true 
-    }
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/requested",
+        "options": { 
+          "toggle": true 
+        }
+      }
+    ]
   }
 }
