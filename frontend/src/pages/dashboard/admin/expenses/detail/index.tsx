@@ -16,6 +16,7 @@ import {
   type Expense,
 } from "@/services/expenses";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
+import { listProjects, type Project } from "@/services/projects";
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -310,9 +311,11 @@ export default function ExpenseDetalhe() {
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const [cbSubcategoria, setCbSubcategoria] = useState("");
   const [cbValor, setCbValor] = useState("");
+  const [cbProjeto, setCbProjeto] = useState("");
   const [cbAnexo, setCbAnexo] = useState<File | null>(null);
   const [adicionandoCusto, setAdicionandoCusto] = useState(false);
   const [erroCusto, setErroCusto] = useState<string | null>(null);
@@ -356,8 +359,12 @@ export default function ExpenseDetalhe() {
       setExpense(result.data);
       if (result.data.status === "EM_PROCESSAMENTO") {
         setCarregandoCategorias(true);
-        const catResult = await listCategories(undefined, token);
+        const [catResult, projResult] = await Promise.all([
+          listCategories(undefined, token),
+          listProjects(token),
+        ]);
         if (catResult.ok) setCategories(catResult.data);
+        if (projResult.ok) setProjects(projResult.data);
         setCarregandoCategorias(false);
       }
     } else if (result.error === "UNAUTHORIZED") {
@@ -428,6 +435,7 @@ export default function ExpenseDetalhe() {
     const result = await createCostBreakdown(token, expense.id, {
       subcategoryName: cbSubcategoria.trim(),
       amount,
+      projectId: cbProjeto || undefined,
     });
     if (!result.ok) {
       setAdicionandoCusto(false);
@@ -446,6 +454,7 @@ export default function ExpenseDetalhe() {
     if (updated.ok) setExpense(updated.data);
     setCbSubcategoria("");
     setCbValor("");
+    setCbProjeto("");
     setCbAnexo(null);
     setAdicionandoCusto(false);
   }
@@ -842,6 +851,7 @@ export default function ExpenseDetalhe() {
                         <thead>
                           <tr className="border-b border-gray-100 dark:border-gray-800">
                             <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Tipo de Custo</th>
+                            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Projeto</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Valor</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Comprovante</th>
                           </tr>
@@ -850,6 +860,15 @@ export default function ExpenseDetalhe() {
                           {expense.costBreakdowns!.map((cb) => (
                             <tr key={cb.id}>
                               <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
+                              <td className="py-2.5 text-left">
+                                {cb.project ? (
+                                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+                                    {cb.project.code}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                                )}
+                              </td>
                               <td className="py-2.5 text-right font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</td>
                               <td className="py-2.5 text-right">
                                 {cb.attachmentKey ? (
@@ -881,6 +900,7 @@ export default function ExpenseDetalhe() {
                         <tfoot>
                           <tr className="border-t-2 border-gray-200 dark:border-gray-700">
                             <td className="pt-3 text-sm font-bold text-gray-700 dark:text-gray-300">Total</td>
+                            <td />
                             <td className="pt-3 text-right text-sm font-bold text-gray-900 dark:text-gray-50">{fmtCurrency(totalCusto)}</td>
                             <td />
                           </tr>
@@ -909,6 +929,21 @@ export default function ExpenseDetalhe() {
                             {categories.map((cat) => (
                               <option key={cat.id} value={cat.name}>
                                 {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <select
+                            value={cbProjeto}
+                            onChange={(e) => { setCbProjeto(e.target.value); setErroCusto(null); }}
+                            disabled={adicionandoCusto}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
+                          >
+                            <option value="">Projeto (opcional)</option>
+                            {projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.code} — {p.name}
                               </option>
                             ))}
                           </select>

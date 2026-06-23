@@ -5,6 +5,11 @@ export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSA
 export type StudentInfo = {
   id: string
   name: string
+  email?: string | null
+  bankCode?: string | null
+  bankName?: string | null
+  bankAgency?: string | null
+  bankAccount?: string | null
 }
 
 export type ProjectInfo = {

@@ -237,7 +237,9 @@ export default function DashboardAdmin() {
                 </div>
               </div>
 
-              {/* Top projects */}
+              {/* Top projects — B5: /v1/analytics/top-projects retorna totalRequests+totalValue por projeto.
+                  Para exibir breakdown por status ou orçamento utilizado por projeto, o backend precisará expor
+                  um endpoint dedicado (ex: GET /v1/analytics/projects-breakdown). */}
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                 <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Top Projetos por Solicitações</h2>
                 {topProjects.length === 0 ? (
