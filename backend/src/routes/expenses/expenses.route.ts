@@ -164,17 +164,17 @@ export const uploadMemorandum = createRoute({
   middleware: [requireAuth, requireRole(ALLOWED_ROLES), uploadMemorandumSettings.size, uploadMemorandumSettings.content],
   security: [{ bearerAuth: [] }],
   operationId: 'uploadExpenseMemorandum',
-  summary: 'Upload memorandum',
-  description: `Student uploads a memorandum PDF. Format: \`application/pdf\`. Max size: **${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB**.`,
+  summary: 'Upload published work',
+  description: `Student uploads a published work PDF. Format: \`application/pdf\`. Max size: **${MEMORANDUM_UPLOAD_MAX_SIZE_MB}MB**.`,
   tags,
   request: {
     params: z.object({ id: IdSchema }),
-    body: multipartFormContentRequired(UploadMemorandumSchema, 'Memorandum PDF file upload'),
+    body: multipartFormContentRequired(UploadMemorandumSchema, 'Published work PDF file upload'),
   },
   responses: {
     [codes.OK]: jsonContent(
       ExpenseResponseSchema,
-      'Memorandum attached; expense updated.',
+      'Published work attached; expense updated.',
     ),
     ...standardResponses,
     ...registryResponses('INVALID_FILE', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'INVALID_EXPENSE_STATE', 'EXPENSE_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'FORBIDDEN'),
@@ -187,8 +187,8 @@ export const getMemorandumDownload = createRoute({
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
   operationId: 'getMemorandumDownloadUrl',
-  summary: 'Get memorandum download URL',
-  description: `Generates a signed R2 URL to download the memorandum PDF. Valid for **${MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS}s**. Accessible by: expense owner, \`COORDENADOR\`, or \`ADMIN\`.`,
+  summary: 'Get published work download URL',
+  description: `Generates a signed R2 URL to download the published work PDF. Valid for **${MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS}s**. Accessible by: expense owner, \`COORDENADOR\`, or \`ADMIN\`.`,
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {

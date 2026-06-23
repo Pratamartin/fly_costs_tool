@@ -21,7 +21,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
   let createdExpenseId: string
   const inscricaoCategory = dummyExpenseCategories.find(c => c.normalizedName === 'inscricao')!
   const categoryId = inscricaoCategory.id!
-  const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o memorando.'
+  const correctionReason = 'Por favor, ajuste o título da despesa para condizer com o trabalho publicado.'
 
   beforeAll(async () => {
     await seedUsers()
