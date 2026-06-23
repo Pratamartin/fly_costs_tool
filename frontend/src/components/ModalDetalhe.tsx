@@ -31,7 +31,7 @@ export default function ModalDetalhe({ despesa, token, onClose }: ModalDetalhePr
     setBaixandoMemorandum(true);
     setErroMemorandum(null);
     try {
-      const result = await getMemorandumDownloadUrl(token, despesa.id);
+      const result = await getMemorandumDownloadUrl(token, despesa!.id);
       if (result.ok) {
         window.open(result.downloadUrl, "_blank");
       } else {

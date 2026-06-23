@@ -59,6 +59,9 @@ export type Expense = {
   attachmentKey?: string | null
   departureDate?: string | null
   returnDate?: string | null
+  city?: string | null
+  state?: string | null
+  country?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -400,12 +403,15 @@ export async function uploadMemorandum(
 export type ReportFilters = {
   from?: string
   to?: string
+  startDate?: string
+  endDate?: string
+  studentName?: string
   status?: ExpenseStatus | "all"
   projectId?: string
   studentId?: string
 }
 
-export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "UNKNOWN"
+export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
 
 export type ExportReportResult =
   | { ok: true; downloadUrl: string }

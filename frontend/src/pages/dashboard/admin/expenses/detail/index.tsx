@@ -703,7 +703,7 @@ export default function ExpenseDetalhe() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-sm font-semibold text-green-800">Dados confirmados — prossiga para vincular o projeto.</p>
+                    <p className="text-sm font-semibold text-green-800">Dados confirmados — aguarde a discriminação de custos (B4).</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
@@ -716,7 +716,7 @@ export default function ExpenseDetalhe() {
                     </div>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                      Confirme se os dados da solicitação estão corretos antes de vincular o projeto. Caso algum dado esteja incorreto, solicite correção ao aluno.
+                      Confirme se os dados da solicitação estão corretos. Caso algum dado esteja incorreto, solicite correção ao aluno.
                     </p>
 
                     <div className="space-y-3 mb-6">
@@ -777,7 +777,7 @@ export default function ExpenseDetalhe() {
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-orange-400">
                                 <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                               </svg>
-                              <span className="text-sm font-semibold text-orange-600">Sem memorando</span>
+                              <span className="text-sm font-semibold text-orange-600">Sem trabalho publicado</span>
                             </div>
                           )}
                         </div>
@@ -1294,7 +1294,6 @@ export default function ExpenseDetalhe() {
           solicitacao={{
             reqId: displayId,
             descricao: expense.title,
-            valor: totalCusto,
             aluno: expense.student?.name,
           }}
           onClose={() => setShowModalRejeitar(false)}

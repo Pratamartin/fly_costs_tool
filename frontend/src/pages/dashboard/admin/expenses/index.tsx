@@ -210,7 +210,6 @@ export default function AdminExpenses() {
           solicitacao={{
             descricao: rejeitando.title,
             reqId: `REQ-${rejeitando.id.slice(0, 8).toUpperCase()}`,
-            valor: rejeitando.costBreakdowns?.reduce((s, cb) => s + cb.amount, 0) ?? 0,
             aluno: rejeitando.student?.name,
           }}
           onClose={() => setRejeitando(null)}
