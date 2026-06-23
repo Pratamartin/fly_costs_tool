@@ -424,12 +424,19 @@ export default function ExpenseDetalhe() {
     }
   }
 
+  const cbIsDiarias = cbSubcategoria
+    ? categories.find((c) => c.name === cbSubcategoria)?.normalizedName === "hospedagem" ||
+      cbSubcategoria.toLowerCase().includes("diária") ||
+      cbSubcategoria.toLowerCase().includes("hospedagem")
+    : false;
+
   async function handleAdicionarCusto(e: React.FormEvent) {
     e.preventDefault();
     const token = getToken();
     if (!token || !expense) return;
     const amount = parseFloat(cbValor);
-    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0 || !cbAnexo) return;
+    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0) return;
+    if (!cbAnexo && !cbIsDiarias) return;
     setAdicionandoCusto(true);
     setErroCusto(null);
     const result = await createCostBreakdown(token, expense.id, {
@@ -967,7 +974,7 @@ export default function ExpenseDetalhe() {
 
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                          Anexo <span className="text-red-500">*</span>
+                          Anexo {cbIsDiarias ? <span className="text-gray-400 font-normal">(opcional para Diárias)</span> : <span className="text-red-500">*</span>}
                         </label>
                         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500">
@@ -1012,7 +1019,7 @@ export default function ExpenseDetalhe() {
 
                       <button
                         type="submit"
-                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor || !cbAnexo}
+                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor || (!cbAnexo && !cbIsDiarias)}
                         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                       >
                         {adicionandoCusto ? (
@@ -1251,7 +1258,10 @@ export default function ExpenseDetalhe() {
               {/* Concluir Despesa — only when EM_PROCESSAMENTO */}
               {expense.status === "EM_PROCESSAMENTO" && (() => {
                 const breakdowns = expense.costBreakdowns ?? [];
-                const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey);
+                const isDiarias = (cb: typeof breakdowns[0]) =>
+                  cb.subcategory.normalizedName === "hospedagem" || cb.subcategory.normalizedName === "diarias" || cb.subcategory.name.toLowerCase().includes("diária") || cb.subcategory.name.toLowerCase().includes("hospedagem");
+                const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey && !isDiarias(cb));
+                const semComprovanteDiarias = breakdowns.filter((cb) => !cb.attachmentKey && isDiarias(cb));
                 const podeConcluir = breakdowns.length > 0 && semComprovante.length === 0;
                 return (
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
@@ -1287,10 +1297,18 @@ export default function ExpenseDetalhe() {
                       )}
                       {semComprovante.map((cb) => (
                         <li key={cb.id} className="flex items-center gap-2 text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-red-400">
+                            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-red-600">{cb.subcategory.name} — comprovante obrigatório</span>
+                        </li>
+                      ))}
+                      {semComprovanteDiarias.map((cb) => (
+                        <li key={cb.id} className="flex items-center gap-2 text-sm">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-400">
                             <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-amber-700">{cb.subcategory.name} — sem comprovante</span>
+                          <span className="text-amber-700">{cb.subcategory.name} — sem comprovante (opcional para diárias)</span>
                         </li>
                       ))}
                     </ul>

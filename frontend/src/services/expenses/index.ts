@@ -10,6 +10,7 @@ export type StudentInfo = {
   bankName?: string | null
   bankAgency?: string | null
   bankAccount?: string | null
+  pixKey?: string | null
 }
 
 export type ProjectInfo = {
@@ -101,7 +102,18 @@ export type UpdateExpensePayload = {
   description?: string
   event?: ExpenseEvent
   article?: ExpenseArticle
+  city?: string
+  state?: string
+  country?: string
+  departureDate?: string
+  returnDate?: string
 }
+
+export type UploadInvoiceError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+
+export type UploadInvoiceResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: UploadInvoiceError }
 
 export type UpdateExpenseResult =
   | { ok: true; data: Expense }
@@ -401,6 +413,30 @@ export async function uploadMemorandum(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+// TODO backend: endpoint POST /v1/expenses/:id/invoice precisa ser criado para suportar upload de invoice na correção
+export async function uploadInvoice(
+  token: string,
+  expenseId: string,
+  file: File
+): Promise<UploadInvoiceResult> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/invoice`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 400) return { ok: false, error: "BAD_REQUEST" }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
   return { ok: false, error: "UNKNOWN" }
 }

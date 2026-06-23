@@ -30,6 +30,7 @@ interface BankForm {
   bankName: string;
   bankAgency: string;
   bankAccount: string;
+  pixKey: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,6 +79,7 @@ function profileToBankForm(p: UserProfile): BankForm {
     bankName: p.bankName ?? "",
     bankAgency: p.bankAgency ?? "",
     bankAccount: p.bankAccount ?? "",
+    pixKey: p.pixKey ?? "",
   };
 }
 
@@ -211,7 +213,7 @@ export default function ProfilePage() {
   const [personalErrors, setPersonalErrors] = useState<Partial<Record<keyof PersonalForm, string>>>({});
 
   // Bank section
-  const [bankForm, setBankForm] = useState<BankForm>({ bankCode: "", bankName: "", bankAgency: "", bankAccount: "" });
+  const [bankForm, setBankForm] = useState<BankForm>({ bankCode: "", bankName: "", bankAgency: "", bankAccount: "", pixKey: "" });
   const [editingBank, setEditingBank] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
   const [bankErrors, setBankErrors] = useState<Partial<Record<keyof BankForm, string>>>({});
@@ -337,6 +339,7 @@ export default function ProfilePage() {
       bankName: bankForm.bankName || undefined,
       bankAgency: bankForm.bankAgency || undefined,
       bankAccount: bankForm.bankAccount || undefined,
+      pixKey: bankForm.pixKey || undefined,
     };
 
     const result = await updateProfile(token, data);
@@ -529,6 +532,9 @@ export default function ProfilePage() {
                     <FormField label="Agência + Dígito" value={bankForm.bankAgency} onChange={(v) => setBankField("bankAgency", v)} placeholder="0000-0" error={bankErrors.bankAgency} />
                     <FormField label="Conta + Dígito" value={bankForm.bankAccount} onChange={(v) => setBankField("bankAccount", v)} placeholder="000000-0" error={bankErrors.bankAccount} />
                     <div className="col-span-1 sm:col-span-2">
+                      <FormField label="Chave PIX" value={bankForm.pixKey} onChange={(v) => setBankField("pixKey", v)} placeholder="CPF, e-mail, telefone ou chave aleatória" error={bankErrors.pixKey as string | undefined} />
+                    </div>
+                    <div className="col-span-1 sm:col-span-2">
                       <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                         Atenção: esses dados serão usados para reembolso de despesas aprovadas.
                       </p>
@@ -565,6 +571,9 @@ export default function ProfilePage() {
                       <InfoField label="Nome do Banco" value={bankVisible ? (userProfile.bankName ?? "") : maskValue(userProfile.bankName ?? "")} />
                       <InfoField label="Agência + Dígito" value={bankVisible ? (userProfile.bankAgency ?? "") : maskValue(userProfile.bankAgency ?? "")} />
                       <InfoField label="Conta + Dígito" value={bankVisible ? (userProfile.bankAccount ?? "") : maskValue(userProfile.bankAccount ?? "")} />
+                      <div className="col-span-1 sm:col-span-2">
+                        <InfoField label="Chave PIX" value={bankVisible ? (userProfile.pixKey ?? "") : maskValue(userProfile.pixKey ?? "")} />
+                      </div>
                     </div>
                   </>
                 )}

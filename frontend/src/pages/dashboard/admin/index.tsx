@@ -156,7 +156,7 @@ export default function DashboardAdmin() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Stats cards */}
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Total de receitas</p>
@@ -202,6 +202,21 @@ export default function DashboardAdmin() {
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-orange-500">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
+                  {carregando ? "—" : `R$ ${fmt(Math.max(0, totalValue - budgetCommitted))}`}
+                </p>
+                <p className="mt-1.5 text-xs text-emerald-500">receitas − despesas</p>
+              </div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-emerald-600">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>

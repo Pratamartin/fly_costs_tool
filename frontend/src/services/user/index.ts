@@ -18,6 +18,7 @@ export type UserProfile = {
   bankName?: string | null
   bankAgency?: string | null
   bankAccount?: string | null
+  pixKey?: string | null
 }
 
 export type UpdateProfileData = {
@@ -32,6 +33,7 @@ export type UpdateProfileData = {
   bankName?: string
   bankAgency?: string
   bankAccount?: string
+  pixKey?: string
 }
 
 export type GetMeError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"

@@ -423,7 +423,7 @@ export default function DashboardAdminProjectDetalhe() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
           {abaAtiva === "overview" && (
             <>
-              <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+              <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
                 {/* Orçamento Total */}
                 <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                   <div>
@@ -455,6 +455,24 @@ export default function DashboardAdminProjectDetalhe() {
                     <p className="text-xs text-gray-400 dark:text-gray-500">{budgetPct}% do orçamento utilizado</p>
                   </div>
                 </div>
+                {/* Saldo */}
+                <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
+                    <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
+                      {fmtBRL(Math.max(0, project.budget - project.usedBudget))}
+                    </p>
+                    <p className={`mt-1.5 text-xs ${project.budget - project.usedBudget >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      {project.budget - project.usedBudget >= 0 ? "disponível" : "excedido"}
+                    </p>
+                  </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-emerald-600">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+
                 {/* Subcategorias */}
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -499,23 +517,39 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                 </div>
               )}
+              {/* TODO backend: GET /v1/projects/:id ou endpoint dedicado de analytics precisa retornar
+                  breakdown por categoria (Inscrição, Passagens, Diárias) com campos total, gasto, restante
+                  para popular esta tabela com dados reais. Por ora exibe dados do orçamento geral. */}
               <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Tendência de Despesas por Categoria</h2>
-                  <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    Este Semestre
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-                  </button>
-                </div>
-                <GroupedBarChart />
-                <div className="mt-3 flex items-center justify-center gap-6">
-                  {CHART_SERIES.map((s) => (
-                    <div key={s.key} className="flex items-center gap-2">
-                      <div className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: s.color }} />
-                      <span className="text-xs text-gray-600 dark:text-gray-400">{s.label}</span>
-                    </div>
-                  ))}
-                </div>
+                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Discriminação por Categoria</h2>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-800">
+                      <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Categoria</th>
+                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Total</th>
+                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Gasto</th>
+                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Restante</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                    {project.subcategories.map((cat) => {
+                      const total = project.budget;
+                      const gasto = project.usedBudget;
+                      const restante = Math.max(0, total - gasto);
+                      return (
+                        <tr key={cat}>
+                          <td className="py-3 font-medium text-gray-700 dark:text-gray-300 capitalize">{cat}</td>
+                          <td className="py-3 text-right text-gray-900 dark:text-gray-50">{fmtBRL(total)}</td>
+                          <td className="py-3 text-right text-gray-900 dark:text-gray-50">{fmtBRL(gasto)}</td>
+                          <td className={`py-3 text-right font-semibold ${restante > 0 ? "text-emerald-600" : "text-red-500"}`}>{fmtBRL(restante)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {project.subcategories.length === 0 && (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Nenhuma subcategoria cadastrada neste projeto.</p>
+                )}
               </div>
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">

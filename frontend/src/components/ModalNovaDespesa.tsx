@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { listSurveys, uploadSurveyFile, type Survey } from "@/services/surveys";
 import { getToken } from "@/lib/getToken";
 
-const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
+const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis", "Jornal Acadêmico"];
 
 const CIDADES_BRASIL = [
   "Aracaju/SE",
@@ -198,9 +198,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   const [passagem, setPassagem] = useState({ departureDate: "", returnDate: "", departureRoute: "", returnRoute: "" });
   const [flightFile, setFlightFile] = useState<File | null>(null);
 
-  // Hospedagem
-  const [hospedagem, setHospedagem] = useState(false);
-
   // Memorando
   const [memorando, setMemorandum] = useState<File | null>(null);
 
@@ -303,7 +300,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       if (hospedagemSelected && hospedagemSurvey) {
         surveyAnswers.push({
           expenseCategoryId: hospedagemSurvey.expenseCategoryId,
-          data: hospedagem,
+          data: true,
         });
       }
 
@@ -560,25 +557,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Diárias</span>
                         </div>
                       </label>
-                      {hospedagemSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={hospedagem}
-                              onClick={() => setHospedagem((v) => !v)}
-                              disabled={isSubmitting}
-                              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2 ${hospedagem ? "bg-[#4F46E5]" : "bg-gray-200"} ${isSubmitting ? "opacity-50" : ""}`}
-                            >
-                              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${hospedagem ? "translate-x-5" : "translate-x-0"}`} />
-                            </button>
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {hospedagem ? "Solicitar auxílio hospedagem" : "Sem auxílio hospedagem"}
-                            </span>
-                          </label>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -588,6 +566,10 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
             {/* 5 — Memorando */}
             <div>
               <SectionHeader number={5} label="Trabalho publicado" />
+              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+                <p className="font-semibold mb-1">Atenção: o trabalho deve conter ao final o seguinte texto de agradecimento:</p>
+                <p className="italic">&ldquo;O presente trabalho foi realizado com o apoio da Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (AUXPE-CAPES-PROEX) - Código de Financiamento 001. Adicionalmente, este trabalho foi parcialmente financiado pela Fundação de Amparo à Pesquisa do Estado do Amazonas - FAPEAM - por meio dos projetos PDPG-CAPES e POSGRAD 2025-2026.&rdquo;</p>
+              </div>
               <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o trabalho publicado" disabled={isSubmitting} maxSizeMB={5} />
               {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
             </div>
