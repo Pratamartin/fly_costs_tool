@@ -45,7 +45,7 @@ export const markRead = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Notification marked as read'),
+      createMessageObjectSchema('Notification marked as read').openapi('MarkReadResponse'),
       'Notification updated successfully.',
     ),
     ...registryResponses('UNAUTHORIZED', 'NOTIFICATION_NOT_FOUND', 'VALIDATION_ERROR'),
@@ -63,7 +63,7 @@ export const markAllRead = createRoute({
   security: [{ bearerAuth: [] }],
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('All notifications marked as read'),
+      createMessageObjectSchema('All notifications marked as read').openapi('MarkAllReadResponse'),
       'Notifications updated successfully.',
     ),
     ...registryResponses('UNAUTHORIZED'),

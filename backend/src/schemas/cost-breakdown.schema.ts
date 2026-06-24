@@ -22,7 +22,7 @@ const BaseSchema = z.object({
     .openapi({ description: 'Receipt key in R2 storage. Can be used during registration to reuse a previously uploaded file.' }),
 })
 
-export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true })
+export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true }).openapi('CreateCostBreakdownRequest')
 
 export const CostBreakdownResponseSchema = z.object({
   id: IdSchema,
@@ -40,7 +40,7 @@ export const CostBreakdownResponseSchema = z.object({
   attachmentKey: z.string().nullable()
     .optional()
     .openapi({ description: 'Receipt key in R2 storage.' }),
-})
+}).openapi('CostBreakdown')
 
 export const UploadReceiptSchema = z.object({
   file: FileItemSchema.superRefine(validReceiptFileCheck(RECEIPT_UPLOAD_MAX_SIZE_MB))
@@ -49,7 +49,7 @@ export const UploadReceiptSchema = z.object({
       format: 'binary',
       description: `Receipt file (PDF, JPG, PNG). Maximum size allowed: ${RECEIPT_UPLOAD_MAX_SIZE_MB}MB.`,
     }),
-})
+}).openapi('UploadReceiptRequest')
 
 export const ReceiptDownloadUrlSchema = z.object({
   url: z.url()
@@ -62,4 +62,4 @@ export const ReceiptDownloadUrlSchema = z.object({
       description: 'URL expiration time in seconds',
       example: COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS,
     }),
-})
+}).openapi('ReceiptDownloadResponse')

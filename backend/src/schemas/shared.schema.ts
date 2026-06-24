@@ -78,7 +78,7 @@ export const FileUploadErrorSchema = z.object({
 
 export type FileUploadError = z.infer<typeof FileUploadErrorSchema>
 
-export const DeleteExpenseResponseSchema = z.object({ success: z.literal(true) }).openapi({ description: 'Standard success response for delete operations.' })
+export const DeleteExpenseResponseSchema = z.object({ success: z.literal(true) }).openapi('DeleteExpenseResponse')
 
 export const ProjectPeriodExpiredSchema = z.object({
   projectStartDate: z.string().nullable()
@@ -143,3 +143,9 @@ export const InvalidSubcategoriesSchema = z.object({
       example: 0,
     }),
 })
+
+export const FileDownloadResponseSchema = z.object({
+  downloadUrl: z.string().url()
+    .openapi({ description: 'Signed URL for downloading the file' }),
+  expiresIn: z.number().openapi({ description: 'Expiration time of the URL in seconds' }),
+}).openapi('FileDownloadResponse')

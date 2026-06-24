@@ -36,28 +36,28 @@ export const StaffRegisterSchema = RegisterBaseSchema
 export const RegisterSchema = z.discriminatedUnion('role', [
   StaffRegisterSchema.strict(),
   AlunoRegisterSchema,
-])
+]).openapi('RegisterUserRequest')
 
 export const RegisterSuccessSchema = UserSchema
 
 export const LoginSchema = RegisterBaseSchema.pick({
   email: true,
   password: true,
-})
+}).openapi('LoginUserRequest')
 
 export const LoginSuccessSchema = z.object({
   accessToken: z.string().openapi({
     description: 'JWT (JSON Web Token) to be used in the authorization header.',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   }),
-})
+}).openapi('LoginResponse')
 
 export const ForgotPasswordSchema = z.object({
   email: z.email()
     .openapi({ example: MOCK_USER.email }),
-})
+}).openapi('ForgotPasswordRequest')
 
 export const ResetPasswordSchema = z.object({
   token: z.string().openapi({ example: 'plain-token-here' }),
   newPassword: RegisterBaseSchema.shape.password,
-})
+}).openapi('ResetPasswordRequest')

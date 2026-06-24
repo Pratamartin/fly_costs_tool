@@ -28,9 +28,9 @@ export const NotificationSchema = z.object({
     updatedAt: z.coerce.date().openapi({ description: 'Last update time of the expense request' }),
   }).nullable()
     .openapi({ description: 'Snapshot of the related expense request' }),
-}).openapi({ description: 'A user notification' })
+}).openapi('Notification')
 
-export const NotificationsListSchema = z.array(NotificationSchema)
+export const NotificationsListSchema = z.array(NotificationSchema).openapi('NotificationListResponse')
 
 export const NotificationQuerySchema = PaginationSchema.extend({
   unreadOnly: z.coerce.boolean()
@@ -40,3 +40,4 @@ export const NotificationQuerySchema = PaginationSchema.extend({
       description: 'Filter only by unread notifications',
     }),
 }).partial()
+  .openapi('ListNotificationsQuery')

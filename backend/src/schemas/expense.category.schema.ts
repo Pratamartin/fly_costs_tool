@@ -8,8 +8,8 @@ const BaseSchema = z.object({
   normalizedName: z.string().openapi({ example: 'uber' }),
 })
 
-export const ExpenseCategoryResponseSchema = BaseSchema.extend(TimestampSchema)
-export const ListExpenseCategoryResponseSchema = z.array(ExpenseCategoryResponseSchema)
+export const ExpenseCategoryResponseSchema = BaseSchema.extend(TimestampSchema).openapi('ExpenseCategory')
+export const ListExpenseCategoryResponseSchema = z.array(ExpenseCategoryResponseSchema).openapi('ExpenseCategoryListResponse')
 
 export const ListExpenseCategoryQuerySchema = z.object({
   search: z.string().optional()
@@ -18,17 +18,19 @@ export const ListExpenseCategoryQuerySchema = z.object({
       example: 'passagem',
     }),
 }).partial()
+  .openapi('ListExpenseCategoriesQuery')
 
 export const CreateExpenseCategorySchema = z.object({
   name: z.string().min(2)
     .trim()
     .openapi({ example: 'Uber' }),
 
-}).transform((data) => {
-  return {
-    name: data.name,
-    normalizedName: normalizeCategoryName(data.name),
-  }
-})
+}).openapi('CreateExpenseCategoryRequest')
+  .transform((data) => {
+    return {
+      name: data.name,
+      normalizedName: normalizeCategoryName(data.name),
+    }
+  })
 
 export default BaseSchema

@@ -8,4 +8,4 @@ export const HealthResponseSchema = z.object({
   }),
   timestamp: z.date()
     .openapi({ example: new Date().toISOString() }),
-})
+}).openapi('HealthResponse')
