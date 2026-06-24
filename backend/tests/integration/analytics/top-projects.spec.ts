@@ -79,8 +79,9 @@ describe('get /analytics/top-projects', () => {
   })
 
   it('deve ranquear projetos baseado no valor comprometido real (usedBudget + em processamento) - Furo Financeiro', async () => {
-    // Limpa todas as quebras de custo pré-existentes do Projeto IA (ex: injetadas pelo seed global)
+    // Limpa todas as quebras de custo pré-existentes (ex: injetadas pelo seed global ou testes anteriores)
     await prisma.costBreakdown.deleteMany({ where: { projectId: ID_PROJ_IA } })
+    await prisma.costBreakdown.deleteMany({ where: { projectId: ID_PROJ_DATA_SCIENCE } })
 
     // 2. ARRANGE:
     // Projeto IA: usedBudget = 1000, sem alocações em processamento
