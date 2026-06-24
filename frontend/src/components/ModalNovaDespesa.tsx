@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { listSurveys, uploadSurveyFile, type Survey } from "@/services/surveys";
 import { getToken } from "@/lib/getToken";
 
-const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
+const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis", "Jornal Acadêmico"];
 
 const CIDADES_BRASIL = [
   "Aracaju/SE",
@@ -116,47 +116,63 @@ function FileDropZone({
   accept,
   label,
   disabled,
+  maxSizeMB,
 }: {
   file: File | null;
   onChange: (f: File) => void;
   accept: string;
   label: string;
   disabled: boolean;
+  maxSizeMB?: number;
 }) {
   const [dragging, setDragging] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function handleFile(f: File) {
+    if (maxSizeMB && f.size > maxSizeMB * 1024 * 1024) {
+      setSizeError(`Arquivo muito grande. Tamanho máximo: ${maxSizeMB}MB.`);
+      return;
+    }
+    setSizeError(null);
+    onChange(f);
+  }
+
   return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) onChange(f); }}
-      onClick={() => inputRef.current?.click()}
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition ${
-        disabled ? "pointer-events-none opacity-50" :
-        dragging ? "border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950/20" :
-        file ? "border-green-400 bg-green-50 dark:bg-green-950/20" :
-        "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700/70"
-      }`}
-    >
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) onChange(e.target.files[0]); }} />
-      {file ? (
-        <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-green-500 dark:text-green-300">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-          </svg>
-          <p className="max-w-full truncate text-center text-xs font-medium text-green-700 dark:text-green-200">{file.name}</p>
-          <p className="mt-0.5 text-[10px] text-green-500 dark:text-green-400">Clique para substituir</p>
-        </>
-      ) : (
-        <>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-gray-400 dark:text-gray-500">
-            <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
-          </svg>
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
-          <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG</p>
-        </>
-      )}
+    <div>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+        onClick={() => inputRef.current?.click()}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition ${
+          disabled ? "pointer-events-none opacity-50" :
+          sizeError ? "border-red-400 bg-red-50 dark:bg-red-950/20" :
+          dragging ? "border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950/20" :
+          file ? "border-green-400 bg-green-50 dark:bg-green-950/20" :
+          "border-gray-300 bg-gray-50 hover:border-[#4F46E5] hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700/70"
+        }`}
+      >
+        <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+        {file ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-green-500 dark:text-green-300">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+            </svg>
+            <p className="max-w-full truncate text-center text-xs font-medium text-green-700 dark:text-green-200">{file.name}</p>
+            <p className="mt-0.5 text-[10px] text-green-500 dark:text-green-400">Clique para substituir</p>
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mb-1 h-6 w-6 text-gray-400 dark:text-gray-500">
+              <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
+            </svg>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG · máx. {maxSizeMB ?? 10}MB</p>
+          </>
+        )}
+      </div>
+      {sizeError && <p className="mt-1 text-[11px] text-red-500">{sizeError}</p>}
     </div>
   );
 }
@@ -181,12 +197,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   // Passagem aérea fields
   const [passagem, setPassagem] = useState({ departureDate: "", returnDate: "", departureRoute: "", returnRoute: "" });
   const [flightFile, setFlightFile] = useState<File | null>(null);
-
-  // Inscrição
-  const [inscricaoFile, setInscricaoFile] = useState<File | null>(null);
-
-  // Hospedagem
-  const [hospedagem, setHospedagem] = useState(false);
 
   // Memorando
   const [memorando, setMemorandum] = useState<File | null>(null);
@@ -244,12 +254,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       }
     }
 
-    if (inscricaoSelected && !inscricaoFile) {
-      return setErroLocal("Anexe o boleto/invoice para a categoria Inscrição.");
-    }
-
     if (!memorando) {
-      return setErroLocal("O memorando é obrigatório.");
+      return setErroLocal("O trabalho publicado é obrigatório.");
     }
 
     const token = getToken();
@@ -283,16 +289,10 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       }
 
       // Inscrição
-      if (inscricaoSelected && inscricaoSurvey && inscricaoFile) {
-        const uploadResult = await uploadSurveyFile(token, inscricaoFile);
-        if (!uploadResult.ok) {
-          setErroLocal("Erro ao enviar o boleto/invoice. Tente novamente.");
-          setUploadingFiles(false);
-          return;
-        }
+      if (inscricaoSelected && inscricaoSurvey) {
         surveyAnswers.push({
           expenseCategoryId: inscricaoSurvey.expenseCategoryId,
-          data: { invoiceKey: uploadResult.data.fileKey },
+          data: {},
         });
       }
 
@@ -300,7 +300,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       if (hospedagemSelected && hospedagemSurvey) {
         surveyAnswers.push({
           expenseCategoryId: hospedagemSurvey.expenseCategoryId,
-          data: hospedagem,
+          data: true,
         });
       }
 
@@ -332,7 +332,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Despesa</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Receita</h2>
             <p className="mt-0.5 text-sm text-[#4F46E5] dark:text-[#a5b4fc]">Preencha os dados do evento e categorias desejadas.</p>
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50">
@@ -446,7 +446,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 4 — Categorias */}
             <div>
-              <SectionHeader number={4} label="Categorias de Despesa" />
+              <SectionHeader number={4} label="Categoria de ajuda de custo" />
               {loadingSurveys ? (
                 <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                   <SpinnerIcon className="h-4 w-4 text-[#4F46E5]" /> Carregando categorias...
@@ -511,7 +511,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           </div>
                           <div>
                             <label className="mb-1 block text-xs font-medium text-gray-600">Sugestão de Voo <span className="text-gray-400">(opcional)</span></label>
-                            <FileDropZone file={flightFile} onChange={setFlightFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o arquivo" disabled={isSubmitting} />
+                            <FileDropZone file={flightFile} onChange={setFlightFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o arquivo" disabled={isSubmitting} maxSizeMB={10} />
                           </div>
                         </div>
                       )}
@@ -536,12 +536,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Inscrição em Evento</span>
                         </div>
                       </label>
-                      {inscricaoSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="mb-1 block text-xs font-medium text-gray-600">Boleto / Invoice <span className="text-red-500">*</span></label>
-                          <FileDropZone file={inscricaoFile} onChange={setInscricaoFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o boleto/invoice" disabled={isSubmitting} />
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -560,28 +554,9 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path fillRule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Hospedagem</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Diárias</span>
                         </div>
                       </label>
-                      {hospedagemSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={hospedagem}
-                              onClick={() => setHospedagem((v) => !v)}
-                              disabled={isSubmitting}
-                              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2 ${hospedagem ? "bg-[#4F46E5]" : "bg-gray-200"} ${isSubmitting ? "opacity-50" : ""}`}
-                            >
-                              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${hospedagem ? "translate-x-5" : "translate-x-0"}`} />
-                            </button>
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {hospedagem ? "Solicitar auxílio hospedagem" : "Sem auxílio hospedagem"}
-                            </span>
-                          </label>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -590,8 +565,12 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 5 — Memorando */}
             <div>
-              <SectionHeader number={5} label="Memorando" />
-              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o memorando" disabled={isSubmitting} />
+              <SectionHeader number={5} label="Trabalho publicado" />
+              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+                <p className="font-semibold mb-1">Atenção: o trabalho deve conter ao final o seguinte texto de agradecimento:</p>
+                <p className="italic">&ldquo;O presente trabalho foi realizado com o apoio da Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (AUXPE-CAPES-PROEX) - Código de Financiamento 001. Adicionalmente, este trabalho foi parcialmente financiado pela Fundação de Amparo à Pesquisa do Estado do Amazonas - FAPEAM - por meio dos projetos PDPG-CAPES e POSGRAD 2025-2026.&rdquo;</p>
+              </div>
+              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o trabalho publicado" disabled={isSubmitting} maxSizeMB={5} />
               {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
             </div>
 

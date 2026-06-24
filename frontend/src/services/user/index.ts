@@ -18,10 +18,12 @@ export type UserProfile = {
   bankName?: string | null
   bankAgency?: string | null
   bankAccount?: string | null
+  pixKey?: string | null
 }
 
 export type UpdateProfileData = {
   name?: string
+  email?: string
   cpf?: string
   rgPassaporte?: string
   birthDate?: string
@@ -31,6 +33,7 @@ export type UpdateProfileData = {
   bankName?: string
   bankAgency?: string
   bankAccount?: string
+  pixKey?: string
 }
 
 export type GetMeError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
@@ -38,7 +41,7 @@ export type GetMeResult =
   | { ok: true; data: UserProfile }
   | { ok: false; error: GetMeError }
 
-export type UpdateProfileError = "UNAUTHORIZED" | "FORBIDDEN" | "CONFLICT" | "VALIDATION_ERROR" | "UNKNOWN"
+export type UpdateProfileError = "UNAUTHORIZED" | "FORBIDDEN" | "CPF_CONFLICT" | "EMAIL_CONFLICT" | "VALIDATION_ERROR" | "UNKNOWN"
 export type UpdateProfileResult =
   | { ok: true; data: UserProfile }
   | { ok: false; error: UpdateProfileError; fieldErrors?: Record<string, string> }
@@ -77,7 +80,13 @@ export async function updateProfile(token: string, data: UpdateProfileData): Pro
   }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
-  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 409) {
+    try {
+      const body = await res.json()
+      if (body?.type?.includes("email")) return { ok: false, error: "EMAIL_CONFLICT" }
+    } catch { /* ignore */ }
+    return { ok: false, error: "CPF_CONFLICT" }
+  }
   if (res.status === 400 || res.status === 422) {
     try {
       const body = await res.json()

@@ -112,11 +112,15 @@ export const ExpenseListItemSchema = z.object({
     status: true,
     rejectionReason: true,
     correctionReason: true,
+    event: true,
   }).shape)
   .extend({
     attachmentKey: z.string().nullable()
       .optional()
       .openapi({ description: 'Published work key (PDF) in R2 storage.' }),
+      .optional(),
+    student: ExpenseRelationsSchema.student,
+    project: ExpenseRelationsSchema.project,
     ...TimestampSchema,
     surveyAnswers: z.array(z.object({
       id: IdSchema,

@@ -10,6 +10,9 @@ export interface NovoDadosProjeto {
   code: string;
   budget: number;
   topics: string[];
+  resourceSource: string;
+  startDate: string;
+  endDate: string;
 }
 
 interface ModalCriarProjetoProps {
@@ -23,9 +26,12 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [budget, setBudget] = useState("");
+  const [resourceSource, setResourceSource] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [topics, setTopics] = useState<string[]>([]);
   const [showTopicPicker, setShowTopicPicker] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; code?: string; budget?: string; topics?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; code?: string; budget?: string; topics?: string; resourceSource?: string; endDate?: string }>({});
   const [categorias, setCategorias] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(true);
 
@@ -56,10 +62,12 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
   function validate() {
     const errs: typeof errors = {};
     if (!name.trim()) errs.name = "Nome do projeto é obrigatório.";
-    if (!code.trim()) errs.code = "Código do projeto é obrigatório.";
+    if (!code.trim()) errs.code = "Sigla do projeto é obrigatória.";
     const budgetNum = parseFloat(budget.replace(",", "."));
     if (!budget || isNaN(budgetNum) || budgetNum <= 0) errs.budget = "Informe um orçamento válido.";
     if (topics.length < MIN_TOPICS) errs.topics = "Selecione ao menos um tópico de custo.";
+    if (!resourceSource.trim()) errs.resourceSource = "Fonte de recurso é obrigatória.";
+    if (startDate && endDate && endDate < startDate) errs.endDate = "A data de fim deve ser após a data de início.";
     return errs;
   }
 
@@ -67,7 +75,15 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     const normalizedTopics = topics.map((t) => categorias.find((c) => c.name === t)?.normalizedName ?? t);
-    onConfirm({ name: name.trim(), code: code.trim().toUpperCase(), budget: parseFloat(budget.replace(",", ".")), topics: normalizedTopics });
+    onConfirm({
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      budget: parseFloat(budget.replace(",", ".")),
+      topics: normalizedTopics,
+      resourceSource: resourceSource.trim(),
+      startDate,
+      endDate,
+    });
     onClose();
   }
 
@@ -129,7 +145,7 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
             <p className="mt-1.5 text-xs text-gray-400">Um nome claro e identificável para o projeto.</p>
 
             <label className="mt-4 block mb-1.5 text-sm font-medium text-gray-700">
-              Código do Projeto <span className="text-red-500">*</span>
+              Sigla do Projeto <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -139,7 +155,42 @@ export default function ModalCriarProjeto({ onClose, onConfirm, carregando = fal
               className={`w-full rounded-lg border py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition uppercase ${errors.code ? "border-red-400 focus:border-red-400 focus:ring-red-400" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}`}
             />
             {errors.code && <p className="mt-1.5 text-xs text-red-500">{errors.code}</p>}
-            <p className="mt-1.5 text-xs text-gray-400">Código único para identificar o projeto no sistema.</p>
+            <p className="mt-1.5 text-xs text-gray-400">Sigla única para identificar o projeto no sistema.</p>
+
+            <label className="mt-4 block mb-1.5 text-sm font-medium text-gray-700">
+              Fonte de recurso <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={resourceSource}
+              onChange={(e) => { setResourceSource(e.target.value); setErrors((prev) => ({ ...prev, resourceSource: undefined })); }}
+              placeholder="ex.: CAPES, CNPq, FAPEMA"
+              className={`w-full rounded-lg border py-2.5 px-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-1 transition ${errors.resourceSource ? "border-red-400 focus:border-red-400 focus:ring-red-400" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}`}
+            />
+            {errors.resourceSource && <p className="mt-1.5 text-xs text-red-500">{errors.resourceSource}</p>}
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Data de início</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setErrors((prev) => ({ ...prev, endDate: undefined })); }}
+                  className="w-full rounded-lg border border-gray-300 py-2.5 px-3 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                />
+              </div>
+              <div>
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">Data de fim</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={(e) => { setEndDate(e.target.value); setErrors((prev) => ({ ...prev, endDate: undefined })); }}
+                  className={`w-full rounded-lg border py-2.5 px-3 text-sm text-gray-800 outline-none focus:ring-1 transition ${errors.endDate ? "border-red-400 focus:border-red-400 focus:ring-red-400" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}`}
+                />
+                {errors.endDate && <p className="mt-1 text-xs text-red-500">{errors.endDate}</p>}
+              </div>
+            </div>
           </div>
 
           {/* FINANCIAL SETUP */}

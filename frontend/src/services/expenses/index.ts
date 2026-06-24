@@ -5,6 +5,12 @@ export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSA
 export type StudentInfo = {
   id: string
   name: string
+  email?: string | null
+  bankCode?: string | null
+  bankName?: string | null
+  bankAgency?: string | null
+  bankAccount?: string | null
+  pixKey?: string | null
 }
 
 export type ProjectInfo = {
@@ -18,6 +24,8 @@ export type CostBreakdown = {
   expenseRequestId: string
   amount: number
   attachmentKey?: string | null
+  projectId?: string | null
+  project?: ProjectInfo | null
   subcategory: {
     id: string
     name: string
@@ -55,6 +63,11 @@ export type Expense = {
   studentId?: string
   projectId?: string | null
   attachmentKey?: string | null
+  departureDate?: string | null
+  returnDate?: string | null
+  city?: string | null
+  state?: string | null
+  country?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -89,7 +102,18 @@ export type UpdateExpensePayload = {
   description?: string
   event?: ExpenseEvent
   article?: ExpenseArticle
+  city?: string
+  state?: string
+  country?: string
+  departureDate?: string
+  returnDate?: string
 }
+
+export type UploadInvoiceError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+
+export type UploadInvoiceResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: UploadInvoiceError }
 
 export type UpdateExpenseResult =
   | { ok: true; data: Expense }
@@ -127,6 +151,7 @@ export type AssignProjectResult =
 export type CostBreakdownPayload = {
   subcategoryName: string
   amount: number
+  projectId?: string
 }
 
 export type CostBreakdownResponse = {
@@ -274,13 +299,19 @@ export async function createCostBreakdown(
   expenseId: string,
   payload: CostBreakdownPayload
 ): Promise<CreateCostBreakdownResult> {
+  const body: Record<string, unknown> = {
+    subcategoryName: payload.subcategoryName,
+    amount: payload.amount,
+  }
+  if (payload.projectId) body.projectId = payload.projectId
+
   const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   })
 
   if (res.status === 201) return { ok: true, data: await res.json() }
@@ -386,15 +417,42 @@ export async function uploadMemorandum(
   return { ok: false, error: "UNKNOWN" }
 }
 
+// TODO backend: endpoint POST /v1/expenses/:id/invoice precisa ser criado para suportar upload de invoice na correção
+export async function uploadInvoice(
+  token: string,
+  expenseId: string,
+  file: File
+): Promise<UploadInvoiceResult> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/invoice`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 400) return { ok: false, error: "BAD_REQUEST" }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
 export type ReportFilters = {
   from?: string
   to?: string
+  startDate?: string
+  endDate?: string
+  studentName?: string
   status?: ExpenseStatus | "all"
   projectId?: string
   studentId?: string
 }
 
-export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "UNKNOWN"
+export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
 
 export type ExportReportResult =
   | { ok: true; downloadUrl: string }

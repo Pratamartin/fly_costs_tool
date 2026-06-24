@@ -85,5 +85,6 @@ export const UpdateProfileSchema = ProfileSchema.partial().extend({
       example: MOCK_USER.name,
       description: 'Optional user name update',
     }),
+  email: z.email().optional(),
 })
   .openapi('UpdateProfileRequest')

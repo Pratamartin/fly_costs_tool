@@ -5,10 +5,9 @@ import { getToken } from "@/lib/getToken";
 import { performLogout } from "@/lib/logout";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
-import ModalDetalhe from "@/components/ModalDetalhe";
 import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
 import { getMe, type UserProfile } from "@/services/user";
-import { listExpenses, updateExpenseStatus, getExpenseById, exportExpensesReport, type Expense, type ReportFilters } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, exportExpensesReport, type Expense, type ReportFilters } from "@/services/expenses";
 import { listProjects } from "@/services/projects";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { toast } from "@/lib/toast";
@@ -23,10 +22,8 @@ interface Solicitacao {
   projeto: string;
   aluno: string;
   avatarInicial: string;
-  valor: number;
   dataSubmissao: string;
   icone: CategoriaIcone;
-  sugestaoCompra: string;
 }
 
 
@@ -36,7 +33,6 @@ function formatarData(dateString: string): string {
 
 function expenseToSolicitacao(expense: Expense): Solicitacao {
   const inicial = expense.student?.name.charAt(0).toUpperCase() || "?";
-  const totalCost = expense.costBreakdowns?.reduce((sum, cb) => sum + cb.amount, 0) ?? 0;
   return {
     id: expense.id,
     reqId: `REQ-${expense.id.slice(0, 8).toUpperCase()}`,
@@ -44,10 +40,8 @@ function expenseToSolicitacao(expense: Expense): Solicitacao {
     projeto: expense.project?.name || "Sem projeto",
     aluno: expense.student?.name || "Aluno",
     avatarInicial: inicial,
-    valor: totalCost,
     dataSubmissao: formatarData(expense.createdAt),
     icone: "viagem",
-    sugestaoCompra: "—",
   };
 }
 
@@ -110,7 +104,6 @@ export default function DashboardCoordenador() {
   const [abaAtual, setAbaAtual] = useState<TabType>("PENDENTE");
   const [busca, setBusca] = useState("");
   const [rejeitando, setRejeitando] = useState<Solicitacao | null>(null);
-  const [detalheAberto, setDetalheAberto] = useState<Expense | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -184,16 +177,8 @@ export default function DashboardCoordenador() {
     await performLogout(router);
   }
 
-  async function abrirDetalhe(id: string) {
-    const token = getToken();
-    if (!token) return;
-    try {
-      const result = await getExpenseById(token, id);
-      if (result.ok) setDetalheAberto(result.data);
-      else setErro("Erro ao carregar detalhe da despesa");
-    } catch (_err) {
-      setErro("Erro de conexão");
-    }
+  function abrirDetalhe(id: string) {
+    router.push(`/dashboard/coordinator/expenses/detail?id=${id}`);
   }
 
   async function handleAprovar(id: string) {
@@ -242,7 +227,6 @@ export default function DashboardCoordenador() {
   }
 
   const pendentesAtual = despesas[abaAtual];
-  const totalValor = pendentesAtual.reduce((s, d) => s + d.valor, 0);
   const filtradas = pendentesAtual.filter(
     (s) =>
       (s.descricao?.toLowerCase() ?? "").includes(busca.toLowerCase()) ||
@@ -283,13 +267,7 @@ export default function DashboardCoordenador() {
           onConfirmar={(motivo) => handleRejeitar(rejeitando.id, motivo)}
         />
       )}
-      {detalheAberto && (
-        <ModalDetalhe
-          despesa={detalheAberto}
-          token={getToken()}
-          onClose={() => setDetalheAberto(null)}
-        />
-      )}
+
       {showReportModal && (
         <ModalFiltroRelatorio
           onClose={() => setShowReportModal(false)}
@@ -374,29 +352,27 @@ export default function DashboardCoordenador() {
             </div>
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Valor Total</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {despesas.PENDENTE.length} <span className="text-base font-medium text-gray-400 dark:text-gray-500">solicitações</span>
                 </p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-blue-500">
-                  <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.615z" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-50">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-yellow-500">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm sm:px-6 sm:py-5">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Maior Solicitação</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Aprovadas</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  {filtradas.length > 0
-                    ? `R$ ${Math.max(...filtradas.map((s) => s.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                    : "—"}
+                  {despesas.APROVADO.length} <span className="text-base font-medium text-gray-400 dark:text-gray-500">solicitações</span>
                 </p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-purple-500">
-                  <path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042-.815a.75.75 0 01-.53-.918z" clipRule="evenodd" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-green-500">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                 </svg>
               </div>
             </div>
@@ -419,7 +395,6 @@ export default function DashboardCoordenador() {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Solicitação</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Valor</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ações</th>
                 </tr>
@@ -427,7 +402,7 @@ export default function DashboardCoordenador() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filtradas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center">
+                    <td colSpan={5} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-green-500">
@@ -469,9 +444,6 @@ export default function DashboardCoordenador() {
                           <AvatarAluno inicial={s.avatarInicial} />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{s.aluno}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
-                        R$ {s.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{s.dataSubmissao}</td>
                       <td className="px-6 py-4">
@@ -535,18 +507,13 @@ export default function DashboardCoordenador() {
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {filtradas.map((s) => (
                     <div key={s.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                      {/* Linha 1: ícone + descrição + valor */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <IconeSolicitacao tipo={s.icone} />
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{s.descricao}</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">{s.reqId}</p>
-                          </div>
+                      {/* Linha 1: ícone + descrição */}
+                      <div className="flex items-center gap-3 min-w-0 mb-2">
+                        <IconeSolicitacao tipo={s.icone} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{s.descricao}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{s.reqId}</p>
                         </div>
-                        <p className="shrink-0 text-sm font-bold text-gray-900 dark:text-gray-50">
-                          R$ {s.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </p>
                       </div>
                       {/* Linha 2: aluno + data */}
                       <div className="flex items-center justify-between pl-11 mb-3">

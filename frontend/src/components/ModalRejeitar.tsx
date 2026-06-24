@@ -10,7 +10,7 @@ const MIN_CHARS = 10;
 const MAX_CHARS = 500;
 
 interface Props {
-  solicitacao: { descricao: string; reqId: string; valor: number; aluno?: string };
+  solicitacao: { descricao: string; reqId: string; aluno?: string };
   onClose: () => void;
   onConfirmar: (motivo: string) => void;
 }
@@ -43,7 +43,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Rejeitar Solicitação de Despesa</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Rejeitar Solicitação de Receita</h2>
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {solicitacao.reqId} • {solicitacao.descricao}
               </p>
@@ -64,7 +64,7 @@ export default function ModalRejeitar({ solicitacao, onClose, onConfirmar }: Pro
           <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             Você está prestes a rejeitar a solicitação de{" "}
             <span className="font-semibold text-gray-900 dark:text-gray-50">
-              {solicitacao.descricao} (R$ {solicitacao.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+              {solicitacao.descricao}
             </span>
             {solicitacao.aluno ? (
               <> enviada por <span className="font-semibold text-gray-900 dark:text-gray-50">{solicitacao.aluno}</span>.</>

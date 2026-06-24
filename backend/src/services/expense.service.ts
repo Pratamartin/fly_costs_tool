@@ -132,16 +132,17 @@ export async function getAllExpenseRequests(
   userId: string,
   role: UserRole,
   filters: z.infer<typeof ExpenseListQuerySchema>,
-): Promise<ServiceResult<Prisma.ExpenseRequestGetPayload<object>[], 'UNAUTHORIZED'>> {
+): Promise<ExpenseWithRelations[]> {
   const visibility: Prisma.ExpenseRequestWhereInput
     = role === UserRole.ALUNO
       ? { studentId: userId }
       : { status: { in: EXPENSE_VISIBILITY_BY_ROLE[role] } }
 
-  const data = await prisma.expenseRequest.findMany({
+  return prisma.expenseRequest.findMany({
     where: { AND: [filters, visibility] },
     orderBy: { createdAt: 'desc' },
     include: {
+      ...expenseInclude,
       surveyAnswers: {
         select: {
           id: true,
@@ -151,8 +152,6 @@ export async function getAllExpenseRequests(
       },
     },
   })
-
-  return data
 }
 
 export async function getExpenseById(

@@ -12,11 +12,15 @@ export const index: AppRouteHandler<IndexRoute> = async (c) => {
 
   const result = await getAllExpenseRequests(sub, role, query)
 
-  if ('error' in result) {
-    throw problems.create(result.error, { extensions: result.context })
-  }
+  const payload = result.map(e => ({
+    ...e,
+    costBreakdowns: e.costBreakdowns?.map(cb => ({
+      ...cb,
+      subcategory: cb.expenseCategory,
+    })),
+  }))
 
-  const parsed = ListExpenseResponseSchema.parse(result)
+  const parsed = ListExpenseResponseSchema.parse(payload)
 
   return c.json(parsed, codes.OK)
 }

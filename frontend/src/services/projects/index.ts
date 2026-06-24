@@ -10,6 +10,9 @@ export type Project = {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  resourceSource?: string | null
+  startDate?: string | null
+  endDate?: string | null
 }
 
 export type ListProjectsError = "UNAUTHORIZED" | "FORBIDDEN" | "UNKNOWN"
@@ -43,6 +46,9 @@ export type CreateProjectPayload = {
   code: string
   budget: number
   subcategories: string[]
+  resourceSource: string
+  startDate: string
+  endDate: string
 }
 
 export type UpdateProjectPayload = {
