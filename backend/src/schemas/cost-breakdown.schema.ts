@@ -24,6 +24,8 @@ const BaseSchema = z.object({
 
 export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true }).openapi('CreateCostBreakdownRequest')
 
+export const UpdateCostBreakdownSchema = CreateCostBreakdownSchema.partial().openapi('UpdateCostBreakdownRequest')
+
 export const CostBreakdownResponseSchema = z.object({
   id: IdSchema,
   expenseRequestId: IdSchema.openapi({ description: 'ID of the parent expense request' }),
