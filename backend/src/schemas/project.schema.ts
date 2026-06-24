@@ -43,13 +43,14 @@ const BaseSchema = z.object({
     .openapi({ example: dummyExpenseCategories.map(c => c.normalizedName) }),
 })
 
-export const CreateProjectSchema = BaseSchema.check(projectPeriodCheck)
+export const CreateProjectSchema = BaseSchema.check(projectPeriodCheck).openapi('CreateProjectRequest')
 
 export const UpdateProjectSchema = BaseSchema.omit({
   budget: true,
   startDate: true,
   endDate: true,
 }).partial()
+  .openapi('UpdateProjectRequest')
 
 export const UpdateProjectPeriodSchema = z.object({
   startDate: z.coerce.date().openapi({
@@ -61,6 +62,7 @@ export const UpdateProjectPeriodSchema = z.object({
     description: 'Project validity end date.',
   }),
 }).check(projectPeriodCheck)
+  .openapi('UpdateProjectPeriodRequest')
 
 export const ProjectResponseSchema = z.object({ id: IdSchema })
   .extend(BaseSchema.shape)
@@ -73,6 +75,7 @@ export const ProjectResponseSchema = z.object({ id: IdSchema })
       .default(true),
   })
   .extend(TimestampSchema)
+  .openapi('Project')
 
 export const ListProjectQuerySchema = z.object({
   isActive: z.coerce.boolean().openapi({ example: true })
@@ -83,7 +86,8 @@ export const ListProjectQuerySchema = z.object({
       example: 'Alpha',
     }),
 }).partial()
+  .openapi('ListProjectsQuery')
 
-export const ListProjectResponseSchema = z.array(ProjectResponseSchema)
+export const ListProjectResponseSchema = z.array(ProjectResponseSchema).openapi('ProjectListResponse')
 
 export default BaseSchema

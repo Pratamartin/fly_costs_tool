@@ -27,6 +27,7 @@ export const CreateInviteSchema = BaseSchema.pick({
   role: true,
   expiresAt: true,
 }).superRefine(minExpiryThresholdCheck())
+  .openapi('CreateInviteRequest')
 
 export const ListInvitesQuerySchema = BaseSchema.pick({
   role: true,
@@ -39,7 +40,8 @@ export const ListInvitesQuerySchema = BaseSchema.pick({
     }),
 })
   .partial()
+  .openapi('ListInvitesQuery')
 
-export const InviteResponseSchema = BaseSchema.check(usedInviteFieldsRequired)
+export const InviteResponseSchema = BaseSchema.check(usedInviteFieldsRequired).openapi('Invite')
 
-export const ListInvitesSchema = z.array(InviteResponseSchema)
+export const ListInvitesSchema = z.array(InviteResponseSchema).openapi('InviteListResponse')

@@ -6,6 +6,7 @@ import { registryResponses } from '@/lib/problems'
 import { requireAuth } from '@/middlewares'
 import { uploadSurveySettings } from '@/middlewares/upload-settings'
 import { ListPreferenceSurveyResponseSchema } from '@/schemas/preference-survey.schema'
+import { FileDownloadResponseSchema } from '@/schemas/shared.schema'
 
 const tags = ['Preference Surveys']
 
@@ -46,7 +47,8 @@ export const upload = createRoute({
               type: 'string',
               format: 'binary',
               description: `File to be uploaded. Allowed formats: ${PREFERENCE_SURVEY_ALLOWED_MIME_TYPES.join(', ')}. Max ${PREFERENCE_SURVEY_UPLOAD_MAX_SIZE_MB}MB.`,
-            }),
+            })
+              .openapi('UploadSurveyRequest'),
           }),
         },
       },
@@ -57,7 +59,7 @@ export const upload = createRoute({
       z.object({
         fileKey: z.string().openapi({ description: 'File key in R2' }),
         fileName: z.string().openapi({ description: 'Original file name' }),
-      }),
+      }).openapi('UploadSurveyResponse'),
       'File uploaded successfully.',
     ),
     ...registryResponses('INVALID_FILE', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'UNAUTHORIZED', 'STORAGE_PROVIDER_ERROR', 'VALIDATION_ERROR'),
@@ -73,13 +75,10 @@ export const download = createRoute({
   summary: 'Get download URL',
   description: `Generates a signed, temporary S3/R2 URL to securely download a previously uploaded preference survey file using its \`fileKey\`. URL expires in **${PREFERENCE_SURVEY_DOWNLOAD_EXPIRY_SECONDS}s**.`,
   tags,
-  request: { query: z.object({ fileKey: z.string().openapi({ description: 'File key in R2' }) }) },
+  request: { query: z.object({ fileKey: z.string().openapi({ description: 'File key in R2' }) }).openapi('DownloadSurveyQuery') },
   responses: {
     [codes.OK]: jsonContent(
-      z.object({
-        downloadUrl: z.string().url(),
-        expiresIn: z.number(),
-      }),
+      FileDownloadResponseSchema,
       'URL generated successfully.',
     ),
     ...registryResponses('INVALID_FILE', 'UNAUTHORIZED', 'STORAGE_UNAVAILABLE', 'VALIDATION_ERROR'),

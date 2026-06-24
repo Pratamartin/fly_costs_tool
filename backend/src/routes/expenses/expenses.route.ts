@@ -9,7 +9,7 @@ import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole, validateJsonSchema } from '@/middlewares'
 import { uploadMemorandumSettings } from '@/middlewares/upload-settings'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, CreateExpenseSchema, ExpenseListQuerySchema, ExpenseResponseSchema, ListExpenseResponseSchema, UpdateExpenseSchema, UpdateExpenseStatusSchema, UploadMemorandumSchema } from '@/schemas/expense.schema'
-import { DeleteExpenseResponseSchema, IdSchema } from '@/schemas/shared.schema'
+import { DeleteExpenseResponseSchema, FileDownloadResponseSchema, IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Expenses']
 
@@ -144,7 +144,7 @@ export const startProcessing = createRoute({
   request: {
     params: z.object({ id: IdSchema }),
     body: jsonContent(
-      z.object({}),
+      z.object({}).openapi('StartProcessingRequest'),
       'Empty body required to initiate processing',
     ),
   },
@@ -193,10 +193,7 @@ export const getMemorandumDownload = createRoute({
   request: { params: z.object({ id: IdSchema }) },
   responses: {
     [codes.OK]: jsonContent(
-      z.object({
-        downloadUrl: z.string().url(),
-        expiresIn: z.number(),
-      }),
+      FileDownloadResponseSchema,
       'URL generated.',
     ),
     ...registryResponses('BAD_REQUEST', 'FORBIDDEN', 'EXPENSE_NOT_FOUND', 'STORAGE_UNAVAILABLE', 'UNAUTHORIZED'),

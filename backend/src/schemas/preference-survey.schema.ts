@@ -10,6 +10,7 @@ export const DynamicSurveyDataSchema = z.record(z.string(), z.any()).openapi({
     preferenceSurveyJSONSchema.definitions['passagem-aerea'] as any,
   ],
 })
+  .openapi('DynamicSurveyData')
 
 export const PreferenceSurveySchema = z.object({
   id: IdSchema,
@@ -25,10 +26,11 @@ export const PreferenceSurveySchema = z.object({
     normalizedName: z.string().openapi({ example: 'inscricao' }),
   }),
 }).extend(TimestampSchema)
+  .openapi('PreferenceSurvey')
 
-export const ListPreferenceSurveyResponseSchema = z.array(PreferenceSurveySchema)
+export const ListPreferenceSurveyResponseSchema = z.array(PreferenceSurveySchema).openapi('PreferenceSurveyListResponse')
 
 export const PreferenceSurveyAnswerSchema = z.object({
   expenseCategoryId: IdSchema,
   data: DynamicSurveyDataSchema,
-})
+}).openapi('PreferenceSurveyAnswer')

@@ -90,7 +90,7 @@ export const logout = createRoute({
           example: 'refreshToken=; Max-Age=0; Path=/; HttpOnly',
         }),
       }),
-      content: { 'application/json': { schema: createMessageObjectSchema('Logged out successfully.') } },
+      content: { 'application/json': { schema: createMessageObjectSchema('Logged out successfully.').openapi('LogoutResponse') } },
     },
     ...registryResponses('UNAUTHORIZED'),
   },
@@ -106,7 +106,7 @@ export const forgotPassword = createRoute({
   request: { body: jsonContentRequired(ForgotPasswordSchema, 'User email') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('If the email is registered, you will receive instructions to reset your password.'),
+      createMessageObjectSchema('If the email is registered, you will receive instructions to reset your password.').openapi('ForgotPasswordResponse'),
       'Generic success response to prevent user enumeration.',
     ),
     ...registryResponses('VALIDATION_ERROR'),
@@ -123,7 +123,7 @@ export const resetPassword = createRoute({
   request: { body: jsonContentRequired(ResetPasswordSchema, 'New password and token') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Password reset successfully.'),
+      createMessageObjectSchema('Password reset successfully.').openapi('ResetPasswordResponse'),
       'Password changed successfully.',
     ),
     ...registryResponses('INVALID_TOKEN', 'VALIDATION_ERROR'),
