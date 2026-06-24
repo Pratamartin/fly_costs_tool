@@ -1,8 +1,8 @@
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
-import { ID_ALUNO } from '@/constants/seed.constant'
 import { ALLOWED_STATUSES_FOR_COST_ALLOCATION } from '@/constants/expense.constant'
+import { ID_ALUNO } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
@@ -312,8 +312,8 @@ describe('[Cost Breakdown] - Update (PATCH /expenses/:id/cost-breakdowns/:breakd
       await expectProblem(res, 'INVALID_EXPENSE_STATE', {
         resourceState: {
           current: 'APROVADO',
-          required: ALLOWED_STATUSES_FOR_COST_ALLOCATION
-        }
+          required: ALLOWED_STATUSES_FOR_COST_ALLOCATION,
+        },
       })
 
       // 2. Volta para EM_PROCESSAMENTO para os testes seguintes
@@ -385,7 +385,7 @@ describe('[Cost Breakdown] - Update (PATCH /expenses/:id/cost-breakdowns/:breakd
       }, { headers: adminHeaders })
       await expectProblem(res, 'INVALID_SUBCATEGORIES', {
         invalidNames: [category.normalizedName],
-        allowedNames: [strictCategory.normalizedName]
+        allowedNames: [strictCategory.normalizedName],
       })
     })
 
@@ -399,7 +399,7 @@ describe('[Cost Breakdown] - Update (PATCH /expenses/:id/cost-breakdowns/:breakd
       }, { headers: adminHeaders })
       await expectProblem(res, 'PROJECT_PERIOD_EXPIRED', {
         projectStartDate: new Date('2028-01-01T00:00:00Z').toISOString(),
-        projectEndDate: new Date('2030-12-31T00:00:00Z').toISOString()
+        projectEndDate: new Date('2030-12-31T00:00:00Z').toISOString(),
       })
     })
 
@@ -420,10 +420,10 @@ describe('[Cost Breakdown] - Update (PATCH /expenses/:id/cost-breakdowns/:breakd
           id: expenseId,
           breakdownId,
         },
-        json: { 
+        json: {
           projectId: strictProjectId,
           subcategoryName: strictCategory.normalizedName,
-          amount: 50
+          amount: 50,
         },
       }, { headers: adminHeaders })
       expect(res.status).toBe(status.OK)
