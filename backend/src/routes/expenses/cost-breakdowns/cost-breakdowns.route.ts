@@ -7,12 +7,13 @@ import { registryResponses, standardResponses } from '@/lib/problems'
 import { multipartFormContentRequired } from '@/lib/util'
 import { requireAuth, requireRole } from '@/middlewares'
 import { uploadReceiptSettings } from '@/middlewares/upload-settings'
-import { CostBreakdownResponseSchema, CreateCostBreakdownSchema, ReceiptDownloadUrlSchema, UploadReceiptSchema } from '@/schemas/cost-breakdown.schema'
+import { CostBreakdownResponseSchema, CreateCostBreakdownSchema, ReceiptDownloadUrlSchema, UpdateCostBreakdownSchema, UploadReceiptSchema } from '@/schemas/cost-breakdown.schema'
 import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Cost Breakdowns']
 
 export type CreateRoute = typeof create
+export type UpdateRoute = typeof update
 export type UploadReceiptRoute = typeof uploadReceipt
 export type RemoveReceiptRoute = typeof removeReceipt
 export type GetReceiptDownloadRoute = typeof getReceiptDownload
@@ -37,6 +38,32 @@ export const create = createRoute({
     ),
     ...standardResponses,
     ...registryResponses('BAD_REQUEST', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE', 'PROJECT_PERIOD_EXPIRED'),
+  },
+})
+
+export const update = createRoute({
+  path: '/{breakdownId}',
+  method: 'patch',
+  middleware: [requireAuth, requireRole([UserRole.ADMIN])],
+  security: [{ bearerAuth: [] }],
+  operationId: 'updateCostBreakdown',
+  summary: 'Update cost breakdown',
+  description: 'Updates an existing cost breakdown. Validates budget availability (`PROJECT_INSUFFICIENT_FUNDS`), temporal vigency (`PROJECT_PERIOD_EXPIRED`), and that the project is active (`PROJECT_ARCHIVED`). `ADMIN` only.',
+  tags,
+  request: {
+    params: z.object({
+      id: IdSchema,
+      breakdownId: IdSchema,
+    }),
+    body: jsonContentRequired(UpdateCostBreakdownSchema, 'Cost breakdown update details'),
+  },
+  responses: {
+    [codes.OK]: jsonContent(
+      CostBreakdownResponseSchema,
+      'Breakdown updated successfully.',
+    ),
+    ...standardResponses,
+    ...registryResponses('BAD_REQUEST', 'COST_BREAKDOWN_NOT_FOUND', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE', 'PROJECT_PERIOD_EXPIRED'),
   },
 })
 
