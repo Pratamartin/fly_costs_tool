@@ -1,12 +1,12 @@
 import { z } from '@hono/zod-openapi'
 import { MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
-import { validBankCode, validBirthDate } from './schema.refine'
+import { validBankCode, validBirthDate, validPixKey } from './schema.refine'
 import { ProfileSchema, UserSchema } from './user.schema'
 
 const RegisterBaseSchema = z.object({
   name: z.string().openapi({ example: MOCK_USER.name }),
-  email: z.email().meta({ example: MOCK_USER.email }),
+  email: z.email().openapi({ example: MOCK_USER.email }),
   password: z.string()
     .min(8, 'Password must be at least 8 characters long')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -22,41 +22,42 @@ const RegisterBaseSchema = z.object({
 })
 
 export const AlunoRegisterSchema = RegisterBaseSchema
-  .extend((ProfileSchema.required()).shape)
+  .extend((ProfileSchema.omit({ pixKey: true }).required()).shape)
   .extend({
-    role: z.literal(UserRole.ALUNO),
+    role: z.literal(UserRole.ALUNO).openapi({ example: UserRole.ALUNO }),
     birthDate: validBirthDate,
     bankCode: validBankCode,
+    pixKey: validPixKey,
   })
 
 export const StaffRegisterSchema = RegisterBaseSchema
-  .extend({ role: z.enum([UserRole.ADMIN, UserRole.COORDENADOR]) })
+  .extend({ role: z.enum([UserRole.ADMIN, UserRole.COORDENADOR]).openapi({ examples: [UserRole.ADMIN, UserRole.COORDENADOR] }) })
 
 export const RegisterSchema = z.discriminatedUnion('role', [
   StaffRegisterSchema.strict(),
   AlunoRegisterSchema,
-])
+]).openapi('RegisterUserRequest')
 
 export const RegisterSuccessSchema = UserSchema
 
 export const LoginSchema = RegisterBaseSchema.pick({
   email: true,
   password: true,
-})
+}).openapi('LoginUserRequest')
 
 export const LoginSuccessSchema = z.object({
   accessToken: z.string().openapi({
     description: 'JWT (JSON Web Token) to be used in the authorization header.',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   }),
-})
+}).openapi('LoginResponse')
 
 export const ForgotPasswordSchema = z.object({
   email: z.email()
     .openapi({ example: MOCK_USER.email }),
-})
+}).openapi('ForgotPasswordRequest')
 
 export const ResetPasswordSchema = z.object({
   token: z.string().openapi({ example: 'plain-token-here' }),
   newPassword: RegisterBaseSchema.shape.password,
-})
+}).openapi('ResetPasswordRequest')

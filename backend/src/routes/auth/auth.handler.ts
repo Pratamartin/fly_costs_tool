@@ -36,7 +36,7 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
   })
 
   if ('error' in result) {
-    throw problems.create(result.error)
+    throw problems.create(result.error, { extensions: result.context })
   }
 
   return c.json(result.data, codes.CREATED)

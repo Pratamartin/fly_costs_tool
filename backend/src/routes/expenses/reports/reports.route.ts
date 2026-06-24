@@ -19,12 +19,13 @@ export const requestReport = createRoute({
   tags,
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
+  operationId: 'requestExpenseReport',
   summary: 'Request expense report generation',
-  description: 'Starts asynchronous PDF report generation and returns a jobId.',
+  description: 'Dispatches a background job to generate a PDF report asynchronously. Returns a `jobId` to track progress.',
   request: { query: ExpenseReportQuerySchema },
   responses: {
     [codes.ACCEPTED]: jsonContent(
-      z.object({ jobId: z.string().uuid() }),
+      z.object({ jobId: z.string().uuid() }).openapi('RequestReportResponse'),
       'Report generation started.',
     ),
     ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),
@@ -37,8 +38,9 @@ export const reportStatus = createRoute({
   tags,
   middleware: [requireAuth],
   security: [{ bearerAuth: [] }],
+  operationId: 'monitorExpenseReportStatus',
   summary: 'Monitor report generation status (SSE)',
-  description: 'Monitors generation progress via Server-Sent Events. Sends events named `report-update`, `report-finished`, and `report-error`.',
+  description: 'Monitors generation progress via Server-Sent Events stream. Events: `report-update` (progress), `report-finished` (download URL), `report-error` (failure details).',
   request: { params: z.object({ jobId: IdSchema }) },
   responses: {
     [codes.OK]: sseContent(

@@ -4,7 +4,7 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { registryResponses, standardResponses } from '@/lib/problems'
 import { requireAuth, requireRole } from '@/middlewares'
-import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectSchema } from '@/schemas/project.schema'
+import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectPeriodSchema, UpdateProjectSchema } from '@/schemas/project.schema'
 import { IdSchema } from '@/schemas/shared.schema'
 
 const tags = ['Projects']
@@ -14,6 +14,7 @@ export type CreateRoute = typeof create
 export type IndexRoute = typeof index
 export type ReadRoute = typeof read
 export type UpdateRoute = typeof update
+export type UpdatePeriodRoute = typeof updatePeriod
 export type RemoveRoute = typeof remove
 
 export const index = createRoute({
@@ -22,8 +23,9 @@ export const index = createRoute({
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
   request: { query: ListProjectQuerySchema },
-  summary: 'List all projects',
-  description: 'Returns the complete list of projects registered in the system, including budgets and metadata.',
+  operationId: 'listProjects',
+  summary: 'List projects',
+  description: 'Returns a complete list of projects registered in the system, including their budgets and metadata. Role-based constraints: Only `ADMIN` users can access this endpoint.',
   tags,
   responses: {
     [codes.OK]: jsonContent(ListProjectResponseSchema, 'Project list retrieved successfully.'),
@@ -36,11 +38,9 @@ export const create = createRoute({
   method: 'post',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'createProject',
   summary: 'Create a new project',
-  description: `
-    Allows creating a new project by defining a unique identification code, total budget, and categories.
-    Initial creation sets the used budget to zero and status as active by default.
-  `,
+  description: 'Creates a project by defining a unique identification code, total budget, and associated expense categories. Initial creation automatically sets the used budget to zero and status as active. Returns 409 if the code is already in use.',
   tags,
   request: { body: jsonContentRequired(CreateProjectSchema, 'Project data') },
   responses: {
@@ -55,8 +55,9 @@ export const read = createRoute({
   method: 'get',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'getProject',
   summary: 'Get project by ID',
-  description: 'Retrieves details of a specific project, presenting the balance between total, used, and available budget.',
+  description: 'Retrieves details of a specific project, presenting the real-time balance between total, used, and available budget.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
@@ -70,11 +71,9 @@ export const update = createRoute({
   method: 'patch',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
+  operationId: 'updateProject',
   summary: 'Update project',
-  description: `
-    Allows updating project registration and financial information.
-    If the code is changed, the system will validate that the new value does not already belong to another existing project.
-  `,
+  description: 'Updates project registration and financial information. If the code is changed, it validates that the new code does not conflict with existing projects (`PROJECT_CODE_IN_USE`).',
   tags,
   request: {
     params: z.object({ id: IdSchema }),
@@ -87,20 +86,38 @@ export const update = createRoute({
   },
 })
 
+export const updatePeriod = createRoute({
+  path: '/{id}/period',
+  method: 'patch',
+  middleware: [requireAuth, requireRole(ADMIN_ONLY)],
+  security: [{ bearerAuth: [] }],
+  operationId: 'updateProjectPeriod',
+  summary: 'Update active period',
+  description: 'Updates the project\'s temporal validity (start and end dates). Validation applies a "Temporal Shrinkage" check: it blocks the reduction of the period if there are already expense allocations (`CostBreakdown`) that would fall outside the new date bounds (`PROJECT_SHRINKAGE_CONFLICT`).',
+  tags,
+  request: {
+    params: z.object({ id: IdSchema }),
+    body: jsonContentRequired(UpdateProjectPeriodSchema, 'Period data for update'),
+  },
+  responses: {
+    [codes.OK]: jsonContent(ProjectResponseSchema, 'Project period updated successfully.'),
+    ...standardResponses,
+    ...registryResponses('PROJECT_NOT_FOUND', 'PROJECT_ARCHIVED', 'PROJECT_SHRINKAGE_CONFLICT'),
+  },
+})
+
 export const remove = createRoute({
   path: '/{id}',
   method: 'delete',
   middleware: [requireAuth, requireRole(ADMIN_ONLY)],
   security: [{ bearerAuth: [] }],
-  summary: 'Archive project (Soft Delete)',
-  description: `
-    Performs logical archiving of the project (isActive=false).
-    The project will no longer accept new expenses, but its historical data remains preserved for audit purposes.
-  `,
+  operationId: 'archiveProject',
+  summary: 'Archive project',
+  description: 'Performs a logical soft delete (`isActive=false`). The project will no longer accept new expenses, but its historical data remains preserved for audits. Fails if the project is already archived.',
   tags,
   request: { params: z.object({ id: IdSchema }) },
   responses: {
     [codes.NO_CONTENT]: { description: 'Project archived successfully.' },
-    ...registryResponses('PROJECT_NOT_FOUND', 'UNAUTHORIZED', 'FORBIDDEN'),
+    ...registryResponses('PROJECT_NOT_FOUND', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })

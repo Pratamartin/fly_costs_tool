@@ -34,7 +34,6 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
           location: 'Local Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_IA,
         studentId: ID_ALUNO,
       },
     })
@@ -63,6 +62,7 @@ describe('[Expense] Criar cost breakdown em projeto arquivado', () => {
         param: { id: expenseId },
         json: {
           amount: 100,
+          projectId: ID_PROJ_IA,
           subcategoryName: dummyExpenseCategories[0]!.normalizedName,
           attachmentKey: 'key/abc.pdf',
         },

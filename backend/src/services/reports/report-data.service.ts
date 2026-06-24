@@ -10,7 +10,7 @@ import { UserRole } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
 import { expenseInclude } from '../expense.service'
 import { calculateReportAnalytics } from './report-analytics.logic'
-import { extractTripInfo, formatCurrency } from './report-formatter.logic'
+import { extractTripInfo, formatCurrency, getOneLinerUniqueProjectsFromBreakdowns } from './report-formatter.logic'
 
 export type ReportRow = {
   id: string
@@ -22,6 +22,7 @@ export type ReportRow = {
   totalDisplay: string
   breakdown: {
     category: string
+    projectCode: string | null
     amountDisplay: string
   }[]
 } & ExtractedReportInfo
@@ -54,7 +55,7 @@ export async function getReportViewModel(
   if (status)
     filters.status = status
   if (projectId)
-    filters.projectId = projectId
+    filters.costBreakdowns = { some: { projectId } }
   if (studentId && role !== UserRole.ALUNO) {
     filters.studentId = studentId
   }
@@ -67,8 +68,8 @@ export async function getReportViewModel(
   })
 
   // Transforma os dados em ViewModel mantendo a precisão Decimal
-  const rows: ReportRow[] = expenses.map(expense => transformToReportRow(expense))
-  const analytics = calculateReportAnalytics(expenses)
+  const rows: ReportRow[] = expenses.map(expense => transformToReportRow(expense, projectId))
+  const analytics = calculateReportAnalytics(expenses, projectId)
 
   return {
     rows,
@@ -77,26 +78,33 @@ export async function getReportViewModel(
   }
 }
 
-function transformToReportRow(expense: ExpenseWithRelations): ReportRow {
+function transformToReportRow(expense: ExpenseWithRelations, projectIdFilter?: string): ReportRow {
   const tripInfo = extractTripInfo(expense)
 
-  const totalRaw = expense.costBreakdowns.reduce(
+  const relevantBreakdowns = projectIdFilter
+    ? expense.costBreakdowns.filter(cb => cb.projectId === projectIdFilter)
+    : expense.costBreakdowns
+
+  const totalRaw = relevantBreakdowns.reduce(
     (acc, cb) => acc.add(cb.amount),
     new Prisma.Decimal(0),
   )
 
+  const { names, codes } = getOneLinerUniqueProjectsFromBreakdowns(relevantBreakdowns)
+
   return {
     id: expense.id,
     studentName: expense.student?.name || 'N/A',
-    projectName: expense.project?.name || 'Não Atribuído',
-    projectCode: expense.project?.code || 'N/A',
+    projectName: names,
+    projectCode: codes,
     status: expense.status,
     destination: tripInfo.destination,
     period: tripInfo.period,
     totalRaw,
     totalDisplay: formatCurrency(totalRaw),
-    breakdown: expense.costBreakdowns.map(cb => ({
+    breakdown: relevantBreakdowns.map(cb => ({
       category: cb.expenseCategory.name,
+      projectCode: cb.project?.code || null,
       amountDisplay: formatCurrency(cb.amount),
     })),
   }

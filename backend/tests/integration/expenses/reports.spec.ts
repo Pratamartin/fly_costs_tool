@@ -9,6 +9,7 @@ import { ID_ALUNO, ID_PROJ_ROBOTICA } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
+import prisma from '@/lib/orm'
 import { expenses } from '@/routes'
 import { seedExpenseCategories, seedExpenses, seedPreferenceSurveys, seedProjects, seedUsers } from '@/seeds'
 import { getReportViewModel } from '@/services/reports'
@@ -57,6 +58,13 @@ describe('[Expense Reports Flow] Integration Tests', () => {
 
   afterAll(async () => {
     await jobManager.stop()
+    await prisma.preferenceSurveyAnswer.deleteMany()
+    await prisma.costBreakdown.deleteMany()
+    await prisma.expenseRequest.deleteMany()
+    await prisma.preferenceSurvey.deleteMany()
+    await prisma.project.deleteMany()
+    await prisma.expenseCategory.deleteMany()
+    await prisma.user.deleteMany()
   })
 
   describe('2.2.1 API Ingestão', () => {
@@ -205,6 +213,49 @@ describe('[Expense Reports Flow] Integration Tests', () => {
 
       const adminViewModel = await getReportViewModel('admin-id', UserRole.ADMIN, {})
       expect(adminViewModel.rows).toBeInstanceOf(Array)
+    })
+
+    it('isolamento de Custos: Filtro por projeto deve isolar os custos associados e não incluir de outros projetos no mesmo request', async () => {
+      const user = await prisma.user.findFirst({ where: { role: 'ALUNO' } })
+      assert(user)
+      const categories = await prisma.expenseCategory.findMany()
+      const projects = await prisma.project.findMany()
+      const projA = projects[0]
+      const projB = projects[1]
+      assert(projA && projB && categories[0] && categories[1])
+
+      const expense = await prisma.expenseRequest.create({
+        data: {
+          student: { connect: { id: user.id } },
+          title: 'Test Title',
+          status: 'CONCLUIDO',
+          event: {},
+          article: {},
+          costBreakdowns: {
+            create: [
+              {
+                amount: 200,
+                expenseCategory: { connect: { id: categories[0].id } },
+                project: { connect: { id: projA.id } },
+              },
+              {
+                amount: 300,
+                expenseCategory: { connect: { id: categories[1].id } },
+                project: { connect: { id: projB.id } },
+              },
+            ],
+          },
+        },
+      })
+
+      const viewModelA = await getReportViewModel('admin-id', UserRole.ADMIN, { projectId: projA.id })
+
+      const row = viewModelA.rows.find(r => r.id === expense.id)
+      expect(row).toBeDefined()
+      expect(row?.totalDisplay.replace(/\s/g, ' ')).toBe('R$ 200,00')
+      expect(row?.breakdown).toHaveLength(1)
+      expect(row?.breakdown?.[0]?.projectCode).toBe(projA.code)
+      expect(row?.totalRaw.toNumber()).toBe(200)
     })
   })
 })

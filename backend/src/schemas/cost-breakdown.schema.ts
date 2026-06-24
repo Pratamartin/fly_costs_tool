@@ -3,11 +3,13 @@ import { COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS, RECEIPT_UPLOAD_MAX_
 import { dummyExpenseCategories } from '@/seeds/expense.category.seed'
 import { normalizeCategoryName } from '@/services/expense.category.service'
 import ExpenseCategoryBaseSchema from './expense.category.schema'
+import ProjectSchema from './project.schema'
 import { validReceiptFileCheck } from './schema.refine'
 import { FileItemSchema, IdSchema } from './shared.schema'
 
 const BaseSchema = z.object({
   id: IdSchema,
+  projectId: IdSchema.openapi({ description: 'Target project ID' }),
   subcategoryName: z.string().transform(val => normalizeCategoryName(val))
     .openapi({
       description: 'Expense subcategory name',
@@ -20,17 +22,27 @@ const BaseSchema = z.object({
     .openapi({ description: 'Receipt key in R2 storage. Can be used during registration to reuse a previously uploaded file.' }),
 })
 
-export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true })
+export const CreateCostBreakdownSchema = BaseSchema.omit({ id: true }).openapi('CreateCostBreakdownRequest')
+
+export const UpdateCostBreakdownSchema = CreateCostBreakdownSchema.partial().openapi('UpdateCostBreakdownRequest')
 
 export const CostBreakdownResponseSchema = z.object({
   id: IdSchema,
-  expenseRequestId: IdSchema,
+  expenseRequestId: IdSchema.openapi({ description: 'ID of the parent expense request' }),
+  projectId: IdSchema.openapi({ description: 'Target project ID' }),
   amount: z.coerce.number()
     .openapi({ example: 150.50 }),
-  subcategory: ExpenseCategoryBaseSchema,
+  subcategory: ExpenseCategoryBaseSchema.openapi({ description: 'Category details for the breakdown' }),
+  project: ProjectSchema.pick({
+    name: true,
+    code: true,
+  }).extend({ id: IdSchema })
+    .optional()
+    .openapi({ description: 'Target project details' }),
   attachmentKey: z.string().nullable()
-    .optional(),
-})
+    .optional()
+    .openapi({ description: 'Receipt key in R2 storage.' }),
+}).openapi('CostBreakdown')
 
 export const UploadReceiptSchema = z.object({
   file: FileItemSchema.superRefine(validReceiptFileCheck(RECEIPT_UPLOAD_MAX_SIZE_MB))
@@ -39,7 +51,7 @@ export const UploadReceiptSchema = z.object({
       format: 'binary',
       description: `Receipt file (PDF, JPG, PNG). Maximum size allowed: ${RECEIPT_UPLOAD_MAX_SIZE_MB}MB.`,
     }),
-})
+}).openapi('UploadReceiptRequest')
 
 export const ReceiptDownloadUrlSchema = z.object({
   url: z.url()
@@ -52,4 +64,4 @@ export const ReceiptDownloadUrlSchema = z.object({
       description: 'URL expiration time in seconds',
       example: COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS,
     }),
-})
+}).openapi('ReceiptDownloadResponse')

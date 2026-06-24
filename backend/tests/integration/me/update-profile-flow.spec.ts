@@ -2,6 +2,7 @@ import { cpf } from 'cpf-cnpj-validator'
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { MOCK_PROFILE } from '@/constants/seed.constant'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { me } from '@/routes'
@@ -44,9 +45,9 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
 
   it('[Step 2] Aluno atualiza seus dados bancários com sucesso', async () => {
     const updatePayload = {
-      bankCode: '001',
-      bankName: 'BANCO DO BRASIL',
-      bankAgency: '1234',
+      bankCode: MOCK_PROFILE.bankCode,
+      bankName: MOCK_PROFILE.bankName,
+      bankAgency: MOCK_PROFILE.bankAgency,
       bankAccount: '56789-0',
     }
 
@@ -75,8 +76,8 @@ describe('[User Profile Flow] - Atualização de Perfil → Validação de CPF �
     const json = await res.json()
 
     expect(json.profile).toBeDefined()
-    expect(json.profile?.bankCode).toBe('001')
-    expect(json.profile?.bankName).toBe('BANCO DO BRASIL')
+    expect(json.profile?.bankCode).toBe(MOCK_PROFILE.bankCode)
+    expect(json.profile?.bankName).toBe(MOCK_PROFILE.bankName)
   })
 
   it('[Step 4] Aluno tenta atualizar seu perfil usando um CPF que pertence a outro usuário', async () => {

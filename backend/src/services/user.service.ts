@@ -30,6 +30,7 @@ export async function createUser(data: CreateUserDTO, saltRounds: number, tx: Pr
         bankName: data.bankName,
         bankAgency: data.bankAgency,
         bankAccount: data.bankAccount,
+        pixKey: data.pixKey,
       }
     : undefined
 

@@ -9,6 +9,7 @@ export type IndexRoute = typeof index
 export const index = createRoute({
   path: '/',
   method: 'get',
+  operationId: 'checkHealth',
   summary: 'Health check',
   description: 'Checks the operational status of the API and its dependent services.',
   tags,

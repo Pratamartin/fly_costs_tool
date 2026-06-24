@@ -35,7 +35,6 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
           location: 'Local de Teste',
         },
         article: { classification: 'Sem Qualis' },
-        projectId: ID_PROJ_IA,
         studentId: ID_ALUNO,
       },
     })
@@ -59,6 +58,7 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
         param: { id: expenseId },
         json: {
           amount: 0,
+          projectId: ID_PROJ_IA,
           subcategoryName: category.normalizedName,
         },
       },
@@ -81,12 +81,104 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
         param: { id: expenseId },
         json: {
           amount: 100,
+          projectId: ID_PROJ_IA,
           subcategoryName: 'CATEGORIA_QUE_NAO_EXISTE',
         },
       },
       { headers: adminHeaders },
     )
 
-    await expectProblem(res, 'INVALID_SUBCATEGORIES')
+    await expectProblem(res, 'INVALID_SUBCATEGORIES', { invalidNames: ['categoria-que-nao-existe'] })
+  })
+
+  it('deve bloquear discriminação que exceda o budget considerando valores pendentes (EM_PROCESSAMENTO)', async () => {
+    // 1. Criar um projeto isolado com saldo limitado
+    const limitedProject = await prisma.project.create({
+      data: {
+        name: 'Projeto de Validação de Saldo',
+        code: 'VAL-SALDO',
+        budget: 500,
+        usedBudget: 0,
+        startDate: new Date('2026-01-01T00:00:00Z'),
+        endDate: new Date('2026-12-31T00:00:00Z'),
+        expenseCategories: { connect: { id: category.id! } },
+      },
+    })
+
+    // 2. Criar uma segunda despesa para simular concorrência de pendentes
+    const otherExpense = await prisma.expenseRequest.create({
+      data: {
+        title: 'Outra Despesa Pendente',
+        status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+        event: {
+          name: 'E',
+          location: 'L',
+        },
+        article: { classification: 'Sem Qualis' },
+        studentId: ID_ALUNO,
+      },
+    })
+
+    // 3. Adicionar R$ 400 na primeira despesa (Saldo restante: 100)
+    await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: expenseId },
+        json: {
+          amount: 400,
+          projectId: limitedProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 4. Tentar adicionar R$ 200 na outra despesa (Total ficaria 600 > 500)
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: otherExpense.id },
+        json: {
+          amount: 200,
+          projectId: limitedProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 5. Deve falhar com PROJECT_INSUFFICIENT_FUNDS (Task 1.4)
+    await expectProblem(res, 'PROJECT_INSUFFICIENT_FUNDS', { availableBudget: '100.00' })
+  })
+
+  it('deve bloquear alocação de custo fora do período de vigência do projeto (PROJECT_PERIOD_EXPIRED)', async () => {
+    // 1. Criar um projeto que já venceu (no passado)
+    const expiredProject = await prisma.project.create({
+      data: {
+        name: 'Projeto Vencido',
+        code: 'PROJ-EXPIRED',
+        budget: 500,
+        usedBudget: 0,
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        endDate: new Date('2020-12-31T00:00:00Z'),
+        expenseCategories: { connect: { id: category.id! } },
+      },
+    })
+
+    // 2. Tentar alocar despesa hoje
+    const res = await client.expenses[':id']['cost-breakdowns'].$post(
+      {
+        param: { id: expenseId },
+        json: {
+          amount: 100,
+          projectId: expiredProject.id,
+          subcategoryName: category.normalizedName,
+        },
+      },
+      { headers: adminHeaders },
+    )
+
+    // 3. Deve falhar com PROJECT_PERIOD_EXPIRED
+    const json = await expectProblem(res, 'PROJECT_PERIOD_EXPIRED')
+    expect(json.projectStartDate).toBe(expiredProject.startDate.toISOString())
+    expect(json.projectEndDate).toBe(expiredProject.endDate.toISOString())
   })
 })

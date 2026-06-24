@@ -19,18 +19,19 @@ export const AdminDashboardResponseSchema = z.object({
     .openapi({ example: '23450.72' }),
   budgetCommitted: z.string()
     .openapi({ example: '11230.50' }),
-})
+}).openapi('AdminDashboardResponse')
 
 export const TopProjectsQuerySchema = z.object({ limit: z.coerce.number().default(DEFAULT_TOP_PROJECTS_COUNT) }).partial()
+  .openapi('TopProjectsQuery')
 
 export const TopProjectSchema = z.object({
   id: IdSchema,
   name: z.string().openapi({ example: 'Sustainability Project' }),
-  totalRequests: z.number().int()
+  allocationsCount: z.number().int()
     .nonnegative()
     .openapi({ example: 18 }),
   totalValue: z.string()
     .openapi({ example: '7800.45' }),
-})
+}).openapi('TopProject')
 
-export const TopProjectsResponseSchema = z.array(TopProjectSchema)
+export const TopProjectsResponseSchema = z.array(TopProjectSchema).openapi('TopProjectListResponse')

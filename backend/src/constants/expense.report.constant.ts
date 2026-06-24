@@ -22,8 +22,8 @@ export const REPORT_TRANSLATIONS = {
   from: 'Data Inicial',
   to: 'Data Final',
   status: 'Status',
-  projectId: 'Projeto ID',
-  studentId: 'Aluno ID',
+  projectId: 'Projeto',
+  studentId: 'Aluno',
 } as const
 
 export const REPORT_PDF_CONFIG = {

@@ -226,10 +226,6 @@ function renderTable(rows: ReportRow[]): Content {
         style: 'tableHeader',
       },
       {
-        text: 'Projeto',
-        style: 'tableHeader',
-      },
-      {
         text: 'Composição do Gasto',
         style: 'tableHeader',
         alignment: 'right',
@@ -253,15 +249,11 @@ function renderTable(rows: ReportRow[]): Content {
         style: 'tableCell',
       },
       {
-        text: row.projectCode,
-        style: 'tableCell',
-      },
-      {
         stack: [
           ...row.breakdown.map(item => ({
             columns: [
               {
-                text: item.category,
+                text: item.projectCode ? `${item.category} (${item.projectCode})` : item.category,
                 style: 'costCategory',
               },
               {
@@ -298,7 +290,7 @@ function renderTable(rows: ReportRow[]): Content {
   return {
     table: {
       headerRows: 1,
-      widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto'],
+      widths: ['auto', '*', 'auto', 'auto', 'auto'],
       body,
     },
     layout: 'lightHorizontalLines',

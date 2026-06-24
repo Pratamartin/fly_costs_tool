@@ -42,6 +42,7 @@ describe('[Auth] Cadastro de usuário', () => {
     expect(json).toHaveProperty('email', basePayload.email)
     expect(json.role).toBe(UserRole.ALUNO)
     expect(json.profile).toBeDefined()
+    expect(json.profile).toMatchObject(MOCK_PROFILE)
   })
 
   it('deve retornar erro ao tentar cadastrar com e-mail já existente', async () => {

@@ -3,18 +3,19 @@ import { preferenceSurveyJSONSchema } from '@/json'
 import ajv from '@/lib/json-schema-validator'
 
 describe('preference Survey Schema Validation', () => {
-  describe('hospedagem', () => {
-    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.hospedagem)
+  describe('diarias', () => {
+    const validate = ajv.compile((preferenceSurveyJSONSchema).definitions.diarias)
 
-    it('deve validar com sucesso um booleano', () => {
-      expect(validate(true)).toBe(true)
-      expect(validate(false)).toBe(true)
+    it('deve validar com sucesso um booleano dentro do objeto', () => {
+      expect(validate({ requested: true })).toBe(true)
+      expect(validate({ requested: false })).toBe(true)
     })
 
-    it('deve falhar para valores não booleanos', () => {
-      expect(validate('true')).toBe(false)
-      expect(validate(1)).toBe(false)
+    it('deve falhar para valores não booleanos ou formatos incorretos', () => {
+      expect(validate({ requested: 'true' })).toBe(false)
+      expect(validate({ requested: 1 })).toBe(false)
       expect(validate({})).toBe(false)
+      expect(validate(true)).toBe(false)
     })
   })
 
@@ -31,9 +32,9 @@ describe('preference Survey Schema Validation', () => {
       expect(validate(invalidPayload)).toBe(false)
     })
 
-    it('deve falhar se invoiceKey estiver faltando', () => {
+    it('deve validar com sucesso se invoiceKey estiver faltando (opcional no POST)', () => {
       const invalidPayload = {}
-      expect(validate(invalidPayload)).toBe(false)
+      expect(validate(invalidPayload)).toBe(true)
     })
   })
 
