@@ -5,7 +5,7 @@ export const ReportEventEnumSchema = z.enum([
   REPORT_SSE_EVENTS.UPDATE,
   REPORT_SSE_EVENTS.FINISHED,
   REPORT_SSE_EVENTS.ERROR,
-])
+]).openapi('ReportEventEnum')
 
 export const ReportEventDataSchema = z.discriminatedUnion('status', [
   z.object({
@@ -24,6 +24,6 @@ export const ReportEventDataSchema = z.discriminatedUnion('status', [
   }),
   z.object({ status: z.literal(REPORT_SSE_STATUS.NOT_FOUND).openapi({ example: REPORT_SSE_STATUS.NOT_FOUND }) }),
   z.object({ status: z.enum(['active', 'created', 'retry', 'waiting', 'cancelled']).openapi({ example: 'active' }) }),
-])
+]).openapi('ReportEventData')
 
 export type ReportSSEEvent = z.infer<typeof ReportEventDataSchema>

@@ -57,7 +57,7 @@ export const ProfileSchema = z.object({
         'b4d9bf08-b854-4647-b564-8a407a229230',
       ],
     }),
-})
+}).openapi('Profile')
 
 export const UserSchema = z.object({
   id: IdSchema,
@@ -76,6 +76,7 @@ export const UserSchema = z.object({
   })
     .nullish(),
 }).extend(TimestampSchema)
+  .openapi('User')
 
 export const UpdateProfileSchema = ProfileSchema.partial().extend({
   name: z.string()
@@ -86,3 +87,4 @@ export const UpdateProfileSchema = ProfileSchema.partial().extend({
     }),
   email: z.email().optional(),
 })
+  .openapi('UpdateProfileRequest')

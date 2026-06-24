@@ -25,7 +25,7 @@ export const requestReport = createRoute({
   request: { query: ExpenseReportQuerySchema },
   responses: {
     [codes.ACCEPTED]: jsonContent(
-      z.object({ jobId: z.string().uuid() }),
+      z.object({ jobId: z.string().uuid() }).openapi('RequestReportResponse'),
       'Report generation started.',
     ),
     ...registryResponses('UNAUTHORIZED', 'VALIDATION_ERROR'),

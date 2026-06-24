@@ -79,6 +79,7 @@ export const CreateExpenseSchema = BaseSchema.omit({
   surveyAnswers: z.array(PreferenceSurveyAnswerSchema).min(1, { message: 'Select at least one preference to continue.' })
     .openapi({ description: 'List of categories and requested form responses' }),
 })
+  .openapi('CreateExpenseRequest')
 
 export const ExpenseResponseSchema = z.object({ id: IdSchema })
   .extend({
@@ -95,8 +96,10 @@ export const ExpenseResponseSchema = z.object({ id: IdSchema })
     })).optional()
       .openapi({ description: 'List of submitted preference surveys (e.g. flights, daily allowances, registrations)' }),
   })
+  .openapi('Expense')
 
 export const ExpenseListQuerySchema = BaseSchema.pick({ status: true }).partial()
+  .openapi('ListExpensesQuery')
 
 export const ExpenseListItemSchema = z.object({
   id: IdSchema,
@@ -125,8 +128,9 @@ export const ExpenseListItemSchema = z.object({
     })).optional()
       .openapi({ description: 'List of submitted preference surveys (e.g. flights, daily allowances, registrations)' }),
   })
+  .openapi('ExpenseListItem')
 
-export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema)
+export const ListExpenseResponseSchema = z.array(ExpenseListItemSchema).openapi('ExpenseListResponse')
 
 export const UpdateExpenseStatusSchema = z.object({
   status: z.enum([ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.REJEITADO, ExpenseRequestStatus.EM_EDICAO]).openapi({
@@ -140,6 +144,7 @@ export const UpdateExpenseStatusSchema = z.object({
       example: 'Documentação pendente: Realize o ajuste necessário.',
     }),
 }).check(reasonFieldRequired)
+  .openapi('UpdateExpenseStatusRequest')
 
 export const UploadMemorandumSchema = z.object({
   file: FileItemSchema
@@ -149,11 +154,11 @@ export const UploadMemorandumSchema = z.object({
       format: 'binary',
     })
     .superRefine(validPDFCheck(MEMORANDUM_UPLOAD_MAX_SIZE_MB)),
-})
+}).openapi('UploadMemorandumRequest')
 
-export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) })
+export const CreateExpenseResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.PENDENTE) }).openapi('CreateExpenseResponse')
 
-export const AssignProjectResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) })
+export const AssignProjectResponseSchema = ExpenseResponseSchema.extend({ status: z.literal(ExpenseRequestStatus.EM_PROCESSAMENTO) }).openapi('StartProcessingResponse')
 
 export const UpdateExpenseSchema = BaseSchema
   .pick({
@@ -168,6 +173,7 @@ export const UpdateExpenseSchema = BaseSchema
       .optional()
       .openapi({ description: 'List of categories and requested form responses' }),
   })
+  .openapi('UpdateExpenseRequest')
 
 export const ExpenseReportQuerySchema = z.object({
   from: z.coerce.date().optional()
@@ -187,4 +193,4 @@ export const ExpenseReportQuerySchema = z.object({
     }),
   projectId: IdSchema.optional().openapi({ description: 'Filter by project' }),
   studentId: IdSchema.optional().openapi({ description: 'Filter by student' }),
-})
+}).openapi('ExpenseReportQuery')
