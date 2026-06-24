@@ -1,8 +1,9 @@
 import type { Prisma } from '@/generated/prisma/client'
+import dayjs from 'dayjs'
 import { ExpenseRequestStatus } from '@/generated/prisma/client'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
-import { ID_ALUNO, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '../constants/seed.constant'
+import { ID_ALUNO, ID_PROJ_IA, ID_PROJ_ROBOTICA, ID_SURVEY_DIARIAS, ID_SURVEY_INSCRICAO, ID_SURVEY_PASSAGEM_AEREA } from '../constants/seed.constant'
 
 export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
   {
@@ -16,6 +17,14 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
     },
     article: { classification: 'A1' },
     student: { connect: { id: ID_ALUNO } },
+    surveyAnswers: {
+      create: [
+        {
+          survey: { connect: { id: ID_SURVEY_INSCRICAO } },
+          data: { invoiceKey: 'formulario-preferencias/boleto-sbsc.pdf' },
+        },
+      ],
+    },
   },
   {
     id: '104bfd84-d27e-44c0-a26b-96db1ac0fb10',
@@ -44,6 +53,29 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
           amount: 10,
           project: { connect: { id: ID_PROJ_ROBOTICA } },
           expenseCategory: { connect: { normalizedName: 'passagem-aerea' } },
+        },
+      ],
+    },
+    surveyAnswers: {
+      create: [
+        {
+          survey: { connect: { id: ID_SURVEY_INSCRICAO } },
+          data: { invoiceKey: 'formulario-preferencias/invoice-erad.pdf' },
+        },
+        {
+          survey: { connect: { id: ID_SURVEY_DIARIAS } },
+          data: { requested: true },
+        },
+        {
+          survey: { connect: { id: ID_SURVEY_PASSAGEM_AEREA } },
+          data: {
+            departureDate: dayjs().add(5, 'day')
+              .format('YYYY-MM-DD'),
+            returnDate: dayjs().add(10, 'day')
+              .format('YYYY-MM-DD'),
+            departureRoute: 'São Paulo (GRU) - Florianópolis (FLN)',
+            returnRoute: 'Florianópolis (FLN) - São Paulo (GRU)',
+          },
         },
       ],
     },
@@ -105,6 +137,14 @@ export const dummyExpenses: Prisma.ExpenseRequestCreateInput[] = [
         },
       ],
     },
+    surveyAnswers: {
+      create: [
+        {
+          survey: { connect: { id: ID_SURVEY_INSCRICAO } },
+          data: { invoiceKey: 'formulario-preferencias/historico.pdf' },
+        },
+      ],
+    },
   },
 ]
 
@@ -114,7 +154,11 @@ async function seedExpenses() {
   for (const { id, ...data } of dummyExpenses) {
     await prisma.expenseRequest.upsert({
       where: { id },
-      update: data,
+      update: {
+        ...data,
+        costBreakdowns: undefined,
+        surveyAnswers: undefined,
+      },
       create: {
         id,
         ...data,
