@@ -53,10 +53,10 @@ vi.mock('@/services/notifications/staff.notification', () => ({
 
 import { createCostBreakdown, getProjectBudgetMetrics } from '@/services/budget.service'
 import {
-  assignProjectToExpense,
   createExpenseRequest,
   getExpenseById,
   updateExpenseStatus,
+  startExpenseProcessing,
 } from '@/services/expense.service'
 
 const txMock = {
@@ -132,14 +132,13 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     prismaMock.expenseRequest.update.mockResolvedValueOnce(
       baseExpense({
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
-        projectId: PROJECT_ID,
-        project: { id: PROJECT_ID, name: 'Proj', code: 'P1' },
       }),
     )
-    const assigned = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
-    expect('error' in assigned).toBe(false)
+    const processing = await startExpenseProcessing(EXPENSE_ID)
+    expect('error' in processing).toBe(false)
 
     const breakdown = await createCostBreakdown(EXPENSE_ID, {
+      projectId: PROJECT_ID,
       subcategoryName: 'passagem',
       amount: 800,
     })
@@ -148,8 +147,6 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValueOnce(
       baseExpense({
         status: ExpenseRequestStatus.EM_PROCESSAMENTO,
-        projectId: PROJECT_ID,
-        project: { id: PROJECT_ID, name: 'Proj', code: 'P1' },
         costBreakdowns: [
           {
             id: 'cb-flow',
@@ -159,6 +156,7 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
               name: 'Passagem',
               normalizedName: 'passagem',
             },
+            project: { id: PROJECT_ID, name: 'Proj', code: 'P1' },
           },
         ],
       }),
@@ -167,7 +165,7 @@ describe('Sprint 2 — fluxo geral (sem memorando para CI)', () => {
     const viewed = await getExpenseById(EXPENSE_ID, STUDENT_ID, UserRole.ALUNO)
     expect('error' in viewed).toBe(false)
     if ('error' in viewed) return
-    expect(viewed.project?.id).toBe(PROJECT_ID)
+    expect(viewed.costBreakdowns[0].project?.id).toBe(PROJECT_ID)
     expect(viewed.costBreakdowns).toHaveLength(1)
   })
 })

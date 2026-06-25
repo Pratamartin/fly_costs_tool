@@ -46,6 +46,7 @@ const prismaMock = vi.hoisted(() => ({
     update: vi.fn(),
   },
   costBreakdown: {
+    findUnique: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
   },
@@ -184,7 +185,7 @@ describe('uploadCostBreakdownReceipt — T3.3.2 (unit)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     storageMock.isStorageConfigured.mockReturnValue(true)
-    prismaMock.costBreakdown.findFirst.mockResolvedValue({
+    prismaMock.costBreakdown.findUnique.mockResolvedValue({
       id: BREAKDOWN_ID,
       expenseRequestId: EXPENSE_ID,
       attachmentKey: null,
@@ -220,7 +221,7 @@ describe('uploadCostBreakdownReceipt — T3.3.2 (unit)', () => {
     }
     expect(call.subfolder).toBe(EXPENSE_ID)
     expect(call.folder).toBe('comprovantes')
-    expect(call.prefix).toBe(CATEGORY_NAME)
+    expect(call.prefix).toBe(BREAKDOWN_ID)
   })
 
   it('storage não configurado retorna STORAGE_UNAVAILABLE', async () => {
@@ -234,7 +235,7 @@ describe('uploadCostBreakdownReceipt — T3.3.2 (unit)', () => {
   })
 
   it('breakdown inexistente retorna COST_BREAKDOWN_NOT_FOUND', async () => {
-    prismaMock.costBreakdown.findFirst.mockResolvedValue(null)
+    prismaMock.costBreakdown.findUnique.mockResolvedValueOnce(null)
     const file = new File([new Uint8Array(256)], 'r.jpg', { type: 'image/jpeg' })
 
     const result = await uploadCostBreakdownReceipt(EXPENSE_ID, 'nao-existe', file)

@@ -7,14 +7,27 @@ vi.mock('@/lib/storage', () => ({
   deleteFile: vi.fn(),
   getSignedDownloadUrl: vi.fn(),
 }))
-import { assignProjectToExpense } from '@/services/expense.service'
+import { createCostBreakdown } from '@/services/budget.service'
 import { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus as E } from '@/generated/prisma/enums'
 
 const prismaMock = vi.hoisted(() => ({
+  $transaction: vi.fn(async (arg) => {
+    if (Array.isArray(arg)) {
+      return Promise.all(arg)
+    }
+    return arg(prismaMock)
+  }),
   expenseRequest: {
     findUnique: vi.fn(),
     update: vi.fn(),
+  },
+  project: {
+    findUnique: vi.fn(),
+  },
+  costBreakdown: {
+    aggregate: vi.fn(),
+    create: vi.fn(),
   },
   notification: {
     create: vi.fn(),
@@ -36,44 +49,45 @@ vi.mock('@/services/notifications/staff.notification', () => ({
   notifyStaffOnStatusChange: vi.fn().mockResolvedValue(undefined),
 }))
 
-const budgetMock = vi.hoisted(() => ({
-  getProjectBudgetMetrics: vi.fn(),
-}))
 
-vi.mock('@/services/budget.service', () => budgetMock)
 
 const EXPENSE_ID = '123e4567-e89b-12d3-a456-426614174000'
 const PROJECT_ID = '223e4567-e89b-12d3-a456-426614174001'
 
 function metrics(available: number, isActive = true) {
   return {
-    total: new Prisma.Decimal(10_000),
-    used: new Prisma.Decimal(10_000 - available),
+    budget: new Prisma.Decimal(10_000),
+    usedBudget: new Prisma.Decimal(10_000 - available),
     available: new Prisma.Decimal(available),
     isActive,
+    expenseCategories: [{ normalizedName: 'passagem' }],
+    startDate: new Date('2000-01-01'),
+    endDate: new Date('2100-01-01'),
   }
 }
 
-describe('assignProjectToExpense (atribuição de projeto)', () => {
-  it('atribuição com status APROVADO avança para EM_PROCESSAMENTO', async () => {
+describe('createCostBreakdown (atribuição de projeto)', () => {
+  it('atribuição com status EM_PROCESSAMENTO salva com sucesso', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       id: EXPENSE_ID,
-      status: E.APROVADO,
-      projectId: null,
-    })
-    budgetMock.getProjectBudgetMetrics.mockResolvedValue(metrics(5000))
-    prismaMock.expenseRequest.update.mockResolvedValue({
-      id: EXPENSE_ID,
       status: E.EM_PROCESSAMENTO,
+    })
+    prismaMock.project.findUnique.mockResolvedValue(metrics(5000))
+    prismaMock.costBreakdown.aggregate.mockResolvedValue({ _sum: { amount: 0 } })
+    prismaMock.costBreakdown.create.mockResolvedValue({
+      id: 'cb-1',
       projectId: PROJECT_ID,
     })
 
-    const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
+    const result = await createCostBreakdown(EXPENSE_ID, {
+      projectId: PROJECT_ID,
+      amount: 1000,
+      subcategoryName: 'passagem',
+    })
 
     expect('error' in result).toBe(false)
     if ('error' in result)
       return
-    expect(result.status).toBe(E.EM_PROCESSAMENTO)
     expect(result.projectId).toBe(PROJECT_ID)
   })
 
@@ -83,7 +97,14 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
       status: E.PENDENTE,
     })
 
-    const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
+    prismaMock.project.findUnique.mockResolvedValue(metrics(5000))
+    prismaMock.costBreakdown.aggregate.mockResolvedValue({ _sum: { amount: 0 } })
+
+    const result = await createCostBreakdown(EXPENSE_ID, {
+      projectId: PROJECT_ID,
+      amount: 1000,
+      subcategoryName: 'passagem',
+    })
 
     expect('error' in result && result.error).toBe('INVALID_EXPENSE_STATE')
   })
@@ -91,11 +112,16 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
   it('validação de budget: saldo 0 retorna PROJECT_INSUFFICIENT_FUNDS', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       id: EXPENSE_ID,
-      status: E.APROVADO,
+      status: E.EM_PROCESSAMENTO,
     })
-    budgetMock.getProjectBudgetMetrics.mockResolvedValue(metrics(0))
+    prismaMock.project.findUnique.mockResolvedValue(metrics(0))
+    prismaMock.costBreakdown.aggregate.mockResolvedValue({ _sum: { amount: 0 } })
 
-    const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
+    const result = await createCostBreakdown(EXPENSE_ID, {
+      projectId: PROJECT_ID,
+      amount: 1000,
+      subcategoryName: 'passagem',
+    })
 
     expect('error' in result && result.error).toBe('PROJECT_INSUFFICIENT_FUNDS')
   })
@@ -103,14 +129,16 @@ describe('assignProjectToExpense (atribuição de projeto)', () => {
   it('projeto arquivado retorna PROJECT_ARCHIVED', async () => {
     prismaMock.expenseRequest.findUnique.mockResolvedValue({
       id: EXPENSE_ID,
-      status: E.APROVADO,
+      status: E.EM_PROCESSAMENTO,
     })
-    budgetMock.getProjectBudgetMetrics.mockResolvedValue({
-      ...metrics(1000),
-      isActive: false,
-    })
+    prismaMock.project.findUnique.mockResolvedValue(metrics(5000, false))
+    prismaMock.costBreakdown.aggregate.mockResolvedValue({ _sum: { amount: 0 } })
 
-    const result = await assignProjectToExpense(EXPENSE_ID, PROJECT_ID)
+    const result = await createCostBreakdown(EXPENSE_ID, {
+      projectId: PROJECT_ID,
+      amount: 1000,
+      subcategoryName: 'passagem',
+    })
 
     expect('error' in result && result.error).toBe('PROJECT_ARCHIVED')
   })
