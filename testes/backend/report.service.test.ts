@@ -76,11 +76,15 @@ function makeExpense(overrides = {}): any {
       {
         id: 'cb-001',
         amount: new Prisma.Decimal(1500),
+        projectId: 'project-001',
+        project: { id: 'project-001', name: 'Projeto Alpha', code: 'PA-01' },
         expenseCategory: { id: 'cat-1', name: 'Passagem', normalizedName: 'passagem' },
       },
       {
         id: 'cb-002',
         amount: new Prisma.Decimal(800),
+        projectId: 'project-001',
+        project: { id: 'project-001', name: 'Projeto Alpha', code: 'PA-01' },
         expenseCategory: { id: 'cat-2', name: 'Hospedagem', normalizedName: 'hospedagem' },
       },
     ],
@@ -221,7 +225,7 @@ describe('calculateReportAnalytics', () => {
   })
 
   it('despesa sem projeto é agrupada em "unassigned"', () => {
-    const expense = makeExpense({ projectId: null, project: null })
+    const expense = makeExpense({ costBreakdowns: [] })
     const analytics = calculateReportAnalytics([expense])
     expect(analytics.byProject['unassigned']).toBeDefined()
     expect(analytics.byProject['unassigned'].projectName).toBe('Não Atribuído')

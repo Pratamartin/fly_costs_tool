@@ -107,6 +107,7 @@ const VALID_ALUNO_PAYLOAD = {
   inviteCode: 'CONVITE2026',
   cpf: VALID_CPF,
   rgPassaporte: 'MG-12.345.678',
+  pixKey: VALID_CPF,
   birthDate: '2000-01-01T00:00:00.000Z',
   profession: 'Estudante',
   address: 'Rua das Flores, 123',

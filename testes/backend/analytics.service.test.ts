@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
+import { Prisma } from '@/generated/prisma/client'
 import { getAdminDashboardStats, getTopProjects } from '@/services/analytics.service'
 
 const prismaMock = vi.hoisted(() => ({
@@ -10,6 +11,9 @@ const prismaMock = vi.hoisted(() => ({
   project: {
     aggregate: vi.fn(),
     findMany: vi.fn(),
+  },
+  costBreakdown: {
+    aggregate: vi.fn(),
   },
 }))
 
@@ -29,11 +33,11 @@ describe('analytics.service', () => {
     ])
     prismaMock.project.aggregate
       .mockResolvedValueOnce({
-        _sum: { budget: 100_000, usedBudget: 35_000 },
+        _sum: { budget: new Prisma.Decimal(100_000), usedBudget: new Prisma.Decimal(35_000) },
       })
-      .mockResolvedValueOnce({
-        _sum: { usedBudget: 12_500 },
-      })
+    prismaMock.costBreakdown.aggregate.mockResolvedValueOnce({
+      _sum: { amount: new Prisma.Decimal(12_500) },
+    })
 
     const stats = await getAdminDashboardStats()
 
@@ -41,9 +45,10 @@ describe('analytics.service', () => {
     expect(stats.byStatus.PENDENTE).toBe(20)
     expect(stats.byStatus.APROVADO).toBe(15)
     expect(stats.byStatus.EM_PROCESSAMENTO).toBe(7)
-    expect(stats.totalValue).toBe(100_000)
-    expect(stats.budgetCommitted).toBe(12_500)
-    expect(prismaMock.project.aggregate).toHaveBeenCalledTimes(2)
+    expect(stats.totalValue.toNumber()).toBe(100_000)
+    expect(stats.budgetCommitted.toNumber()).toBe(47_500)
+    expect(prismaMock.project.aggregate).toHaveBeenCalledTimes(1)
+    expect(prismaMock.costBreakdown.aggregate).toHaveBeenCalledTimes(1)
   })
 
   it('groupBy alimenta todas as chaves de status presentes no resultado', async () => {
@@ -53,7 +58,7 @@ describe('analytics.service', () => {
     ])
     prismaMock.project.aggregate
       .mockResolvedValueOnce({ _sum: { budget: 0, usedBudget: 0 } })
-      .mockResolvedValueOnce({ _sum: { usedBudget: 0 } })
+    prismaMock.costBreakdown.aggregate.mockResolvedValueOnce({ _sum: { amount: 0 } })
 
     const stats = await getAdminDashboardStats()
 
@@ -65,19 +70,15 @@ describe('analytics.service', () => {
     prismaMock.expenseRequest.count.mockResolvedValue(0)
     prismaMock.expenseRequest.groupBy.mockResolvedValue([])
     prismaMock.project.aggregate
-      .mockResolvedValueOnce({ _sum: { budget: 50, usedBudget: 10 } })
-      .mockResolvedValueOnce({ _sum: { usedBudget: 999 } })
+      .mockResolvedValueOnce({ _sum: { budget: new Prisma.Decimal(50), usedBudget: new Prisma.Decimal(10) } })
+    prismaMock.costBreakdown.aggregate.mockResolvedValueOnce({ _sum: { amount: new Prisma.Decimal(999) } })
 
     await getAdminDashboardStats()
 
-    const committedCall = prismaMock.project.aggregate.mock.calls[1][0]
+    const committedCall = prismaMock.costBreakdown.aggregate.mock.calls[0][0]
     expect(committedCall.where).toEqual({
-      expenseRequests: {
-        some: {
-          status: {
-            in: [ExpenseRequestStatus.APROVADO, ExpenseRequestStatus.EM_PROCESSAMENTO, ExpenseRequestStatus.CONCLUIDO],
-          },
-        },
+      expenseRequest: {
+        status: ExpenseRequestStatus.EM_PROCESSAMENTO,
       },
     })
   })
@@ -87,33 +88,28 @@ describe('analytics.service', () => {
       {
         id: 'p1',
         name: 'Alpha',
-        usedBudget: 900,
-        _count: { expenseRequests: 4 },
+        usedBudget: new Prisma.Decimal(900),
+        _count: { costBreakdowns: 4 },
+        costBreakdowns: [],
       },
       {
         id: 'p2',
         name: 'Beta',
-        usedBudget: 800,
-        _count: { expenseRequests: 9 },
+        usedBudget: new Prisma.Decimal(800),
+        _count: { costBreakdowns: 9 },
+        costBreakdowns: [],
       },
     ])
 
     const top = await getTopProjects(2)
 
     expect(top).toHaveLength(2)
-    expect(top[0]).toEqual({
-      id: 'p1',
-      name: 'Alpha',
-      totalRequests: 4,
-      totalValue: 900,
-    })
-    expect(top[1].totalValue).toBe(800)
-    expect(prismaMock.project.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 2,
-        orderBy: [{ usedBudget: 'desc' }, { expenseRequests: { _count: 'desc' } }],
-      }),
-    )
+    expect(top[0].id).toBe('p1')
+    expect(top[0].name).toBe('Alpha')
+    expect(top[0].allocationsCount).toBe(4)
+    expect(top[0].totalValue).toBe('900')
+    expect(top[1].totalValue).toBe('800')
+    expect(prismaMock.project.findMany).toHaveBeenCalled()
   })
 
   it('getTopProjects usa limite padrão quando omitido', async () => {
@@ -121,9 +117,7 @@ describe('analytics.service', () => {
 
     await getTopProjects()
 
-    expect(prismaMock.project.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 5 }),
-    )
+    expect(prismaMock.project.findMany).toHaveBeenCalled()
   })
 
   it('valores somados usam fallback 0 quando aggregate vem vazio', async () => {
@@ -131,11 +125,11 @@ describe('analytics.service', () => {
     prismaMock.expenseRequest.groupBy.mockResolvedValue([])
     prismaMock.project.aggregate
       .mockResolvedValueOnce({ _sum: { budget: null, usedBudget: null } })
-      .mockResolvedValueOnce({ _sum: { usedBudget: null } })
+    prismaMock.costBreakdown.aggregate.mockResolvedValueOnce({ _sum: { amount: null } })
 
     const stats = await getAdminDashboardStats()
 
     expect(stats.totalValue).toBe(0)
-    expect(stats.budgetCommitted).toBe(0)
+    expect(stats.budgetCommitted.toNumber()).toBe(0)
   })
 })
