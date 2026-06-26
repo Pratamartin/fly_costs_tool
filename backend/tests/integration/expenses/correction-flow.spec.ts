@@ -90,6 +90,7 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
     assert(res.status === status.CREATED)
     const json = await res.json()
     createdExpenseId = json.id
+    expect(json.attachmentKey).toBeNull()
   })
 
   it('[Step 2] Coordenador aprova a solicitação', async () => {
@@ -250,6 +251,8 @@ describe('[Expense Correction Flow] - Create → EM_EDICAO → Update → APROVA
       expect(json.correctionReason).toBeNull()
       const inscricaoAnswer = json.surveyAnswers!.find(a => typeof a.data === 'object' && a.data !== null && 'invoiceKey' in a.data)
       expect((inscricaoAnswer!.data).invoiceKey).toBe('formulario-preferencias/aluno-uuid/invoice-anexado-tardiamente.pdf')
+      const diariasAnswerFalse = json.surveyAnswers!.find(a => typeof a.data === 'object' && a.data !== null && 'requested' in a.data)
+      expect((diariasAnswerFalse!.data as Record<string, boolean>).requested).toBe(false)
     })
 
     it('edita apenas as respostas de Diárias para true (surveyAnswers)', async () => {

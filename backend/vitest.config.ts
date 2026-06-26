@@ -6,6 +6,7 @@ export default defineConfig({
     globalSetup: path.resolve(__dirname, './tests/global-setup.ts'),
     fileParallelism: false,
     clearMocks: true,
+    exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: { include: [path.resolve(__dirname, './src/routes/**')] },
     env: {
       NODE_ENV: 'test',

@@ -121,6 +121,26 @@ describe('[Expense Visibility] - Role-based isolation', () => {
     expect(statuses).not.toContain(ExpenseRequestStatus.PENDENTE)
   })
 
+  it('detalhe da despesa inclui departureDate e returnDate nas surveyAnswers', async () => {
+    const list = await client.expenses.$get({ query: {} }, { headers: alunoHeaders })
+    assert(list.status === status.OK)
+    const listJson = await list.json()
+    const target = listJson.find((e: any) => e.title === 'Pendente Test')
+    assert(target, 'Despesa "Pendente Test" não encontrada na listagem')
+
+    const res = await client.expenses[':id'].$get({ param: { id: target.id } }, { headers: alunoHeaders })
+    expect(res.status).toBe(status.OK)
+    assert(res.status === status.OK)
+    const json = await res.json()
+
+    const surveyWithDates = json.surveyAnswers?.find(
+      (a: any) => typeof a.data === 'object' && a.data !== null && 'departureDate' in a.data,
+    )
+    assert(surveyWithDates, 'surveyAnswer com departureDate não encontrado no detalhe')
+    expect((surveyWithDates.data as Record<string, string>).departureDate).toBe('2026-06-25')
+    expect((surveyWithDates.data as Record<string, string>).returnDate).toBe('2026-06-30')
+  })
+
   it('aluno não pode ver despesas de outros alunos (simulado)', async () => {
     // Cria despesa de outro aluno
     const outroAluno = await prisma.user.create({
