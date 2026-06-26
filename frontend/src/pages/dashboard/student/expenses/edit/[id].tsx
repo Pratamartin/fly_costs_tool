@@ -237,7 +237,7 @@ export default function EditarDespesa() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
           <div className="mx-auto max-w-2xl space-y-5">
 
-            {expense.correctionNote && (
+            {expense.correctionReason && (
               <div className="flex items-start gap-4 rounded-xl border-l-4 border-amber-400 bg-amber-50 px-6 py-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
@@ -246,7 +246,7 @@ export default function EditarDespesa() {
                 </div>
                 <div>
                   <p className="font-bold text-amber-800">Correção Solicitada pelo Administrador</p>
-                  <p className="mt-1 text-sm text-amber-700 leading-relaxed">{expense.correctionNote}</p>
+                  <p className="mt-1 text-sm text-amber-700 leading-relaxed">{expense.correctionReason}</p>
                 </div>
               </div>
             )}

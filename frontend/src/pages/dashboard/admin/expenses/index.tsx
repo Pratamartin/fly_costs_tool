@@ -5,7 +5,7 @@ import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
-import { listExpenses, updateExpenseStatus, exportExpensesReport, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, exportExpensesReport, mergeTravelDates, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
 import { toast } from "@/lib/toast";
 import { listProjects } from "@/services/projects";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -81,7 +81,7 @@ export default function AdminExpenses() {
     setCarregando(true);
     const result = await listExpenses(token);
     if (result.ok) {
-      setExpenses(result.data);
+      setExpenses(result.data.map(mergeTravelDates));
     } else if (result.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");

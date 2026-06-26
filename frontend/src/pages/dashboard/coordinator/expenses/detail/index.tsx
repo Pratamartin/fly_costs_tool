@@ -116,9 +116,9 @@ function StatusBanner({ expense }: { expense: Expense }) {
           </div>
           <div>
             <p className="font-bold text-amber-700">Aguardando Correção do Aluno</p>
-            {expense.correctionNote ? (
+            {expense.correctionReason ? (
               <p className="text-sm text-amber-600 mt-0.5 max-w-prose">
-                <span className="font-semibold">Instrução: </span>{expense.correctionNote}
+                <span className="font-semibold">Instrução: </span>{expense.correctionReason}
               </p>
             ) : (
               <p className="text-sm text-amber-600">Correção solicitada. Aguardando o aluno editar a solicitação.</p>
@@ -249,7 +249,8 @@ export default function CoordinatorExpenseDetail() {
   const displayId = `REQ-${expense.id.slice(0, 8).toUpperCase()}`;
   const totalCusto = (expense.costBreakdowns ?? []).reduce((sum, cb) => sum + cb.amount, 0);
   const student = expense.student;
-  const hasBankingInfo = student?.bankCode || student?.bankName || student?.bankAgency || student?.bankAccount;
+  const profile = student?.profile;
+  const hasBankingInfo = profile?.bankCode || profile?.bankName || profile?.bankAgency || profile?.bankAccount;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -464,28 +465,34 @@ export default function CoordinatorExpenseDetail() {
                     <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Dados Bancários</h2>
                   </div>
                   <div className="space-y-3">
-                    {student?.bankCode && (
+                    {profile?.bankCode && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Código do banco</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{student.bankCode}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankCode}</p>
                       </div>
                     )}
-                    {student?.bankName && (
+                    {profile?.bankName && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Nome do banco</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{student.bankName}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankName}</p>
                       </div>
                     )}
-                    {student?.bankAgency && (
+                    {profile?.bankAgency && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Agência</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{student.bankAgency}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAgency}</p>
                       </div>
                     )}
-                    {student?.bankAccount && (
+                    {profile?.bankAccount && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Conta</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{student.bankAccount}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAccount}</p>
+                      </div>
+                    )}
+                    {profile?.pixKey && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Chave PIX</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{profile.pixKey}</p>
                       </div>
                     )}
                   </div>

@@ -6,11 +6,13 @@ export type StudentInfo = {
   id: string
   name: string
   email?: string | null
-  bankCode?: string | null
-  bankName?: string | null
-  bankAgency?: string | null
-  bankAccount?: string | null
-  pixKey?: string | null
+  profile?: {
+    bankCode?: string | null
+    bankName?: string | null
+    bankAgency?: string | null
+    bankAccount?: string | null
+    pixKey?: string | null
+  } | null
 }
 
 export type ProjectInfo = {
@@ -54,7 +56,7 @@ export type Expense = {
   description: string | null
   status: ExpenseStatus
   rejectionReason: string | null
-  correctionNote: string | null
+  correctionReason: string | null
   event: ExpenseEvent
   article: ExpenseArticle
   surveyAnswers?: ExpenseSurveyAnswer[]
@@ -177,6 +179,20 @@ export type DeleteReceiptResult =
 export type GetReceiptDownloadResult =
   | { ok: true; url: string; expiresIn: number }
   | { ok: false; error: GetReceiptDownloadError }
+
+export function mergeTravelDates(expense: Expense): Expense {
+  for (const sa of expense.surveyAnswers ?? []) {
+    const d = sa.data as Record<string, unknown>
+    if (d && typeof d.departureDate === "string") {
+      return {
+        ...expense,
+        departureDate: d.departureDate,
+        returnDate: typeof d.returnDate === "string" ? d.returnDate : expense.returnDate,
+      }
+    }
+  }
+  return expense
+}
 
 export async function listExpenses(
   token: string,
@@ -557,6 +573,33 @@ export async function exportExpensesReport(
   } catch {
     return { ok: false, error: "UNKNOWN" }
   }
+}
+
+export type StartProcessingError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+
+export type StartProcessingResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: StartProcessingError }
+
+export async function startExpenseProcessing(
+  token: string,
+  expenseId: string
+): Promise<StartProcessingResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/start-processing`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
 }
 
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"

@@ -215,11 +215,11 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
   const passagemSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "passagem-aerea");
   const inscricaoSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "inscricao");
-  const hospedagemSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "hospedagem");
+  const diariasSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "diarias");
 
   const passagemSelected = passagemSurvey ? selectedCategoryIds.has(passagemSurvey.expenseCategoryId) : false;
   const inscricaoSelected = inscricaoSurvey ? selectedCategoryIds.has(inscricaoSurvey.expenseCategoryId) : false;
-  const hospedagemSelected = hospedagemSurvey ? selectedCategoryIds.has(hospedagemSurvey.expenseCategoryId) : false;
+  const hospedagemSelected = diariasSurvey ? selectedCategoryIds.has(diariasSurvey.expenseCategoryId) : false;
 
   function toggleCategory(categoryId: string) {
     setSelectedCategoryIds((prev) => {
@@ -296,11 +296,11 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
         });
       }
 
-      // Hospedagem
-      if (hospedagemSelected && hospedagemSurvey) {
+      // Diárias
+      if (hospedagemSelected && diariasSurvey) {
         surveyAnswers.push({
-          expenseCategoryId: hospedagemSurvey.expenseCategoryId,
-          data: true,
+          expenseCategoryId: diariasSurvey.expenseCategoryId,
+          data: { requested: true },
         });
       }
 
@@ -540,13 +540,13 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                   )}
 
                   {/* Hospedagem */}
-                  {hospedagemSurvey && (
+                  {diariasSurvey && (
                     <div className={`rounded-xl border transition ${hospedagemSelected ? "border-[#4F46E5] bg-indigo-50/40 dark:bg-indigo-950/20" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-800/60"}`}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                         <input
                           type="checkbox"
                           checked={hospedagemSelected}
-                          onChange={() => toggleCategory(hospedagemSurvey.expenseCategoryId)}
+                          onChange={() => toggleCategory(diariasSurvey.expenseCategoryId)}
                           disabled={isSubmitting}
                           className="h-4 w-4 rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
                         />

@@ -8,11 +8,13 @@ import ModalSolicitarCorrecao from "@/components/ModalSolicitarCorrecao";
 import {
   getExpenseById,
   updateExpenseStatus,
+  startExpenseProcessing,
   createCostBreakdown,
   uploadCostBreakdownReceipt,
   getCostBreakdownReceiptDownloadUrl,
   getMemorandumDownloadUrl,
   concludeExpense,
+  mergeTravelDates,
   type Expense,
 } from "@/services/expenses";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
@@ -140,9 +142,9 @@ function StatusBanner({ expense }: { expense: Expense }) {
           </div>
           <div>
             <p className="font-bold text-amber-700">Aguardando Correção do Aluno</p>
-            {expense.correctionNote ? (
+            {expense.correctionReason ? (
               <p className="text-sm text-amber-600 mt-0.5 max-w-prose">
-                <span className="font-semibold">Instrução: </span>{expense.correctionNote}
+                <span className="font-semibold">Instrução: </span>{expense.correctionReason}
               </p>
             ) : (
               <p className="text-sm text-amber-600">Correção solicitada. Aguardando o aluno editar a despesa.</p>
@@ -308,6 +310,7 @@ export default function ExpenseDetalhe() {
   const [rejeitando, setRejeitando] = useState(false);
   const [solicitandoCorrecao, setSolicitandoCorrecao] = useState(false);
   const [dadosConfirmados, setDadosConfirmados] = useState(false);
+  const [iniciandoProcessamento, setIniciandoProcessamento] = useState(false);
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(false);
@@ -356,8 +359,9 @@ export default function ExpenseDetalhe() {
     setCarregando(true);
     const result = await getExpenseById(token, expId);
     if (result.ok) {
-      setExpense(result.data);
-      if (result.data.status === "EM_PROCESSAMENTO") {
+      const expense = mergeTravelDates(result.data);
+      setExpense(expense);
+      if (expense.status === "EM_PROCESSAMENTO") {
         setCarregandoCategorias(true);
         const [catResult, projResult] = await Promise.all([
           listCategories(undefined, token),
@@ -409,6 +413,27 @@ export default function ExpenseDetalhe() {
     }
   }
 
+  async function handleConfirmarDados() {
+    const token = getToken();
+    if (!token || !expense) return;
+    setIniciandoProcessamento(true);
+    const result = await startExpenseProcessing(token, expense.id);
+    setIniciandoProcessamento(false);
+    if (result.ok) {
+      setExpense(result.data);
+      setDadosConfirmados(true);
+      const [catResult, projResult] = await Promise.all([
+        listCategories(undefined, token),
+        listProjects(token),
+      ]);
+      if (catResult.ok) setCategories(catResult.data);
+      if (projResult.ok) setProjects(projResult.data);
+      toast.success("Dados confirmados. Discriminação de custos liberada.");
+    } else {
+      toast.error("Erro ao iniciar processamento.");
+    }
+  }
+
   async function handleRejeitar(motivo: string) {
     const token = getToken();
     if (!token || !expense) return;
@@ -425,9 +450,8 @@ export default function ExpenseDetalhe() {
   }
 
   const cbIsDiarias = cbSubcategoria
-    ? categories.find((c) => c.name === cbSubcategoria)?.normalizedName === "hospedagem" ||
-      cbSubcategoria.toLowerCase().includes("diária") ||
-      cbSubcategoria.toLowerCase().includes("hospedagem")
+    ? categories.find((c) => c.name === cbSubcategoria)?.normalizedName === "diarias" ||
+      cbSubcategoria.toLowerCase().includes("diária")
     : false;
 
   async function handleAdicionarCusto(e: React.FormEvent) {
@@ -436,13 +460,14 @@ export default function ExpenseDetalhe() {
     if (!token || !expense) return;
     const amount = parseFloat(cbValor);
     if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0) return;
+    if (!cbProjeto) { setErroCusto("Selecione um projeto para este item."); return; }
     if (!cbAnexo && !cbIsDiarias) return;
     setAdicionandoCusto(true);
     setErroCusto(null);
     const result = await createCostBreakdown(token, expense.id, {
       subcategoryName: cbSubcategoria.trim(),
       amount,
-      projectId: cbProjeto || undefined,
+      projectId: cbProjeto,
     });
     if (!result.ok) {
       setAdicionandoCusto(false);
@@ -821,8 +846,9 @@ export default function ExpenseDetalhe() {
                         Solicitar Correção
                       </button>
                       <button
-                        onClick={() => setDadosConfirmados(true)}
-                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition"
+                        onClick={handleConfirmarDados}
+                        disabled={iniciandoProcessamento}
+                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-60 transition"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                           <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
