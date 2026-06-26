@@ -1,5 +1,10 @@
 import { cpf } from 'cpf-cnpj-validator'
+import { INVITE_CODE_LENGTH } from '@/constants/invite.constant'
 import { EXAMPLE_CPF } from '@/schemas/schema.refine'
+
+const MOCK_INVITE_ALUNO = 'A'.repeat(INVITE_CODE_LENGTH)
+const MOCK_INVITE_COORD = 'B'.repeat(INVITE_CODE_LENGTH)
+const MOCK_INVITE_ADMIN = 'C'.repeat(INVITE_CODE_LENGTH)
 
 const ID_ALUNO = 'c341c8fa-724f-4ab2-9a4e-5ca55f201ad4'
 const ID_PROJ_ROBOTICA = 'a1b2c3d4-e5f6-4a5b-8c9d-0123456789ab'
@@ -29,7 +34,7 @@ const MOCK_USER = {
   name: 'João Silva',
   email: 'usuario@exemplo.com',
   password: 'P@ssw0rd123',
-  inviteCode: 'aluno2026',
+  inviteCode: MOCK_INVITE_ALUNO,
 } as const
 
 export {
@@ -41,6 +46,9 @@ export {
   ID_SURVEY_DIARIAS,
   ID_SURVEY_INSCRICAO,
   ID_SURVEY_PASSAGEM_AEREA,
+  MOCK_INVITE_ADMIN,
+  MOCK_INVITE_ALUNO,
+  MOCK_INVITE_COORD,
   MOCK_PROFILE,
   MOCK_USER,
 }

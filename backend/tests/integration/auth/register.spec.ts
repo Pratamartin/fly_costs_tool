@@ -53,11 +53,11 @@ describe('[Auth] Cadastro de usuário', () => {
     await expectProblem(res, 'EMAIL_ALREADY_EXISTS')
   })
 
-  it('deve retornar erro ao tentar cadastrar com código de convite inválido', async () => {
+  it('deve retornar erro ao tentar cadastrar com código de convite inexistente', async () => {
     const payloadConviteInvalido = {
       ...basePayload,
       email: 'outro.aluno@example.com',
-      inviteCode: 'CODIGO_INVALIDO_999',
+      inviteCode: 'FFFFFFFF',
     }
 
     const res = await endpoint.$post({ json: payloadConviteInvalido })

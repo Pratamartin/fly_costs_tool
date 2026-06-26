@@ -11,4 +11,7 @@ export const INVITE_EXPIRY = {
   MIN_MINUTES: 30,
 } as const
 
+export const INVITE_CODE_BYTES = 4
+export const INVITE_CODE_LENGTH = INVITE_CODE_BYTES * 2
+
 export const mockInviteCode = 'CONVITE2026'

@@ -3,6 +3,7 @@ import { cnpj, cpf } from 'cpf-cnpj-validator'
 import { getExampleNumber } from 'libphonenumber-js'
 import phoneExamples from 'libphonenumber-js/examples.mobile.json'
 import { assert, describe, expect, it } from 'vitest'
+import { MOCK_INVITE_ALUNO } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { RegisterSchema } from '@/schemas/auth.schema'
 import { EXAMPLE_PHONE } from '@/schemas/schema.refine'
@@ -13,7 +14,7 @@ describe('registerSchema - Validações de Negócio', () => {
     email: 'teste@exemplo.com',
     password: 'P@ssword123',
     role: UserRole.ALUNO,
-    inviteCode: 'CONVITE2026',
+    inviteCode: MOCK_INVITE_ALUNO,
     cpf: '52998224725',
     rgPassaporte: 'MG-12.345',
     birthDate: new Date('1995-05-15T00:00:00Z'),
