@@ -1,6 +1,6 @@
 import { testClient } from 'hono/testing'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
-import { ID_ALUNO, ID_PROJ_IA } from '@/constants/seed.constant'
+import { ID_ALUNO, ID_PROJ_IA, ID_PROJ_ROBOTICA } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
@@ -180,5 +180,72 @@ describe('[Cost Breakdown] - Validações Semânticas (RFC 9457)', () => {
     const json = await expectProblem(res, 'PROJECT_PERIOD_EXPIRED')
     expect(json.projectStartDate).toBe(expiredProject.startDate.toISOString())
     expect(json.projectEndDate).toBe(expiredProject.endDate.toISOString())
+  })
+
+  describe('associação de projectId e itens multi-projeto', () => {
+    it('deve retornar o projectId correto na resposta ao criar um item de custo', async () => {
+      const res = await client.expenses[':id']['cost-breakdowns'].$post(
+        {
+          param: { id: expenseId },
+          json: {
+            amount: 150,
+            projectId: ID_PROJ_IA,
+            subcategoryName: category.normalizedName,
+          },
+        },
+        { headers: adminHeaders },
+      )
+
+      expect(res.status).toBe(201)
+      assert(res.status === 201)
+      const json = await res.json()
+      expect(json.projectId).toBe(ID_PROJ_IA)
+      expect(json.amount).toBe(150)
+    })
+
+    it('dois itens da mesma solicitação podem pertencer a projetos diferentes', async () => {
+      // Item 1 → Projeto IA
+      const res1 = await client.expenses[':id']['cost-breakdowns'].$post(
+        {
+          param: { id: expenseId },
+          json: {
+            amount: 200,
+            projectId: ID_PROJ_IA,
+            subcategoryName: category.normalizedName,
+          },
+        },
+        { headers: adminHeaders },
+      )
+      expect(res1.status).toBe(201)
+      assert(res1.status === 201)
+      const json1 = await res1.json()
+      expect(json1.projectId).toBe(ID_PROJ_IA)
+
+      // Item 2 → Projeto Robótica (projeto diferente, mesma despesa)
+      const res2 = await client.expenses[':id']['cost-breakdowns'].$post(
+        {
+          param: { id: expenseId },
+          json: {
+            amount: 300,
+            projectId: ID_PROJ_ROBOTICA,
+            subcategoryName: category.normalizedName,
+          },
+        },
+        { headers: adminHeaders },
+      )
+      expect(res2.status).toBe(201)
+      assert(res2.status === 201)
+      const json2 = await res2.json()
+      expect(json2.projectId).toBe(ID_PROJ_ROBOTICA)
+
+      // Confirma no banco que os dois breakdowns existem com projetos distintos na mesma despesa
+      const breakdowns = await prisma.costBreakdown.findMany({
+        where: { expenseRequestId: expenseId },
+        select: { projectId: true },
+      })
+      const projectIds = breakdowns.map(b => b.projectId)
+      expect(projectIds).toContain(ID_PROJ_IA)
+      expect(projectIds).toContain(ID_PROJ_ROBOTICA)
+    })
   })
 })

@@ -107,6 +107,9 @@ describe('[Projects] - Gestão de Projetos', () => {
 
     const json = await res.json()
     expect(json.id).toBe(project!.id)
+    expect(json.resourceSource).toBe(basePayload.resourceSource)
+    expect(json.startDate).toBe(basePayload.startDate.toISOString())
+    expect(json.endDate).toBe(basePayload.endDate.toISOString())
   })
 
   it('[ERRO]: Deve retornar 404 para projeto inexistente (PROJECT_NOT_FOUND)', async () => {

@@ -2,8 +2,7 @@
 
 **Sistema:** Fly Costs Tool (SGDA)
 **Framework:** Vitest 4.1.4
-**Resultado da Sprint 6:** 155 passed / 0 failed / 155 total
-
+**Resultado da Sprint 6:** 226 passed / 0 failed / 226 total
 
 ---
 
@@ -17,18 +16,19 @@
 | auth.service.test.ts | 10 | PASSOU |
 | project-assignment.service.test.ts | 8 | PASSOU |
 | report.service.test.ts | 19 | PASSOU |
-| projects.spec.ts | 15 | PASSOU |
-| validations.spec.ts | 6 | PASSOU |
-| admin-dashboard.spec.ts | 4 | PASSOU |
-| top-projects.spec.ts | 4 | PASSOU |
-| conclusion-flow.spec.ts | 3 | PASSOU |
-| correction-flow.spec.ts | 3 | PASSOU |
-| deletion.spec.ts | 5 | PASSOU |
-| preference-survey.schema.test.ts | 12 | PASSOU |
-| update.spec.ts | 17 | PASSOU |
-| reports.spec.ts | 7 | PASSOU |
-| invalid-transitions.spec.ts | 6 | PASSOU |
-| archived-project.spec.ts | 1 | PASSOU |
+| staff.notification.test.ts | 8 | PASSOU |
+| expense.service.test.ts | 14 | PASSOU |
+| cost-breakdown.service.test.ts | 11 | PASSOU |
+| project.service.test.ts | 12 | PASSOU |
+| user.service.test.ts | 10 | PASSOU |
+| invite.service.test.ts | 9 | PASSOU |
+| notification.service.test.ts | 7 | PASSOU |
+| in-app.notification.service.test.ts | 8 | PASSOU |
+| auth.session.test.ts | 11 | PASSOU |
+| auth.reset-password.service.test.ts | 13 | PASSOU |
+| admin-attachment.service.test.ts | 10 | PASSOU |
+| storage.test.ts | 9 | PASSOU |
+| sprint4-integration.test.ts | 43 | PASSOU |
 
 ---
 
@@ -41,6 +41,7 @@
 | S3/R2 Attachments | A nomenclatura de chaves no `attachment.service` agora utiliza o UUID do *CostBreakdown* (ex: `breakdown-123_file.jpg`) em vez do nome da categoria, impedindo colisão de arquivos. Os mocks dos testes unitários foram atualizados para não quebrar. |
 | Obrigatoriedade da `pixKey` | O schema relacional de Estudantes passou a exigir a chave Pix. Os payloads sintéticos dos testes de Autenticação e Registro precisaram ser atualizados, caso contrário, falhariam precocemente via validação do Zod (422 Unprocessable Entity). |
 | Teardowns (`RESTRICT` Violations) | Os testes de deleção e CRUD de Projetos sofriam erro de FK no `afterAll()`. A deleção foi estabilizada respeitando a ordem de cascata relacional entre `CostBreakdowns` e `Projects` no banco de dados isolado dos testes. |
+| `vi.hoisted` no Staff Notification | O mock `compiledValidatorMock` precisou ser exposto via `vi.hoisted()` para que o teste de fallback do validador fosse acionado corretamente — sem isso, o bloco `if (!compiled)` nunca era executado nos testes. |
 
 ---
 
@@ -136,12 +137,13 @@ PASSOU  normaliza o output de formulário para 'diarias' com rigor governamental
 
 ## Resumo dos testes da Sprint 6
 
-| User Story | Tipo | Arquivos Relevantes | Testes Impactados | Resultado |
-|---|---|---|---|---|
-| US 6.0 — Arquitetura 1:N CostBreakdowns & Update | Unit / Integration | project-assignment.service.test.ts, analytics.service.test.ts, top-projects.spec.ts, admin-dashboard.spec.ts, update.spec.ts, archived-project.spec.ts | 43 | PASSOU |
-| US 6.1 — Gestão de Períodos de Projetos | Unit / Integration | projects.spec.ts, validations.spec.ts | 21 | PASSOU |
-| US 6.2 — Dashboard de Compliance | Unit / Integration | conclusion-flow.spec.ts, reports.spec.ts | 10 | PASSOU |
-| US 6.3 — Correção de Invoices e Fluxos | Unit / Integration | correction-flow.spec.ts, deletion.spec.ts, invalid-transitions.spec.ts | 14 | PASSOU |
-| US 6.4 — Semântica de Diárias | Unit | preference-survey.schema.test.ts | 12 | PASSOU |
-| *Refatorações Herdadas* | Unit | attachment, auth, report.service.test.ts, sprint2-flow | 55 | PASSOU |
-| **Total Sprint 6 (Criados/Refatorados)** | | | **155** | **PASSOU** |
+| User Story | Arquivos Relevantes | Testes | Resultado |
+|---|---|---|---|
+| US 6.0 — Arquitetura 1:N CostBreakdowns & Update | project-assignment.service.test.ts, analytics.service.test.ts | 17 | PASSOU |
+| US 6.1 — Gestão de Períodos de Projetos | cost-breakdown.service.test.ts, project.service.test.ts | 23 | PASSOU |
+| US 6.2 — Dashboard de Compliance | report.service.test.ts | 19 | PASSOU |
+| US 6.3 — Correção de Invoices e Fluxos | expense.service.test.ts, attachment.service.test.ts | 26 | PASSOU |
+| US 6.4 — Semântica de Diárias | sprint4-integration.test.ts | 12 | PASSOU |
+| *Refatorações Herdadas* | attachment, auth, sprint2-flow, staff.notification, storage | 55 | PASSOU |
+| *Outros serviços cobertos* | user, invite, notification, in-app, auth.session, auth.reset-password, admin-attachment | 74 | PASSOU |
+| **Total Sprint 6** | | **226** | **PASSOU** |
