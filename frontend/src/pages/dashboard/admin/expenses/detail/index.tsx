@@ -10,6 +10,8 @@ import {
   updateExpenseStatus,
   startExpenseProcessing,
   createCostBreakdown,
+  updateCostBreakdown,
+  deleteCostBreakdown,
   uploadCostBreakdownReceipt,
   getCostBreakdownReceiptDownloadUrl,
   getMemorandumDownloadUrl,
@@ -329,6 +331,16 @@ export default function ExpenseDetalhe() {
   const [showModalConcluir, setShowModalConcluir] = useState(false);
   const [concluindo, setConcluindo] = useState(false);
 
+  const [editingBreakdownId, setEditingBreakdownId] = useState<string | null>(null);
+  const [editingValor, setEditingValor] = useState("");
+  const [salvandoBreakdown, setSalvandoBreakdown] = useState(false);
+
+  const [editingProjectBreakdownId, setEditingProjectBreakdownId] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState("");
+  const [salvandoProjeto, setSalvandoProjeto] = useState(false);
+
+  const [excluindoBreakdownId, setExcluindoBreakdownId] = useState<string | null>(null);
+
   async function handleDownloadMemorandum() {
     const token = getToken();
     if (!token || !expense) return;
@@ -511,6 +523,98 @@ export default function ExpenseDetalhe() {
     } else {
       setErro("Erro ao concluir despesa.");
       setShowModalConcluir(false);
+    }
+  }
+
+  function startEditProject(breakdownId: string, currentProjectId?: string | null) {
+    setEditingProjectBreakdownId(breakdownId);
+    setEditingProjectId(currentProjectId ?? "");
+  }
+
+  function cancelEditProject() {
+    setEditingProjectBreakdownId(null);
+    setEditingProjectId("");
+  }
+
+  async function handleSalvarProjeto(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    setSalvandoProjeto(true);
+    const result = await updateCostBreakdown(token, expense.id, breakdownId, { projectId: editingProjectId || undefined });
+    setSalvandoProjeto(false);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.map((cb) =>
+            cb.id === breakdownId
+              ? { ...cb, project: result.data.project ?? null, projectId: result.data.projectId ?? null }
+              : cb
+          ),
+        };
+      });
+      setEditingProjectBreakdownId(null);
+      setEditingProjectId("");
+      toast.success("Projeto atualizado.");
+    } else {
+      toast.error("Erro ao atualizar projeto.");
+    }
+  }
+
+  function startEditBreakdown(breakdownId: string, currentAmount: number) {
+    setEditingBreakdownId(breakdownId);
+    setEditingValor(currentAmount.toFixed(2));
+  }
+
+  function cancelEditBreakdown() {
+    setEditingBreakdownId(null);
+    setEditingValor("");
+  }
+
+  async function handleSalvarBreakdown(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    const amount = parseFloat(editingValor);
+    if (isNaN(amount) || amount <= 0) return;
+    setSalvandoBreakdown(true);
+    const result = await updateCostBreakdown(token, expense.id, breakdownId, { amount });
+    setSalvandoBreakdown(false);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.map((cb) =>
+            cb.id === breakdownId ? { ...cb, amount: result.data.amount } : cb
+          ),
+        };
+      });
+      setEditingBreakdownId(null);
+      setEditingValor("");
+      toast.success("Valor atualizado.");
+    } else {
+      toast.error("Erro ao atualizar valor.");
+    }
+  }
+
+  async function handleExcluirBreakdown(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    setExcluindoBreakdownId(breakdownId);
+    const result = await deleteCostBreakdown(token, expense.id, breakdownId);
+    setExcluindoBreakdownId(null);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.filter((cb) => cb.id !== breakdownId),
+        };
+      });
+      toast.success("Custo removido.");
+    } else {
+      toast.error("Erro ao remover custo.");
     }
   }
 
@@ -887,54 +991,165 @@ export default function ExpenseDetalhe() {
                             <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Projeto</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Valor</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Comprovante</th>
+                            <th className="pb-2" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                          {expense.costBreakdowns!.map((cb) => (
-                            <tr key={cb.id}>
-                              <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
-                              <td className="py-2.5 text-left">
-                                {cb.project ? (
-                                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
-                                    {cb.project.code}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                                )}
-                              </td>
-                              <td className="py-2.5 text-right font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</td>
-                              <td className="py-2.5 text-right">
-                                {cb.attachmentKey ? (
+                          {expense.costBreakdowns!.map((cb) => {
+                            const isEditing = editingBreakdownId === cb.id;
+                            return (
+                              <tr key={cb.id}>
+                                <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
+                                <td className="py-2.5 text-left">
+                                  {editingProjectBreakdownId === cb.id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <select
+                                        value={editingProjectId}
+                                        onChange={(e) => setEditingProjectId(e.target.value)}
+                                        disabled={salvandoProjeto}
+                                        autoFocus
+                                        className="rounded border border-blue-400 bg-white dark:bg-gray-800 py-1 px-2 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                                      >
+                                        <option value="">Sem projeto</option>
+                                        {projects.map((p) => (
+                                          <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        onClick={() => handleSalvarProjeto(cb.id)}
+                                        disabled={salvandoProjeto}
+                                        className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition"
+                                      >
+                                        {salvandoProjeto ? "..." : "OK"}
+                                      </button>
+                                      <button
+                                        onClick={cancelEditProject}
+                                        disabled={salvandoProjeto}
+                                        className="rounded bg-gray-200 dark:bg-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      {cb.project ? (
+                                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+                                          {cb.project.code}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                                      )}
+                                      <button
+                                        onClick={() => startEditProject(cb.id, cb.projectId)}
+                                        className="rounded p-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                                        title="Editar projeto"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {isEditing ? (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <div className="relative w-28">
+                                        <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-gray-400">R$</span>
+                                        <input
+                                          type="number"
+                                          min="0.01"
+                                          step="0.01"
+                                          value={editingValor}
+                                          onChange={(e) => setEditingValor(e.target.value)}
+                                          disabled={salvandoBreakdown}
+                                          autoFocus
+                                          className="w-full rounded border border-blue-400 bg-white dark:bg-gray-800 py-1 pl-7 pr-2 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                                        />
+                                      </div>
+                                      <button
+                                        onClick={() => handleSalvarBreakdown(cb.id)}
+                                        disabled={salvandoBreakdown || !editingValor || parseFloat(editingValor) <= 0}
+                                        className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition"
+                                      >
+                                        {salvandoBreakdown ? "..." : "OK"}
+                                      </button>
+                                      <button
+                                        onClick={cancelEditBreakdown}
+                                        disabled={salvandoBreakdown}
+                                        className="rounded bg-gray-200 dark:bg-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <span className="font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</span>
+                                      <button
+                                        onClick={() => startEditBreakdown(cb.id, cb.amount)}
+                                        className="rounded p-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                                        title="Editar valor"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {cb.attachmentKey ? (
+                                    <button
+                                      onClick={() => handleBaixarComprovante(cb.id)}
+                                      disabled={baixandoComprovante === cb.id}
+                                      className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition"
+                                    >
+                                      {baixandoComprovante === cb.id ? (
+                                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                      ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                                          <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                                          <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                                        </svg>
+                                      )}
+                                      Baixar
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-300">—</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 pl-2">
                                   <button
-                                    onClick={() => handleBaixarComprovante(cb.id)}
-                                    disabled={baixandoComprovante === cb.id}
-                                    className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition"
+                                    onClick={() => handleExcluirBreakdown(cb.id)}
+                                    disabled={excluindoBreakdownId === cb.id}
+                                    className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40 transition"
+                                    title="Excluir custo"
                                   >
-                                    {baixandoComprovante === cb.id ? (
-                                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    {excluindoBreakdownId === cb.id ? (
+                                      <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                       </svg>
                                     ) : (
-                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                                        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
-                                        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
                                       </svg>
                                     )}
-                                    Baixar
                                   </button>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                         <tfoot>
                           <tr className="border-t-2 border-gray-200 dark:border-gray-700">
                             <td className="pt-3 text-sm font-bold text-gray-700 dark:text-gray-300">Total</td>
                             <td />
                             <td className="pt-3 text-right text-sm font-bold text-gray-900 dark:text-gray-50">{fmtCurrency(totalCusto)}</td>
+                            <td />
                             <td />
                           </tr>
                         </tfoot>

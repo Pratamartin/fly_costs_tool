@@ -1,9 +1,9 @@
-import type { CreateRoute, GetReceiptDownloadRoute, RemoveReceiptRoute, UpdateRoute, UploadReceiptRoute } from './cost-breakdowns.route'
+import type { CreateRoute, DeleteRoute, GetReceiptDownloadRoute, RemoveReceiptRoute, UpdateRoute, UploadReceiptRoute } from './cost-breakdowns.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import { problems } from '@/lib/problems'
 import { CostBreakdownResponseSchema, ReceiptDownloadUrlSchema } from '@/schemas/cost-breakdown.schema'
-import { createCostBreakdown, deleteCostBreakdownReceipt, getCostBreakdownReceiptUrl, updateCostBreakdown, uploadCostBreakdownReceipt } from '@/services/budget.service'
+import { createCostBreakdown, deleteCostBreakdown, deleteCostBreakdownReceipt, getCostBreakdownReceiptUrl, updateCostBreakdown, uploadCostBreakdownReceipt } from '@/services/budget.service'
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const { id } = c.req.valid('param')
@@ -37,6 +37,18 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
     subcategory: result.expenseCategory,
   })
   return c.json(parsed, codes.OK)
+}
+
+export const remove: AppRouteHandler<DeleteRoute> = async (c) => {
+  const { id, breakdownId } = c.req.valid('param')
+
+  const result = await deleteCostBreakdown(id, breakdownId)
+
+  if ('error' in result) {
+    throw problems.create(result.error)
+
+  }
+  return c.body(null, codes.NO_CONTENT)
 }
 
 export const uploadReceipt: AppRouteHandler<UploadReceiptRoute> = async (c) => {

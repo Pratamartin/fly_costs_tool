@@ -156,6 +156,8 @@ export type CostBreakdownResponse = {
   expenseRequestId: string
   amount: number
   attachmentKey?: string | null
+  projectId?: string | null
+  project?: { id: string; code: string; name: string } | null
   subcategory: { id: string; name: string; normalizedName: string }
 }
 
@@ -333,6 +335,60 @@ export async function createCostBreakdown(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type DeleteCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+export type DeleteCostBreakdownResult =
+  | { ok: true }
+  | { ok: false; error: DeleteCostBreakdownError }
+
+export async function deleteCostBreakdown(
+  token: string,
+  expenseId: string,
+  breakdownId: string,
+): Promise<DeleteCostBreakdownResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (res.status === 204) return { ok: true }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type UpdateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "UNKNOWN"
+export type UpdateCostBreakdownResult =
+  | { ok: true; data: CostBreakdownResponse }
+  | { ok: false; error: UpdateCostBreakdownError }
+
+export async function updateCostBreakdown(
+  token: string,
+  expenseId: string,
+  breakdownId: string,
+  payload: { amount?: number; projectId?: string }
+): Promise<UpdateCostBreakdownResult> {
+  const body: Record<string, unknown> = {}
+  if (payload.amount !== undefined) body.amount = payload.amount
+  if (payload.projectId !== undefined) body.projectId = payload.projectId
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   return { ok: false, error: "UNKNOWN" }
 }
 

@@ -368,6 +368,45 @@ export async function deleteCostBreakdownReceipt(
   }
 }
 
+export async function deleteCostBreakdown(
+  expenseId: string,
+  breakdownId: string,
+): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'COST_BREAKDOWN_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'STORAGE_PROVIDER_ERROR'>> {
+  const existing = await prisma.costBreakdown.findUnique({
+    where: { id: breakdownId, expenseRequestId: expenseId },
+    include: { expenseRequest: { select: { status: true } } },
+  })
+
+  if (!existing)
+    return { error: 'COST_BREAKDOWN_NOT_FOUND' }
+
+  if (!ALLOWED_STATUSES_FOR_COST_ALLOCATION.includes(existing.expenseRequest.status)) {
+    return {
+      error: 'INVALID_EXPENSE_STATE',
+      context: {
+        resourceState: {
+          current: existing.expenseRequest.status,
+          required: ALLOWED_STATUSES_FOR_COST_ALLOCATION,
+        },
+      },
+    }
+  }
+
+  if (existing.attachmentKey) {
+    try {
+      await deleteFile(existing.attachmentKey)
+    }
+    catch (error) {
+      logger.error(error, 'Failed to delete receipt from R2 during breakdown delete:')
+      return { error: 'STORAGE_PROVIDER_ERROR' }
+    }
+  }
+
+  await prisma.costBreakdown.delete({ where: { id: breakdownId } })
+
+  return { success: true }
+}
+
 export async function getCostBreakdownReceiptUrl(
   expenseId: string,
   breakdownId: string,

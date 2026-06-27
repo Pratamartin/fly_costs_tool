@@ -14,6 +14,7 @@ const tags = ['Cost Breakdowns']
 
 export type CreateRoute = typeof create
 export type UpdateRoute = typeof update
+export type DeleteRoute = typeof remove
 export type UploadReceiptRoute = typeof uploadReceipt
 export type RemoveReceiptRoute = typeof removeReceipt
 export type GetReceiptDownloadRoute = typeof getReceiptDownload
@@ -64,6 +65,27 @@ export const update = createRoute({
     ),
     ...standardResponses,
     ...registryResponses('BAD_REQUEST', 'COST_BREAKDOWN_NOT_FOUND', 'PROJECT_ARCHIVED', 'EXPENSE_NOT_FOUND', 'PROJECT_NOT_FOUND', 'PROJECT_INSUFFICIENT_FUNDS', 'INVALID_SUBCATEGORIES', 'INVALID_EXPENSE_STATE', 'PROJECT_PERIOD_EXPIRED'),
+  },
+})
+
+export const remove = createRoute({
+  path: '/{breakdownId}',
+  method: 'delete',
+  middleware: [requireAuth, requireRole([UserRole.ADMIN])],
+  security: [{ bearerAuth: [] }],
+  operationId: 'deleteCostBreakdown',
+  summary: 'Delete cost breakdown',
+  description: 'Removes a cost breakdown and its receipt (if any) from storage. Only allowed while expense is `EM_PROCESSAMENTO`. `ADMIN` only.',
+  tags,
+  request: {
+    params: z.object({
+      id: IdSchema,
+      breakdownId: IdSchema,
+    }),
+  },
+  responses: {
+    [codes.NO_CONTENT]: { description: 'Breakdown deleted successfully.' },
+    ...registryResponses('EXPENSE_NOT_FOUND', 'COST_BREAKDOWN_NOT_FOUND', 'INVALID_EXPENSE_STATE', 'UNAUTHORIZED', 'FORBIDDEN'),
   },
 })
 
