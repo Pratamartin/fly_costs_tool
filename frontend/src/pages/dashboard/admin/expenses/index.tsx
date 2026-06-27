@@ -479,9 +479,25 @@ export default function AdminExpenses() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {expense.departureDate ? (
-                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                              <p>↗ {new Date(expense.departureDate).toLocaleDateString("pt-BR")}</p>
-                              {expense.returnDate && <p>↙ {new Date(expense.returnDate).toLocaleDateString("pt-BR")}</p>}
+                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="animate-plane-up inline-flex shrink-0">
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-blue-500" style={{ transform: "rotate(-45deg)" }}>
+                                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                  </svg>
+                                </span>
+                                <span>{new Date(expense.departureDate).toLocaleDateString("pt-BR")}</span>
+                              </div>
+                              {expense.returnDate && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="animate-plane-down inline-flex shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-indigo-400" style={{ transform: "rotate(135deg)" }}>
+                                      <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                    </svg>
+                                  </span>
+                                  <span>{new Date(expense.returnDate).toLocaleDateString("pt-BR")}</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
