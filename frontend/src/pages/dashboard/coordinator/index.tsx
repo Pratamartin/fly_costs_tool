@@ -393,7 +393,6 @@ export default function DashboardCoordenador() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Solicitação</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ações</th>
@@ -402,7 +401,7 @@ export default function DashboardCoordenador() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filtradas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center">
+                    <td colSpan={4} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-green-500">
@@ -433,11 +432,6 @@ export default function DashboardCoordenador() {
                             <p className="text-xs text-gray-400 dark:text-gray-500">{s.reqId}</p>
                           </div>
                         </button>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center rounded-full bg-[#1a5c38]/10 px-2.5 py-1 text-xs font-medium text-[#1a5c38] ring-1 ring-[#1a5c38]/20">
-                          {s.projeto}
-                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -523,13 +517,7 @@ export default function DashboardCoordenador() {
                         </div>
                         <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{s.dataSubmissao}</span>
                       </div>
-                      {/* Linha 3: projeto */}
-                      <div className="pl-11 mb-3">
-                        <span className="inline-flex items-center rounded-full bg-[#1a5c38]/10 px-2.5 py-1 text-xs font-medium text-[#1a5c38] ring-1 ring-[#1a5c38]/20">
-                          {s.projeto}
-                        </span>
-                      </div>
-                      {/* Linha 4: ações */}
+                      {/* Linha 3: ações */}
                       <div className="flex items-center gap-2 pl-11">
                         {abaAtual === "PENDENTE" && (
                           <>
