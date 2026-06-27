@@ -182,7 +182,13 @@ export default function EditarDespesa() {
         localStorage.removeItem("accessToken");
         router.push("/login");
       } else if (result.error === "VALIDATION_ERROR") {
-        setErro("Dados inválidos. Verifique os campos.");
+        const firstDetail = result.details?.[0];
+        const fieldMsg = firstDetail ? ` (${firstDetail.field}: ${firstDetail.message})` : "";
+        setErro(`Dados inválidos. Verifique os campos preenchidos${fieldMsg}.`);
+      } else if (result.error === "CONFLICT") {
+        setErro("Esta despesa não pode ser editada no estado atual. Recarregue a página.");
+      } else if (result.error === "FORBIDDEN") {
+        setErro("Sem permissão para editar esta despesa.");
       } else {
         setErro("Erro ao salvar. Tente novamente.");
       }
@@ -194,7 +200,13 @@ export default function EditarDespesa() {
       const memResult = await uploadMemorandum(token, result.data.id, memorandoFile);
       if (!memResult.ok) {
         setSalvando(false);
-        setErro("Dados salvos, mas falha ao enviar o trabalho publicado. Tente novamente.");
+        if (memResult.error === "FILE_TOO_LARGE") {
+          setErro("Dados salvos, mas o arquivo do trabalho publicado excede o limite de 5 MB.");
+        } else if (memResult.error === "UNSUPPORTED_MEDIA_TYPE") {
+          setErro("Dados salvos, mas o formato do arquivo não é suportado. Envie um PDF.");
+        } else {
+          setErro("Dados salvos, mas falha ao enviar o trabalho publicado. Tente novamente.");
+        }
         return;
       }
     }

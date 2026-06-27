@@ -76,7 +76,7 @@ export type Expense = {
 
 export type ListExpensesError = "UNAUTHORIZED" | "UNKNOWN"
 export type UpdateExpenseStatusError = "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
-export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION_ERROR" | "UNKNOWN"
+export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VALIDATION_ERROR" | "UNKNOWN"
 export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
 export type ValidationErrorDetail = { field: string; message: string; code?: string }
@@ -115,7 +115,8 @@ export type UploadInvoiceResult =
 
 export type UpdateExpenseResult =
   | { ok: true; data: Expense }
-  | { ok: false; error: UpdateExpenseError }
+  | { ok: false; error: Exclude<UpdateExpenseError, "VALIDATION_ERROR"> }
+  | { ok: false; error: "VALIDATION_ERROR"; details?: ValidationErrorDetail[] }
 
 export type GetExpenseResult =
   | { ok: true; data: Expense }
@@ -721,7 +722,11 @@ export async function updateExpense(
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
-  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 422) {
+    const body = await res.json().catch(() => null)
+    return { ok: false, error: "VALIDATION_ERROR", details: body?.errors }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 
