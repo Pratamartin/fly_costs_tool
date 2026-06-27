@@ -3,9 +3,9 @@ import { useRouter } from "next/router";
 import { useAuthStore } from "@/store/authStore";
 import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getProjectById, updateProject, type Project, type UpdateProjectPayload } from "@/services/projects";
+import { getProjectById, updateProject, getProjectCostBreakdowns, type Project, type UpdateProjectPayload, type ProjectCostBreakdown } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
-import { listExpenses, type Expense, type ExpenseStatus } from "@/services/expenses";
+import { type ExpenseStatus } from "@/services/expenses";
 import ThemeToggle from "@/components/ThemeToggle";
 
 type TabType = "overview" | "expenses" | "team";
@@ -55,7 +55,12 @@ export default function DashboardAdminProjectDetalhe() {
   const [carregando, setCarregando] = useState(true);
   const [erroCarregar, setErroCarregar] = useState<string | null>(null);
 
-  const [projectExpenses, setProjectExpenses] = useState<Expense[]>([]);
+  const [costBreakdowns, setCostBreakdowns] = useState<ProjectCostBreakdown[]>([]);
+  const [carregandoBreakdowns, setCarregandoBreakdowns] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
 
   // edit modal
   const [showEdit, setShowEdit] = useState(false);
@@ -78,8 +83,10 @@ export default function DashboardAdminProjectDetalhe() {
     getProjectById(token, id).then((result) => {
       if (result.ok) {
         setProject(result.data);
-        listExpenses(token, undefined, id).then((expResult) => {
-          if (expResult.ok) setProjectExpenses(expResult.data);
+        setCarregandoBreakdowns(true);
+        getProjectCostBreakdowns(token, id).then((cbResult) => {
+          if (cbResult.ok) setCostBreakdowns(cbResult.data);
+          setCarregandoBreakdowns(false);
         });
       } else if (result.error === "UNAUTHORIZED") {
         useAuthStore.getState().clearToken();
@@ -435,136 +442,211 @@ export default function DashboardAdminProjectDetalhe() {
                   </div>
                 </div>
               )}
-              {/* TODO backend: GET /v1/projects/:id ou endpoint dedicado de analytics precisa retornar
-                  breakdown por categoria (Inscrição, Passagens, Diárias) com campos total, gasto, restante
-                  para popular esta tabela com dados reais. Por ora exibe dados do orçamento geral. */}
               <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
                 <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Discriminação por Categoria</h2>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 dark:border-gray-800">
-                      <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Categoria</th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Total</th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Gasto</th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Restante</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                    {project.subcategories.map((cat) => {
-                      const total = project.budget;
-                      const gasto = project.usedBudget;
-                      const restante = Math.max(0, total - gasto);
-                      return (
-                        <tr key={cat}>
-                          <td className="py-3 font-medium text-gray-700 dark:text-gray-300 capitalize">{cat}</td>
-                          <td className="py-3 text-right text-gray-900 dark:text-gray-50">{fmtBRL(total)}</td>
-                          <td className="py-3 text-right text-gray-900 dark:text-gray-50">{fmtBRL(gasto)}</td>
-                          <td className={`py-3 text-right font-semibold ${restante > 0 ? "text-emerald-600" : "text-red-500"}`}>{fmtBRL(restante)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {project.subcategories.length === 0 && (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Nenhuma subcategoria cadastrada neste projeto.</p>
-                )}
-              </div>
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
-                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Despesas Vinculadas</h2>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{projectExpenses.length} despesa{projectExpenses.length !== 1 ? "s" : ""}</span>
-                </div>
-                {projectExpenses.length === 0 ? (
-                  <div className="px-6 py-10 text-center">
-                    <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma despesa vinculada a este projeto.</p>
-                  </div>
+                {project.subcategories.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma subcategoria cadastrada neste projeto.</p>
                 ) : (
-                  <>
-                    {/* Desktop table */}
-                    <table className="hidden w-full md:table">
-                      <thead>
-                        <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-                          <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Despesa</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Custo Vinculado</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {projectExpenses.map((exp) => {
-                          const linkedCost = (exp.costBreakdowns ?? [])
-                            .filter((cb) => cb.projectId === project!.id || !cb.projectId)
-                            .reduce((sum, cb) => sum + cb.amount, 0);
-                          const studentName = exp.student?.name ?? "—";
-                          const date = new Date(exp.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-                          return (
-                            <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                              <td className="px-6 py-4">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{exp.title}</p>
-                                {exp.costBreakdowns && exp.costBreakdowns.length > 0 && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                    {exp.costBreakdowns.map((cb) => cb.subcategory.name).join(", ")}
-                                  </p>
-                                )}
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-2">
-                                  <StudentAvatar name={studentName} />
-                                  <span className="text-sm text-gray-700 dark:text-gray-300">{studentName}</span>
-                                </div>
-                              </td>
-                              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{date}</td>
-                              <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
-                                {linkedCost > 0 ? fmtBRL(linkedCost) : <span className="text-gray-400 font-normal">—</span>}
-                              </td>
-                              <td className="px-6 py-4"><StatusBadge status={exp.status} /></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-
-                    {/* Cards — mobile */}
-                    <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
-                      {projectExpenses.map((exp) => {
-                        const linkedCost = (exp.costBreakdowns ?? [])
-                          .filter((cb) => cb.projectId === project!.id || !cb.projectId)
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-gray-800">
+                        <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Categoria</th>
+                        <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Gasto</th>
+                        <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">% do Orçamento</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                      {project.subcategories.map((cat) => {
+                        const gasto = costBreakdowns
+                          .filter((cb) => cb.subcategory.normalizedName === cat)
                           .reduce((sum, cb) => sum + cb.amount, 0);
-                        const studentName = exp.student?.name ?? "—";
-                        const date = new Date(exp.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                        const pct = project.budget > 0 ? Math.round((gasto / project.budget) * 100) : 0;
                         return (
-                          <div key={exp.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{exp.title}</p>
-                                {exp.costBreakdowns && exp.costBreakdowns.length > 0 && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                                    {exp.costBreakdowns.map((cb) => cb.subcategory.name).join(", ")}
-                                  </p>
-                                )}
+                          <tr key={cat}>
+                            <td className="py-3 font-medium text-gray-700 dark:text-gray-300 capitalize">{cat}</td>
+                            <td className="py-3 text-right text-gray-900 dark:text-gray-50">{gasto > 0 ? fmtBRL(gasto) : <span className="text-gray-400 font-normal">—</span>}</td>
+                            <td className="py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className={`text-xs font-semibold ${pct > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}`}>{pct}%</span>
                               </div>
-                              <StatusBadge status={exp.status} />
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center gap-2">
-                                <StudentAvatar name={studentName} />
-                                <span className="text-xs text-gray-600 dark:text-gray-400">{studentName}</span>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
-                                  {linkedCost > 0 ? fmtBRL(linkedCost) : "—"}
-                                </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">{date}</p>
-                              </div>
-                            </div>
-                          </div>
+                            </td>
+                          </tr>
                         );
                       })}
-                    </div>
-                  </>
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-200 dark:border-gray-700">
+                        <td className="pt-3 text-sm font-bold text-gray-700 dark:text-gray-300">Total</td>
+                        <td className="pt-3 text-right text-sm font-bold text-gray-900 dark:text-gray-50">{fmtBRL(project.usedBudget)}</td>
+                        <td className="pt-3 text-right">
+                          <span className={`text-xs font-semibold ${project.budget - project.usedBudget >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                            {fmtBRL(Math.max(0, project.budget - project.usedBudget))} restante
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 )}
               </div>
+              {(() => {
+                const uniqueCategories = Array.from(new Set(costBreakdowns.map((cb) => cb.subcategory.normalizedName))).map(
+                  (norm) => costBreakdowns.find((cb) => cb.subcategory.normalizedName === norm)!.subcategory
+                );
+                const uniqueStatuses = Array.from(new Set(costBreakdowns.map((cb) => cb.expense.status)));
+                const filtered = costBreakdowns.filter((cb) => {
+                  if (filterCategory && cb.subcategory.normalizedName !== filterCategory) return false;
+                  if (filterStatus && cb.expense.status !== filterStatus) return false;
+                  if (filterFrom && cb.createdAt < filterFrom) return false;
+                  if (filterTo && cb.createdAt > filterTo + "T23:59:59") return false;
+                  return true;
+                });
+                return (
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-gray-100 dark:border-gray-800 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Última Atividade</h2>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Custos discriminados vinculados a este projeto</p>
+                      </div>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{filtered.length} alocaç{filtered.length !== 1 ? "ões" : "ão"}</span>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex flex-wrap gap-2 border-b border-gray-100 dark:border-gray-800 px-6 py-3">
+                      <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
+                      >
+                        <option value="">Todas as categorias</option>
+                        {uniqueCategories.map((cat) => (
+                          <option key={cat.normalizedName} value={cat.normalizedName}>{cat.name}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
+                      >
+                        <option value="">Todos os status</option>
+                        {uniqueStatuses.map((s) => (
+                          <option key={s} value={s}>{STATUS_LABELS[s as ExpenseStatus] ?? s}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={filterFrom}
+                        onChange={(e) => setFilterFrom(e.target.value)}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
+                        placeholder="De"
+                      />
+                      <input
+                        type="date"
+                        value={filterTo}
+                        onChange={(e) => setFilterTo(e.target.value)}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
+                        placeholder="Até"
+                      />
+                      {(filterCategory || filterStatus || filterFrom || filterTo) && (
+                        <button
+                          onClick={() => { setFilterCategory(""); setFilterStatus(""); setFilterFrom(""); setFilterTo(""); }}
+                          className="rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                        >
+                          Limpar filtros
+                        </button>
+                      )}
+                    </div>
+
+                    {carregandoBreakdowns ? (
+                      <div className="py-10 text-center">
+                        <svg className="mx-auto animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <div className="px-6 py-10 text-center">
+                        <p className="text-sm text-gray-400 dark:text-gray-500">
+                          {costBreakdowns.length === 0 ? "Nenhuma discriminação de custo registrada neste projeto." : "Nenhum resultado para os filtros selecionados."}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Desktop table */}
+                        <table className="hidden w-full md:table">
+                          <thead>
+                            <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Despesa</th>
+                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
+                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Custo Vinculado</th>
+                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {filtered.map((cb) => {
+                              const studentName = cb.expense.student?.name ?? "—";
+                              const date = new Date(cb.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                              return (
+                                <tr key={cb.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{cb.expense.title}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{cb.subcategory.name}</p>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                      <StudentAvatar name={studentName} />
+                                      <span className="text-sm text-gray-700 dark:text-gray-300">{studentName}</span>
+                                    </div>
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{date}</td>
+                                  <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
+                                    {fmtBRL(cb.amount)}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <StatusBadge status={cb.expense.status as ExpenseStatus} />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+
+                        {/* Cards — mobile */}
+                        <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+                          {filtered.map((cb) => {
+                            const studentName = cb.expense.student?.name ?? "—";
+                            const date = new Date(cb.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                            return (
+                              <div key={cb.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">{cb.expense.title}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{cb.subcategory.name}</p>
+                                  </div>
+                                  <StatusBadge status={cb.expense.status as ExpenseStatus} />
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <StudentAvatar name={studentName} />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">{studentName}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{fmtBRL(cb.amount)}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">{date}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
           {abaAtiva === "expenses" && (

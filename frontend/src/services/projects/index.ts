@@ -57,6 +57,25 @@ export type UpdateProjectPayload = {
   subcategories?: string[]
 }
 
+export type ProjectCostBreakdown = {
+  id: string
+  amount: number
+  subcategory: { id: string; name: string; normalizedName: string }
+  expense: {
+    id: string
+    title: string
+    status: string
+    createdAt: string
+    student?: { id: string; name: string } | null
+  }
+  createdAt: string
+}
+
+export type GetProjectCostBreakdownsError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "UNKNOWN"
+export type GetProjectCostBreakdownsResult =
+  | { ok: true; data: ProjectCostBreakdown[] }
+  | { ok: false; error: GetProjectCostBreakdownsError }
+
 export async function listProjects(
   token: string,
   options?: { isActive?: boolean; search?: string }
@@ -141,6 +160,25 @@ export async function updateProject(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export async function getProjectCostBreakdowns(
+  token: string,
+  projectId: string
+): Promise<GetProjectCostBreakdownsResult> {
+  const res = await fetch(`${API_URL}/v1/projects/${projectId}/cost-breakdowns`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   return { ok: false, error: "UNKNOWN" }
 }
 
