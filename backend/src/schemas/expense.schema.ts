@@ -39,7 +39,9 @@ export const ExpenseRelationsSchema = {
 }
 
 const BaseSchema = z.object({
-  title: z.string().openapi({ example: 'Inscrição - SBSC 2026' }),
+  title: z.string().trim()
+    .min(1, { message: 'Title is required.' })
+    .openapi({ example: 'Inscrição - SBSC 2026' }),
   description: z.string().nullable()
     .optional()
     .openapi({

@@ -35,7 +35,7 @@ ajv.addKeyword({
       return true
     const current = new Date(currentDateStr)
     const other = new Date(otherDateStr)
-    return !Number.isNaN(current.getTime()) && !Number.isNaN(other.getTime()) ? current >= other : true
+    return !Number.isNaN(current.getTime()) && !Number.isNaN(other.getTime()) ? current > other : true
   },
   error: { message: 'RETURN_DATE_BEFORE_DEPARTURE' },
 })
