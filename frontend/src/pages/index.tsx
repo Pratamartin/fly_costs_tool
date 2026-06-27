@@ -25,6 +25,18 @@ const contributors = [
     linkedin: "https://www.linkedin.com/in/lucas-bezerra-00051541a/",
     avatar: "https://github.com/lucassbzrrA.png",
   },
+  {
+    name: "Jenifer Vasques",
+    github: "https://github.com/JeniVasques",
+    linkedin: "https://www.linkedin.com/in/jenifer-vasques-78429633a",
+    avatar: "https://github.com/JeniVasques.png",
+  },
+  {
+    name: "João Costa",
+    github: "https://github.com/JoaoCostaCode",
+    linkedin: "https://www.linkedin.com/in/joaoteixeiracosta",
+    avatar: "https://github.com/JoaoCostaCode.png",
+  },
 ];
 
 const features = [
