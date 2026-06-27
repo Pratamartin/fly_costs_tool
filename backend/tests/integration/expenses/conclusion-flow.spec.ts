@@ -22,6 +22,7 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
   let coordenadorHeaders: { Authorization: string }
   let projectId: string
   let subcategoryName: string
+  let diariasCategoryName: string
   const categoryId = dummyExpenseCategories[0]!.id!
 
   beforeAll(async () => {
@@ -33,7 +34,13 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const project = await prisma.project.findFirst({ include: { expenseCategories: true } })
     assert(project && project.expenseCategories.length > 0, 'Project or categories not found')
     projectId = project.id
-    subcategoryName = project.expenseCategories[0]!.normalizedName
+    const passagemAereaCategory = project.expenseCategories.find(c => c.normalizedName === 'passagem-aerea')
+    assert(passagemAereaCategory, 'passagem-aerea category not found in project')
+    subcategoryName = passagemAereaCategory.normalizedName
+
+    const diariasCategory = project.expenseCategories.find(c => c.normalizedName === 'diarias')
+    assert(diariasCategory, 'diarias category not found in project')
+    diariasCategoryName = diariasCategory.normalizedName
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -133,6 +140,17 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     assert(breakdownRes2.status === status.CREATED)
     const { id: breakdownId2 } = await breakdownRes2.json()
 
+    // 5.2 Adiciona TERCEIRO breakdown de Diárias sem comprovante (NÃO deve barrar conclusão)
+    const breakdownRes3 = await client.expenses[':id']['cost-breakdowns'].$post({
+      param: { id: expenseId },
+      json: {
+        amount: 50,
+        projectId,
+        subcategoryName: diariasCategoryName,
+      },
+    }, { headers: adminHeaders })
+    assert(breakdownRes3.status === status.CREATED)
+
     // [VALIDAÇÃO TDD Opção A]: O saldo do projeto NÃO deve ter mudado ainda
     const projectMid = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
     expect(Number(projectMid.usedBudget)).toBe(initialUsed)
@@ -180,9 +198,9 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const finalExpense = await concludeSuccess.json()
     expect(finalExpense.status).toBe(ExpenseRequestStatus.CONCLUIDO)
 
-    // [VALIDAÇÃO TDD Opção A]: O saldo deve ter subido exatamente a soma das discriminações (300)
+    // [VALIDAÇÃO TDD Opção A]: O saldo deve ter subido exatamente a soma das discriminações (350)
     const projectAfter = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
-    expect(Number(projectAfter.usedBudget)).toBe(initialUsed + 300)
+    expect(Number(projectAfter.usedBudget)).toBe(initialUsed + 350)
   })
 
   it('[PROIBIDO]: Apenas ADMIN pode concluir despesa', async () => {

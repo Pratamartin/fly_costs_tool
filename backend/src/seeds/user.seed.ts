@@ -8,7 +8,7 @@ import prisma from '@/lib/orm'
 
 export const dummyUsers: Omit<Prisma.UserCreateInput, 'passwordHash'>[] = [
   {
-    id: 'f3b3e1a2-9b0c-4d1e-8f2g-5h6i7j8k9l0m',
+    id: 'f3b3e1a2-9b0c-4d1e-8f2c-5b6d7c8a9f0e',
     email: 'coordenador@test.com',
     name: 'Coordenador Acadêmico',
     role: UserRole.COORDENADOR,

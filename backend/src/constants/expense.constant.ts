@@ -65,3 +65,7 @@ export const STAFF_NOTIFICATION_TARGETS_BY_STATUS: Partial<Record<ExpenseRequest
 export const ALLOWED_STATUSES_FOR_COST_ALLOCATION: ExpenseRequestStatus[] = [
   ExpenseRequestStatus.EM_PROCESSAMENTO,
 ] as const
+
+export const EXPENSE_CATEGORIES_WITH_RECEIPT_REQUIRED = [
+  'passagem-aerea',
+] as const

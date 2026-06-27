@@ -6,10 +6,12 @@ import { PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant
 import env from '@/env'
 import { registryResponses } from '@/lib/problems'
 import { ForgotPasswordSchema, LoginSchema, LoginSuccessSchema, RegisterSchema, RegisterSuccessSchema, ResetPasswordSchema } from '@/schemas/auth.schema'
+import { InviteCodeStringSchema } from '@/schemas/shared.schema'
 
 const tags = ['Auth']
 
 export type RegisterRoute = typeof register
+export type VerifyInviteRoute = typeof verifyInvite
 export type LoginRoute = typeof login
 export type ForgotPasswordRoute = typeof forgotPassword
 export type ResetPasswordRoute = typeof resetPassword
@@ -29,7 +31,27 @@ export const register = createRoute({
       RegisterSuccessSchema,
       'User created successfully',
     ),
-    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
+    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVITE_NOT_FOUND', 'VALIDATION_ERROR'),
+  },
+})
+
+export const verifyInvite = createRoute({
+  path: '/verify-invite/{code}',
+  method: 'get',
+  operationId: 'verifyInvite',
+  summary: 'Verify an invite code (Pre-flight)',
+  description: 'Checks if an invite code is valid, not used, and not expired. Ideal for frontend pre-flight checks before rendering registration forms. Includes strict Cache-Control headers to prevent stale valid states.',
+  tags,
+  request: { params: z.object({ code: InviteCodeStringSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(
+      z.object({
+        role: z.string(),
+        expiresAt: z.string().datetime(),
+      }).openapi('VerifyInviteSuccess'),
+      'Invite is perfectly valid.',
+    ),
+    ...registryResponses('INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
   },
 })
 

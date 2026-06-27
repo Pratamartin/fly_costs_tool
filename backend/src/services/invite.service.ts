@@ -4,7 +4,7 @@ import type { InviteCode, Prisma, UserRole } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
 import type { ListInvitesQuerySchema } from '@/schemas/admin.invite.schema'
 import crypto from 'node:crypto'
-import { INVITE_EXPIRY, INVITE_STATUS } from '@/constants/invite.constant'
+import { INVITE_CODE_BYTES, INVITE_EXPIRY, INVITE_STATUS } from '@/constants/invite.constant'
 import { dayjs } from '@/lib/date'
 import prisma from '@/lib/orm'
 
@@ -31,7 +31,7 @@ export function getInviteExampleExpiry() {
     .toISOString()
 }
 
-function generateRandomCode(bytes: number = 4): string {
+function generateRandomCode(bytes: number = INVITE_CODE_BYTES): string {
   return crypto.randomBytes(bytes).toString('hex')
     .toUpperCase()
 }

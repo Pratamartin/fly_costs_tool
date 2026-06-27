@@ -1,4 +1,4 @@
-import type { ForgotPasswordRoute, LoginRoute, LogoutRoute, RefreshRoute, RegisterRoute, ResetPasswordRoute } from './auth.route'
+import type { ForgotPasswordRoute, LoginRoute, LogoutRoute, RefreshRoute, RegisterRoute, ResetPasswordRoute, VerifyInviteRoute } from './auth.route'
 import type { AppRouteHandler } from '@/lib/type'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import * as codes from 'stoker/http-status-codes'
@@ -40,6 +40,21 @@ export const register: AppRouteHandler<RegisterRoute> = async (c) => {
   }
 
   return c.json(result.data, codes.CREATED)
+}
+
+export const verifyInvite: AppRouteHandler<VerifyInviteRoute> = async (c) => {
+  const { code } = c.req.valid('param')
+
+  const result = await findInviteByCode(code)
+  if ('error' in result) {
+    throw problems.create(result.error)
+  }
+
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  return c.json({
+    role: result.role,
+    expiresAt: result.expiresAt.toISOString(),
+  }, codes.OK)
 }
 
 export const login: AppRouteHandler<LoginRoute> = async (c) => {

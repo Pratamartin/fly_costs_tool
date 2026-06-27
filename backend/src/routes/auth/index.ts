@@ -4,6 +4,7 @@ import * as routes from './auth.route'
 
 const router = createRouter().basePath('/auth')
   .openapi(routes.register, handlers.register)
+  .openapi(routes.verifyInvite, handlers.verifyInvite)
   .openapi(routes.login, handlers.login)
   .openapi(routes.refresh, handlers.refresh)
   .openapi(routes.logout, handlers.logout)

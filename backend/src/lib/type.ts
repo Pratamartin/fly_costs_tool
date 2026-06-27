@@ -16,6 +16,11 @@ export type AppContext = {
   Variables: {
     logger: PinoLogger
     lang: string
+    paginationMeta?: {
+      total: number
+      limit: number
+      offset: number
+    }
   } & JwtVariables<AppAuthPayload>
 }
 

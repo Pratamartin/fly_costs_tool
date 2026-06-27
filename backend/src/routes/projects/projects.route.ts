@@ -4,8 +4,9 @@ import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { registryResponses, standardResponses } from '@/lib/problems'
 import { requireAuth, requireRole } from '@/middlewares'
+import { ListProjectCostBreakdownsQuerySchema, ListProjectCostBreakdownsResponseSchema } from '@/schemas/cost-breakdown.schema'
 import { CreateProjectSchema, ListProjectQuerySchema, ListProjectResponseSchema, ProjectResponseSchema, UpdateProjectPeriodSchema, UpdateProjectSchema } from '@/schemas/project.schema'
-import { IdSchema } from '@/schemas/shared.schema'
+import { IdSchema, PaginationHeadersSchema } from '@/schemas/shared.schema'
 
 const tags = ['Projects']
 const ADMIN_ONLY: UserRole[] = ['ADMIN']
@@ -16,6 +17,7 @@ export type ReadRoute = typeof read
 export type UpdateRoute = typeof update
 export type UpdatePeriodRoute = typeof updatePeriod
 export type RemoveRoute = typeof remove
+export type ListCostBreakdownsRoute = typeof listCostBreakdowns
 
 export const index = createRoute({
   path: '/',
@@ -119,5 +121,28 @@ export const remove = createRoute({
   responses: {
     [codes.NO_CONTENT]: { description: 'Project archived successfully.' },
     ...registryResponses('PROJECT_NOT_FOUND', 'STORAGE_PROVIDER_ERROR', 'UNAUTHORIZED', 'FORBIDDEN'),
+  },
+})
+
+export const listCostBreakdowns = createRoute({
+  path: '/{id}/cost-breakdowns',
+  method: 'get',
+  middleware: [requireAuth, requireRole(ADMIN_ONLY)],
+  security: [{ bearerAuth: [] }],
+  operationId: 'listProjectCostBreakdowns',
+  summary: 'List project cost breakdowns',
+  description: 'Returns a paginated list of cost breakdowns strictly allocated to a specific project. Includes expense and student metadata. Pagination metadata is returned via headers.',
+  tags,
+  request: {
+    params: z.object({ id: IdSchema }),
+    query: ListProjectCostBreakdownsQuerySchema,
+  },
+  responses: {
+    [codes.OK]: {
+      ...jsonContent(ListProjectCostBreakdownsResponseSchema, 'Paginated cost breakdowns retrieved successfully.'),
+      headers: PaginationHeadersSchema,
+    },
+    ...standardResponses,
+    ...registryResponses('PROJECT_NOT_FOUND'),
   },
 })

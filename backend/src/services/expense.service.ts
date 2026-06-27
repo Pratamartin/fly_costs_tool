@@ -1,7 +1,7 @@
 import type { z } from '@hono/zod-openapi'
 import type { ServiceResult } from '@/lib/problems'
 import type { CreateExpenseSchema, ExpenseListQuerySchema, UpdateExpenseSchema } from '@/schemas/expense.schema'
-import { EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, REQUIRED_ROLE_FOR_STATUS, STAFF_NOTIFICATION_TARGETS_BY_STATUS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
+import { EXPENSE_CATEGORIES_WITH_RECEIPT_REQUIRED, EXPENSE_STATUS_TRANSITIONS, EXPENSE_VISIBILITY_BY_ROLE, REQUIRED_ROLE_FOR_STATUS, STAFF_NOTIFICATION_TARGETS_BY_STATUS, STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { MEMORANDUM_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { Prisma } from '@/generated/prisma/client'
 import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
@@ -449,7 +449,7 @@ export async function concludeExpenseRequest(
 ): Promise<ServiceResult<ExpenseWithRelations, 'EXPENSE_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_EXPENSE_STATE' | 'MISSING_BREAKDOWNS' | 'MISSING_RECEIPTS'>> {
   const expense = await prisma.expenseRequest.findUnique({
     where: { id },
-    include: { costBreakdowns: true },
+    include: { costBreakdowns: { include: { expenseCategory: true } } },
   })
 
   if (!expense) {
@@ -468,7 +468,9 @@ export async function concludeExpenseRequest(
     return { error: 'MISSING_BREAKDOWNS' }
   }
 
-  const missingReceipts = expense.costBreakdowns.some(cb => !cb.attachmentKey)
+  const missingReceipts = expense.costBreakdowns.some(
+    cb => (EXPENSE_CATEGORIES_WITH_RECEIPT_REQUIRED as readonly string[]).includes(cb.expenseCategory.normalizedName) && !cb.attachmentKey,
+  )
   if (missingReceipts) {
     return { error: 'MISSING_RECEIPTS' }
   }
