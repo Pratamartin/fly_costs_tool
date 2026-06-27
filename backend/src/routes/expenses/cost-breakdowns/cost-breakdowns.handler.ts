@@ -46,7 +46,6 @@ export const remove: AppRouteHandler<DeleteRoute> = async (c) => {
 
   if ('error' in result) {
     throw problems.create(result.error)
-
   }
   return c.body(null, codes.NO_CONTENT)
 }

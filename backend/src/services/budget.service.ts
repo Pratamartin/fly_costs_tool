@@ -373,7 +373,10 @@ export async function deleteCostBreakdown(
   breakdownId: string,
 ): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'COST_BREAKDOWN_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'STORAGE_PROVIDER_ERROR'>> {
   const existing = await prisma.costBreakdown.findUnique({
-    where: { id: breakdownId, expenseRequestId: expenseId },
+    where: {
+      id: breakdownId,
+      expenseRequestId: expenseId,
+    },
     include: { expenseRequest: { select: { status: true } } },
   })
 
