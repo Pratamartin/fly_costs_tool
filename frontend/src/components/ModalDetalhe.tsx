@@ -83,7 +83,7 @@ export default function ModalDetalhe({ despesa, token, onClose }: ModalDetalhePr
             </div>
             <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-4">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Destino</p>
-              <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-50">{despesa.city}, {despesa.state}</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-50">{despesa.event?.location ?? "—"}</p>
             </div>
           </div>
 

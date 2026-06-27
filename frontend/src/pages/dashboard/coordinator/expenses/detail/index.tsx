@@ -321,7 +321,7 @@ export default function CoordinatorExpenseDetail() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Destino</p>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                      {[expense.city, expense.state, expense.country].filter(Boolean).join(", ") || "—"}
+                      {expense.event?.location ?? "—"}
                     </p>
                   </div>
                   <div>

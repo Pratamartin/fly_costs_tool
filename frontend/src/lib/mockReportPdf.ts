@@ -57,7 +57,7 @@ export async function generateMockReportPdf(
       e.event?.name ?? "—",
       e.article?.classification ?? "—",
       e.student?.name ?? "—",
-      `${e.city}, ${e.state}`,
+      e.event?.location ?? "—",
       e.project?.name ?? "—",
       STATUS_LABELS[e.status] ?? e.status,
       new Date(e.createdAt).toLocaleDateString("pt-BR"),

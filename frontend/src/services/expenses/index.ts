@@ -67,9 +67,8 @@ export type Expense = {
   attachmentKey?: string | null
   departureDate?: string | null
   returnDate?: string | null
-  city?: string | null
-  state?: string | null
-  country?: string | null
+  departureRoute?: string | null
+  returnRoute?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -104,11 +103,7 @@ export type UpdateExpensePayload = {
   description?: string
   event?: ExpenseEvent
   article?: ExpenseArticle
-  city?: string
-  state?: string
-  country?: string
-  departureDate?: string
-  returnDate?: string
+  surveyAnswers?: Array<{ expenseCategoryId: string; data: unknown }>
 }
 
 export type UploadInvoiceError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
@@ -188,6 +183,8 @@ export function mergeTravelDates(expense: Expense): Expense {
         ...expense,
         departureDate: d.departureDate,
         returnDate: typeof d.returnDate === "string" ? d.returnDate : expense.returnDate,
+        departureRoute: typeof d.departureRoute === "string" ? d.departureRoute : expense.departureRoute,
+        returnRoute: typeof d.returnRoute === "string" ? d.returnRoute : expense.returnRoute,
       }
     }
   }

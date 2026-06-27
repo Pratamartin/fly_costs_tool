@@ -7,9 +7,10 @@ import {
   getExpenseById,
   updateExpense,
   uploadMemorandum,
-  uploadInvoice,
+  mergeTravelDates,
   type Expense,
 } from "@/services/expenses";
+import { uploadSurveyFile } from "@/services/surveys";
 import { getMe, type UserProfile } from "@/services/user";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -36,17 +37,16 @@ export default function EditarDespesa() {
   const [eventName, setEventName] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [articleClassification, setArticleClassification] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
+  const [departureRoute, setDepartureRoute] = useState("");
+  const [returnRoute, setReturnRoute] = useState("");
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const [flightSurveyId, setFlightSurveyId] = useState<string | null>(null);
 
   // File uploads
   const [memorandoFile, setMemorandoFile] = useState<File | null>(null);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
-  const [uploadingMemorandum, setUploadingMemorandum] = useState(false);
-  const [uploadingInvoice, setUploadingInvoice] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -71,7 +71,7 @@ export default function EditarDespesa() {
     }
 
     if (expResult.ok) {
-      const exp = expResult.data;
+      const exp = mergeTravelDates(expResult.data);
       if (exp.status !== "EM_EDICAO") {
         router.push("/dashboard/student");
         return;
@@ -82,11 +82,16 @@ export default function EditarDespesa() {
       setEventName(exp.event?.name ?? "");
       setEventLocation(exp.event?.location ?? "");
       setArticleClassification(exp.article?.classification ?? "");
-      setCity(exp.city ?? "");
-      setState(exp.state ?? "");
-      setCountry(exp.country ?? "");
+      setDepartureRoute(exp.departureRoute ?? "");
+      setReturnRoute(exp.returnRoute ?? "");
       setDepartureDate(exp.departureDate ? exp.departureDate.slice(0, 10) : "");
       setReturnDate(exp.returnDate ? exp.returnDate.slice(0, 10) : "");
+
+      const flightAnswer = exp.surveyAnswers?.find((sa) => {
+        const d = sa.data as Record<string, unknown>;
+        return d && "departureRoute" in d;
+      });
+      setFlightSurveyId(flightAnswer?.surveyId ?? null);
     } else if (expResult.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
@@ -111,16 +116,57 @@ export default function EditarDespesa() {
     }
 
     setSalvando(true);
+    setUploadingFiles(true);
     setErro(null);
+
+    // 1. Upload invoice to R2 first if selected
+    let invoiceKey: string | undefined;
+    if (invoiceFile) {
+      const uploadResult = await uploadSurveyFile(token, invoiceFile);
+      if (!uploadResult.ok) {
+        setSalvando(false);
+        setUploadingFiles(false);
+        setErro("Falha ao enviar a invoice. Tente novamente.");
+        return;
+      }
+      invoiceKey = uploadResult.data.fileKey;
+    }
+
+    // 2. Reconstruct all surveyAnswers with updated data
+    const updatedSurveyAnswers = expense.surveyAnswers?.length
+      ? expense.surveyAnswers.map((sa) => {
+          const d = sa.data as Record<string, unknown>;
+          if ("departureRoute" in d) {
+            // passagem-aerea: update routes and dates
+            return {
+              expenseCategoryId: sa.surveyId,
+              data: {
+                ...d,
+                departureRoute: departureRoute.trim() || d.departureRoute,
+                returnRoute: returnRoute.trim() || d.returnRoute,
+                departureDate: departureDate || d.departureDate,
+                returnDate: returnDate || d.returnDate,
+              },
+            };
+          }
+          if (!("requested" in d)) {
+            // inscricao: add invoiceKey if uploaded
+            return {
+              expenseCategoryId: sa.surveyId,
+              data: { ...d, ...(invoiceKey ? { invoiceKey } : {}) },
+            };
+          }
+          // diarias or others: unchanged
+          return { expenseCategoryId: sa.surveyId, data: sa.data };
+        })
+      : undefined;
+
+    setUploadingFiles(false);
 
     const result = await updateExpense(token, expense.id, {
       event: { name: eventName.trim(), location: eventLocation.trim() },
       article: { classification: articleClassification },
-      city: city.trim() || undefined,
-      state: state.trim() || undefined,
-      country: country.trim() || undefined,
-      departureDate: departureDate || undefined,
-      returnDate: returnDate || undefined,
+      surveyAnswers: updatedSurveyAnswers,
     });
 
     if (!result.ok) {
@@ -137,28 +183,12 @@ export default function EditarDespesa() {
       return;
     }
 
-    const updatedExpense = result.data;
-
-    // Upload memorando if selected
+    // 3. Upload memorando via endpoint dedicado (POST /expenses/{id}/memorandum)
     if (memorandoFile) {
-      setUploadingMemorandum(true);
-      const memResult = await uploadMemorandum(token, updatedExpense.id, memorandoFile);
-      setUploadingMemorandum(false);
+      const memResult = await uploadMemorandum(token, result.data.id, memorandoFile);
       if (!memResult.ok) {
         setSalvando(false);
         setErro("Dados salvos, mas falha ao enviar o trabalho publicado. Tente novamente.");
-        return;
-      }
-    }
-
-    // Upload invoice if selected
-    if (invoiceFile) {
-      setUploadingInvoice(true);
-      const invResult = await uploadInvoice(token, updatedExpense.id, invoiceFile);
-      setUploadingInvoice(false);
-      if (!invResult.ok) {
-        setSalvando(false);
-        setErro("Dados salvos, mas falha ao enviar a invoice. Tente novamente.");
         return;
       }
     }
@@ -173,7 +203,7 @@ export default function EditarDespesa() {
     router.push("/login");
   }
 
-  const isBusy = salvando || uploadingMemorandum || uploadingInvoice;
+  const isBusy = salvando || uploadingFiles;
 
   if (carregando) {
     return (
@@ -329,42 +359,37 @@ export default function EditarDespesa() {
               {/* Destino e Datas */}
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
                 <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-4">Destino e Datas da Viagem</h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Cidade</label>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Local de Ida</label>
                     <input
                       type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      value={departureRoute}
+                      onChange={(e) => setDepartureRoute(e.target.value)}
                       disabled={isBusy}
-                      placeholder="ex.: Manaus"
+                      placeholder="ex.: Manaus/AM → São Paulo/SP"
                       className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Estado</label>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Local de Volta</label>
                     <input
                       type="text"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
+                      value={returnRoute}
+                      onChange={(e) => setReturnRoute(e.target.value)}
                       disabled={isBusy}
-                      placeholder="ex.: AM"
+                      placeholder="ex.: São Paulo/SP → Manaus/AM"
                       className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
                     />
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">País</label>
-                    <input
-                      type="text"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      disabled={isBusy}
-                      placeholder="ex.: Brasil"
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] disabled:opacity-60 transition"
-                    />
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Destino</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5">
+                      {eventLocation || <span className="text-gray-400 dark:text-gray-500 italic">Preencha o local do evento acima</span>}
+                    </p>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de ida</label>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de Ida</label>
                     <input
                       type="date"
                       value={departureDate}
@@ -374,7 +399,7 @@ export default function EditarDespesa() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de volta</label>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de Volta</label>
                     <input
                       type="date"
                       value={returnDate}
@@ -480,7 +505,7 @@ export default function EditarDespesa() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      {uploadingMemorandum ? "Enviando trabalho..." : uploadingInvoice ? "Enviando invoice..." : "Salvando..."}
+                      {uploadingFiles ? "Enviando arquivos..." : "Salvando..."}
                     </>
                   ) : (
                     <>
