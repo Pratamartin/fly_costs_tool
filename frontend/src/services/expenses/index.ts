@@ -79,12 +79,13 @@ export type UpdateExpenseStatusError = "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT"
 export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION_ERROR" | "UNKNOWN"
 export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
+export type ValidationErrorDetail = { field: string; message: string; code?: string }
 export type AssignProjectError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
 export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "UNKNOWN"
 export type UploadReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
 export type DeleteReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_GATEWAY" | "UNKNOWN"
 export type GetReceiptDownloadError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
-export type UploadMemorandumError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+export type UploadMemorandumError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "FILE_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" | "UNKNOWN"
 
 export type UploadMemorandumResult =
   | { ok: true; data: Expense }
@@ -139,7 +140,8 @@ export type ExpenseFormsResult =
 
 export type CreateExpenseResult =
   | { ok: true; data: Expense }
-  | { ok: false; error: CreateExpenseError }
+  | { ok: false; error: Exclude<CreateExpenseError, "VALIDATION_ERROR"> }
+  | { ok: false; error: "VALIDATION_ERROR"; details?: ValidationErrorDetail[] }
 
 export type AssignProjectResult =
   | { ok: true; data: Expense }
@@ -285,7 +287,10 @@ export async function createExpense(
   if (res.status === 201) return { ok: true, data: await res.json() }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
-  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  if (res.status === 422) {
+    const body = await res.json().catch(() => null)
+    return { ok: false, error: "VALIDATION_ERROR", details: body?.errors }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -484,6 +489,8 @@ export async function uploadMemorandum(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 413) return { ok: false, error: "FILE_TOO_LARGE" }
+  if (res.status === 415) return { ok: false, error: "UNSUPPORTED_MEDIA_TYPE" }
   if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
   return { ok: false, error: "UNKNOWN" }
 }

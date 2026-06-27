@@ -248,10 +248,23 @@ export default function DashboardAluno() {
         surveyAnswers: data.surveyAnswers,
       });
       if (result.ok) {
-        if (data.memorando) {
-          await uploadMemorandum(token, result.data.id, data.memorando);
-        }
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
+        if (data.memorando) {
+          const memoResult = await uploadMemorandum(token, result.data.id, data.memorando);
+          if (!memoResult.ok) {
+            let memoErro = "Erro ao enviar o trabalho publicado. A solicitação foi criada mas o arquivo não foi anexado.";
+            if (memoResult.error === "STORAGE_UNAVAILABLE") {
+              memoErro = "Armazenamento indisponível. A solicitação foi criada, mas o trabalho publicado não foi anexado. Tente novamente mais tarde.";
+            } else if (memoResult.error === "FILE_TOO_LARGE") {
+              memoErro = "Arquivo muito grande (máx. 5 MB). A solicitação foi criada mas o trabalho publicado não foi anexado.";
+            } else if (memoResult.error === "UNSUPPORTED_MEDIA_TYPE") {
+              memoErro = "Tipo de arquivo não suportado (apenas PDF). A solicitação foi criada mas o trabalho publicado não foi anexado.";
+            }
+            setErro(memoErro);
+            setCriandoDespesa(false);
+            return;
+          }
+        }
         setModalAberto(false);
         toast.success("Solicitação de despesa enviada com sucesso!");
       } else if (result.error === "UNAUTHORIZED") {
@@ -259,9 +272,22 @@ export default function DashboardAluno() {
         localStorage.removeItem("accessToken");
         router.push("/login");
       } else if (result.error === "VALIDATION_ERROR") {
-        setErro("Dados inválidos. Verifique os campos.");
+        const camposConhecidos: Record<string, string> = {
+          title: "Título",
+          "event.name": "Nome do Evento",
+          "event.location": "Local do Evento",
+          "article.classification": "Classificação QUALIS",
+          surveyAnswers: "Categoria de Despesa",
+        };
+        const primeiro = result.details?.[0];
+        if (primeiro) {
+          const label = camposConhecidos[primeiro.field] ?? primeiro.field;
+          setErro(`Campo inválido: "${label}". Verifique os dados preenchidos.`);
+        } else {
+          setErro("Dados inválidos. Verifique os campos preenchidos.");
+        }
       } else {
-        setErro("Erro ao criar despesa");
+        setErro("Erro ao criar despesa. Tente novamente.");
       }
     } catch (_err) {
       setErro("Erro de conexão");

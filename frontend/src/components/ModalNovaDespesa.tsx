@@ -99,13 +99,15 @@ function SpinnerIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function SectionHeader({ number, label }: { number: number; label: string }) {
+function SectionHeader({ number, label, required }: { number: number; label: string; required?: boolean }) {
   return (
     <div className="mb-3 flex items-center gap-2">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-[10px] font-bold text-white dark:bg-[#818cf8] dark:text-gray-950">
         {number}
       </span>
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        {label}{required && <span className="ml-1 text-red-500 normal-case">*</span>}
+      </p>
     </div>
   );
 }
@@ -168,7 +170,7 @@ function FileDropZone({
               <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
             </svg>
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
-            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG · máx. {maxSizeMB ?? 10}MB</p>
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF · máx. {maxSizeMB ?? 10}MB</p>
           </>
         )}
       </div>
@@ -240,8 +242,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
     setErroLocal(null);
 
     if (!title.trim()) return setErroLocal("O título é obrigatório.");
-    if (!eventName.trim()) return setErroLocal("O nome do evento é obrigatório.");
-    if (!eventLocation.trim()) return setErroLocal("A localização do evento é obrigatória.");
+    if (eventName.trim().length < 3) return setErroLocal("O nome do evento deve ter ao menos 3 caracteres.");
+    if (eventLocation.trim().length < 3) return setErroLocal("O local do evento deve ter ao menos 3 caracteres.");
     if (!articleClassification) return setErroLocal("Selecione a classificação QUALIS do artigo.");
     if (selectedCategoryIds.size === 0) return setErroLocal("Selecione ao menos uma categoria de despesa.");
 
@@ -249,8 +251,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       if (!passagem.departureDate || !passagem.returnDate || !passagem.departureRoute.trim() || !passagem.returnRoute.trim()) {
         return setErroLocal("Preencha todos os campos obrigatórios de Passagem Aérea.");
       }
-      if (new Date(passagem.returnDate) < new Date(passagem.departureDate)) {
-        return setErroLocal("A data de volta deve ser após a data de ida.");
+      if (new Date(passagem.returnDate) <= new Date(passagem.departureDate)) {
+        return setErroLocal("A data de volta deve ser estritamente após a data de ida.");
       }
     }
 
@@ -565,13 +567,12 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 5 — Memorando */}
             <div>
-              <SectionHeader number={5} label="Trabalho publicado" />
+              <SectionHeader number={5} label="Trabalho publicado" required />
               <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
                 <p className="font-semibold mb-1">Atenção: o trabalho deve conter ao final o seguinte texto de agradecimento:</p>
                 <p className="italic">&ldquo;O presente trabalho foi realizado com o apoio da Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (AUXPE-CAPES-PROEX) - Código de Financiamento 001. Adicionalmente, este trabalho foi parcialmente financiado pela Fundação de Amparo à Pesquisa do Estado do Amazonas - FAPEAM - por meio dos projetos PDPG-CAPES e POSGRAD 2025-2026.&rdquo;</p>
               </div>
-              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o trabalho publicado" disabled={isSubmitting} maxSizeMB={5} />
-              {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
+              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf" label="Clique ou arraste o trabalho publicado (PDF)" disabled={isSubmitting} maxSizeMB={5} />
             </div>
 
           </div>
