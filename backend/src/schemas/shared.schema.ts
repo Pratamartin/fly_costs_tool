@@ -39,6 +39,19 @@ export const PaginationSchema = z.object({
     }),
 })
 
+export const PaginationHeadersSchema = z.object({
+  'x-total-count': z.string().openapi({ description: 'Total number of items available.' }),
+  'x-pagination-limit': z.string().openapi({ description: 'The requested pagination limit.' }),
+  'x-pagination-offset': z.string().openapi({ description: 'The requested pagination offset.' }),
+})
+
+export const OrderSchema = z.object({
+  orderBy: z.string().optional()
+    .openapi({ description: 'Field to order by' }),
+  orderDir: z.enum(['asc', 'desc']).optional()
+    .openapi({ description: 'Order direction' }),
+})
+
 /**
  * Schema for an individual validation error item.
  */

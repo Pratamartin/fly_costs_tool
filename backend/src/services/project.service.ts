@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi'
 import type { Prisma, Project } from '@/generated/prisma/client'
 import type { ServiceResult } from '@/lib/problems'
+import type { ListProjectCostBreakdownsQuerySchema, ListProjectCostBreakdownsResponseSchema } from '@/schemas/cost-breakdown.schema'
 import type { CreateProjectSchema, ListProjectQuerySchema, UpdateProjectPeriodSchema, UpdateProjectSchema } from '@/schemas/project.schema'
 import dayjs from 'dayjs'
 import { MAX_SUBCATEGORIES, MIN_SUBCATEGORIES } from '@/constants/project.constant'
@@ -11,6 +12,8 @@ import { validateSubcategoriesExist } from './expense.category.service'
 type CreateProjectDTO = z.infer<typeof CreateProjectSchema>
 type UpdateProjectDTO = z.infer<typeof UpdateProjectSchema>
 type UpdateProjectPeriodDTO = z.infer<typeof UpdateProjectPeriodSchema>
+type ListProjectCostBreakdownsQuery = z.infer<typeof ListProjectCostBreakdownsQuerySchema>
+type ListProjectCostBreakdownsResponse = z.infer<typeof ListProjectCostBreakdownsResponseSchema>
 
 export const projectInclude = { expenseCategories: { select: { normalizedName: true } } } satisfies Prisma.ProjectInclude
 
@@ -290,4 +293,101 @@ export async function deleteProject(
 
     return formatProjectSubcategories(project)
   })
+}
+
+export async function getProjectCostBreakdowns(
+  projectId: string,
+  query: ListProjectCostBreakdownsQuery,
+): Promise<ServiceResult<{ data: ListProjectCostBreakdownsResponse, total: number, limit: number, offset: number }, 'PROJECT_NOT_FOUND'>> {
+  const project = await prisma.project.findUnique({ where: { id: projectId } })
+
+  if (!project) {
+    return { error: 'PROJECT_NOT_FOUND' }
+  }
+
+  const { limit, offset, status, startDate, endDate, subcategoryName, studentId, search, orderBy, orderDir } = query
+
+  const where: Prisma.CostBreakdownWhereInput = {
+    projectId,
+    expenseCategory: subcategoryName
+      ? { normalizedName: Array.isArray(subcategoryName) ? { in: subcategoryName } : subcategoryName }
+      : undefined,
+    expenseRequest: (status || startDate || endDate || studentId || search)
+      ? {
+          status: status || undefined,
+          studentId: studentId || undefined,
+          createdAt: (startDate || endDate)
+            ? {
+                ...(startDate && { gte: startDate }),
+                ...(endDate && { lte: endDate }),
+              }
+            : undefined,
+          ...(search && {
+            OR: [
+              {
+                title: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                student: {
+                  name: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            ],
+          }),
+        }
+      : undefined,
+  }
+
+  const orderByClause: Prisma.CostBreakdownOrderByWithRelationInput = { [orderBy === 'amount' ? 'amount' : 'createdAt']: orderDir || 'desc' }
+
+  const [total, data] = await prisma.$transaction([
+    prisma.costBreakdown.count({ where }),
+    prisma.costBreakdown.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: orderByClause,
+      include: {
+        expenseCategory: true,
+        expenseRequest: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            createdAt: true,
+            student: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+  ])
+
+  const formattedData = data.map(cb => ({
+    id: cb.id,
+    expenseRequestId: cb.expenseRequestId,
+    projectId: cb.projectId,
+    amount: cb.amount.toNumber(),
+    createdAt: cb.createdAt,
+    attachmentKey: cb.attachmentKey,
+    subcategory: cb.expenseCategory,
+    expense: cb.expenseRequest,
+  }))
+
+  return {
+    data: formattedData,
+    total,
+    limit,
+    offset,
+  }
 }
