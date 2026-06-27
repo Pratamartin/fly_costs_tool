@@ -81,7 +81,7 @@ export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
 export type ValidationErrorDetail = { field: string; message: string; code?: string }
 export type AssignProjectError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
-export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "UNKNOWN"
+export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "PROJECT_PERIOD_EXPIRED" | "UNKNOWN"
 export type UploadReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
 export type DeleteReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_GATEWAY" | "UNKNOWN"
 export type GetReceiptDownloadError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
@@ -341,7 +341,13 @@ export async function createCostBreakdown(
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
-  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => null)
+    if (body?.type === "urn:sgda:domain:project:allocation-outside-period") {
+      return { ok: false, error: "PROJECT_PERIOD_EXPIRED" }
+    }
+    return { ok: false, error: "CONFLICT" }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -687,7 +693,7 @@ export async function concludeExpense(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
-  if (res.status === 422) return { ok: false, error: "UNPROCESSABLE" }
+  if (res.status === 400 || res.status === 422) return { ok: false, error: "UNPROCESSABLE" }
   return { ok: false, error: "UNKNOWN" }
 }
 

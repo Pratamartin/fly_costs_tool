@@ -484,6 +484,7 @@ export default function ExpenseDetalhe() {
     if (!result.ok) {
       setAdicionandoCusto(false);
       if (result.error === "BAD_REQUEST") setErroCusto("Categoria inválida para este projeto.");
+      else if (result.error === "PROJECT_PERIOD_EXPIRED") setErroCusto("Projeto com período expirado.");
       else if (result.error === "CONFLICT") setErroCusto("Este tipo de custo já foi adicionado.");
       else setErroCusto("Erro ao adicionar custo.");
       return;
