@@ -11,7 +11,7 @@ import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/s
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
 
-type Status = "Pendente" | "Aprovado pelo Coordenador" | "Em Processamento" | "Rejeitado" | "Correção Solicitada" | "Concluído";
+type Status = "Pendente" | "Aprovado pelo Coordenador" | "Em Processamento pelo Coordenador" | "Rejeitado" | "Correção Solicitada" | "Concluído";
 type Filtro = "Todos" | Status;
 
 interface Despesa {
@@ -28,7 +28,7 @@ function statusBackendToFrontend(status: string): Status {
   switch (status) {
     case "PENDENTE": return "Pendente";
     case "APROVADO": return "Aprovado pelo Coordenador";
-    case "EM_PROCESSAMENTO": return "Em Processamento";
+    case "EM_PROCESSAMENTO": return "Em Processamento pelo Coordenador";
     case "REJEITADO": return "Rejeitado";
     case "EM_EDICAO": return "Correção Solicitada";
     case "CONCLUIDO": return "Concluído";
@@ -101,13 +101,13 @@ function BadgeStatus({ status }: { status: Status }) {
         Aprovado pelo Coordenador
       </span>
     );
-  if (status === "Em Processamento")
+  if (status === "Em Processamento pelo Coordenador")
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
           <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
         </svg>
-        Em Processamento
+        Em Processamento pelo Coordenador
       </span>
     );
   if (status === "Correção Solicitada")
@@ -290,7 +290,7 @@ export default function DashboardAluno() {
     return matchFiltro && matchBusca;
   });
 
-  const filtros: Filtro[] = ["Todos", "Pendente", "Em Processamento", "Aprovado pelo Coordenador", "Correção Solicitada", "Rejeitado", "Concluído"];
+  const filtros: Filtro[] = ["Todos", "Pendente", "Em Processamento pelo Coordenador", "Aprovado pelo Coordenador", "Correção Solicitada", "Rejeitado", "Concluído"];
 
   if (carregando) {
     return (
@@ -395,7 +395,7 @@ export default function DashboardAluno() {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Aprovadas</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  {despesas.filter((d) => d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento" || d.status === "Concluído").length}
+                  {despesas.filter((d) => d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Concluído").length}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
@@ -476,11 +476,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento" || d.status === "Pendente"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{d.data}</td>
                       <td className="px-6 py-4">
@@ -513,11 +513,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento" || d.status === "Pendente"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
+                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
