@@ -9,7 +9,6 @@
       "properties": {
         "requested": {
           "type": "boolean",
-          "const": true,
           "title": "Solicitar Diárias?"
         }
       }

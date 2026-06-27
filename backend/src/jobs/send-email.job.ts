@@ -23,6 +23,8 @@ export class SendEmailJob extends BaseJob<EmailJobData, void> {
   override readonly workOptions = {
     localConcurrency: 2,
     batchSize: 1,
+    // In test mode reduce polling so waitForJob resolves well within the 5s vitest timeout
+    ...(process.env.NODE_ENV === 'test' && { pollingIntervalSeconds: 0.5 }),
   }
 
   private async renderTemplate(template: NonNullable<SendEmailInput['template']>): Promise<{ success: true, html: string } | { success: false, error: string }> {

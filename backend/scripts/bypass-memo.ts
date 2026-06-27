@@ -18,10 +18,10 @@
  *     a real R2 bucket configured.
  */
 
-import 'dotenv/config'
+import { ID_ALUNO, ID_SURVEY_INSCRICAO } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import prisma from '@/lib/orm'
-import { ID_ALUNO, ID_SURVEY_INSCRICAO } from '@/constants/seed.constant'
+import 'dotenv/config'
 
 const arg = process.argv[2]
 
@@ -32,7 +32,10 @@ async function createAndBypass() {
       description: 'Criada pelo script dev:bypass-memo para testes locais.',
       status: ExpenseRequestStatus.PENDENTE,
       attachmentKey: 'local-bypass',
-      event: { name: 'Evento de Teste', location: 'Local/XX' },
+      event: {
+        name: 'Evento de Teste',
+        location: 'Local/XX',
+      },
       article: { classification: 'Sem Qualis' },
       student: { connect: { id: ID_ALUNO } },
       surveyAnswers: {
@@ -63,7 +66,12 @@ async function createAndBypass() {
 async function bypassExisting(prefix: string) {
   const expense = await prisma.expenseRequest.findFirst({
     where: { id: { startsWith: prefix.toLowerCase() } },
-    select: { id: true, status: true, attachmentKey: true, title: true },
+    select: {
+      id: true,
+      status: true,
+      attachmentKey: true,
+      title: true,
+    },
   })
 
   if (!expense) {
