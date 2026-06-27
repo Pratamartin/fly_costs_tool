@@ -70,7 +70,8 @@ export default function StudentExpenseDetail() {
         return;
       }
 
-      if (expResult.data.status !== "CONCLUIDO") {
+      const allowedStatuses = ["CONCLUIDO", "REJEITADO", "APROVADO", "EM_PROCESSAMENTO"];
+      if (!allowedStatuses.includes(expResult.data.status)) {
         router.replace("/dashboard/student");
         return;
       }
@@ -157,23 +158,91 @@ export default function StudentExpenseDetail() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Status banner */}
-          <div className="flex items-center justify-between rounded-xl border-l-4 border-violet-500 bg-violet-50 px-6 py-4 mb-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-500">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                </svg>
+          {expense.status === "CONCLUIDO" && (
+            <div className="flex items-center justify-between rounded-xl border-l-4 border-violet-500 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600 px-6 py-4 mb-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-violet-700 dark:text-violet-400">Solicitação Concluída</p>
+                  <p className="text-sm text-violet-600 dark:text-violet-500">Todos os documentos foram processados pelo administrador.</p>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-violet-700">Solicitação Concluída</p>
-                <p className="text-sm text-violet-600">Todos os documentos foram processados pelo administrador.</p>
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-violet-500">Criado em</p>
+                <p className="text-sm font-bold text-violet-800 dark:text-violet-300">{fmtDate(expense.createdAt)}</p>
               </div>
             </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-violet-500">Criado em</p>
-              <p className="text-sm font-bold text-violet-800">{fmtDate(expense.createdAt)}</p>
+          )}
+
+          {expense.status === "REJEITADO" && (
+            <div className="rounded-xl border-l-4 border-red-500 bg-red-50 dark:bg-red-950/30 dark:border-red-600 px-6 py-4 mb-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-red-700 dark:text-red-400">Solicitação Reprovada</p>
+                  <p className="text-sm text-red-600 dark:text-red-500">Esta solicitação foi reprovada pelo coordenador.</p>
+                  {expense.rejectionReason && (
+                    <div className="mt-2 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-gray-900 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-red-400 dark:text-red-500 mb-0.5">Motivo</p>
+                      <p className="text-sm text-red-800 dark:text-red-300">{expense.rejectionReason}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right hidden sm:block shrink-0">
+                  <p className="text-xs font-semibold text-red-400">Criado em</p>
+                  <p className="text-sm font-bold text-red-700 dark:text-red-300">{fmtDate(expense.createdAt)}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {expense.status === "APROVADO" && (
+            <div className="flex items-center justify-between rounded-xl border-l-4 border-green-500 bg-green-50 dark:bg-green-950/30 dark:border-green-600 px-6 py-4 mb-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-green-700 dark:text-green-400">Aprovado pelo Coordenador</p>
+                  <p className="text-sm text-green-600 dark:text-green-500">Sua solicitação foi aprovada e está aguardando processamento pelo administrador.</p>
+                </div>
+              </div>
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-green-500">Criado em</p>
+                <p className="text-sm font-bold text-green-800 dark:text-green-300">{fmtDate(expense.createdAt)}</p>
+              </div>
+            </div>
+          )}
+
+          {expense.status === "EM_PROCESSAMENTO" && (
+            <div className="flex items-center justify-between rounded-xl border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-600 px-6 py-4 mb-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-blue-700 dark:text-blue-400">Em Processamento</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-500">O administrador está processando os documentos da sua solicitação.</p>
+                </div>
+              </div>
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-blue-500">Criado em</p>
+                <p className="text-sm font-bold text-blue-800 dark:text-blue-300">{fmtDate(expense.createdAt)}</p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             {/* Left column */}
