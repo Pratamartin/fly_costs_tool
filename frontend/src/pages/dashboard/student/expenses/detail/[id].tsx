@@ -70,7 +70,7 @@ export default function StudentExpenseDetail() {
         return;
       }
 
-      const allowedStatuses = ["CONCLUIDO", "REJEITADO", "APROVADO", "EM_PROCESSAMENTO"];
+      const allowedStatuses = ["PENDENTE", "CONCLUIDO", "REJEITADO", "APROVADO", "EM_PROCESSAMENTO"];
       if (!allowedStatuses.includes(expResult.data.status)) {
         router.replace("/dashboard/student");
         return;
@@ -158,6 +158,26 @@ export default function StudentExpenseDetail() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
 
           {/* Status banner */}
+          {expense.status === "PENDENTE" && (
+            <div className="flex items-center justify-between rounded-xl border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600 px-6 py-4 mb-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-amber-700 dark:text-amber-400">Aguardando Análise</p>
+                  <p className="text-sm text-amber-600 dark:text-amber-500">Sua solicitação está em fila e será analisada pelo coordenador em breve.</p>
+                </div>
+              </div>
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-amber-500">Criado em</p>
+                <p className="text-sm font-bold text-amber-800 dark:text-amber-300">{fmtDate(expense.createdAt)}</p>
+              </div>
+            </div>
+          )}
+
           {expense.status === "CONCLUIDO" && (
             <div className="flex items-center justify-between rounded-xl border-l-4 border-violet-500 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600 px-6 py-4 mb-5">
               <div className="flex items-center gap-4">

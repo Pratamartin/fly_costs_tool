@@ -465,11 +465,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" ? "cursor-pointer" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{d.data}</td>
                       <td className="px-6 py-4">
@@ -506,11 +506,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" ? "cursor-pointer" : ""}`}
+                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
