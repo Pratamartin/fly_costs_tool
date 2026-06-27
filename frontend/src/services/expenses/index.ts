@@ -195,10 +195,12 @@ export function mergeTravelDates(expense: Expense): Expense {
 
 export async function listExpenses(
   token: string,
-  statusFilter?: ExpenseStatus
+  statusFilter?: ExpenseStatus,
+  projectId?: string
 ): Promise<ListExpensesResult> {
   const params = new URLSearchParams()
   if (statusFilter) params.append("status", statusFilter)
+  if (projectId) params.append("projectId", projectId)
 
   const url = `${API_URL}/v1/expenses${params.toString() ? `?${params.toString()}` : ""}`
 
