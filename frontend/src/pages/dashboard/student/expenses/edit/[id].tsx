@@ -10,7 +10,7 @@ import {
   mergeTravelDates,
   type Expense,
 } from "@/services/expenses";
-import { uploadSurveyFile } from "@/services/surveys";
+import { listSurveys, uploadSurveyFile } from "@/services/surveys";
 import { getMe, type UserProfile } from "@/services/user";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -41,7 +41,8 @@ export default function EditarDespesa() {
   const [returnRoute, setReturnRoute] = useState("");
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
-  const [flightSurveyId, setFlightSurveyId] = useState<string | null>(null);
+  // surveyId (PreferenceSurvey.id) → expenseCategoryId (ExpenseCategory.id)
+  const [surveyIdToExpCatId, setSurveyIdToExpCatId] = useState<Record<string, string>>({});
 
   // File uploads
   const [memorandoFile, setMemorandoFile] = useState<File | null>(null);
@@ -57,10 +58,18 @@ export default function EditarDespesa() {
 
   async function carregarDados(token: string, expId: string) {
     setCarregando(true);
-    const [meResult, expResult] = await Promise.all([
+    const [meResult, expResult, surveysResult] = await Promise.all([
       getMe(token),
       getExpenseById(token, expId),
+      listSurveys(token),
     ]);
+
+    // Build map: PreferenceSurvey.id → ExpenseCategory.id
+    if (surveysResult.ok) {
+      const map: Record<string, string> = {};
+      for (const s of surveysResult.data) map[s.id] = s.expenseCategoryId;
+      setSurveyIdToExpCatId(map);
+    }
 
     if (meResult.ok) setUserProfile(meResult.data);
     else if (meResult.error === "UNAUTHORIZED") {
@@ -87,11 +96,6 @@ export default function EditarDespesa() {
       setDepartureDate(exp.departureDate ? exp.departureDate.slice(0, 10) : "");
       setReturnDate(exp.returnDate ? exp.returnDate.slice(0, 10) : "");
 
-      const flightAnswer = exp.surveyAnswers?.find((sa) => {
-        const d = sa.data as Record<string, unknown>;
-        return d && "departureRoute" in d;
-      });
-      setFlightSurveyId(flightAnswer?.surveyId ?? null);
     } else if (expResult.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
@@ -133,13 +137,15 @@ export default function EditarDespesa() {
     }
 
     // 2. Reconstruct all surveyAnswers with updated data
+    // sa.surveyId = PreferenceSurvey.id; backend expects expenseCategoryId = ExpenseCategory.id
     const updatedSurveyAnswers = expense.surveyAnswers?.length
       ? expense.surveyAnswers.map((sa) => {
+          const expenseCategoryId = surveyIdToExpCatId[sa.surveyId] ?? sa.surveyId;
           const d = sa.data as Record<string, unknown>;
           if ("departureRoute" in d) {
             // passagem-aerea: update routes and dates
             return {
-              expenseCategoryId: sa.surveyId,
+              expenseCategoryId,
               data: {
                 ...d,
                 departureRoute: departureRoute.trim() || d.departureRoute,
@@ -152,12 +158,12 @@ export default function EditarDespesa() {
           if (!("requested" in d)) {
             // inscricao: add invoiceKey if uploaded
             return {
-              expenseCategoryId: sa.surveyId,
+              expenseCategoryId,
               data: { ...d, ...(invoiceKey ? { invoiceKey } : {}) },
             };
           }
           // diarias or others: unchanged
-          return { expenseCategoryId: sa.surveyId, data: sa.data };
+          return { expenseCategoryId, data: sa.data };
         })
       : undefined;
 
