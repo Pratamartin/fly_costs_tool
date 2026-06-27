@@ -51,7 +51,10 @@ export const verifyInvite: AppRouteHandler<VerifyInviteRoute> = async (c) => {
   }
 
   c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
-  return c.json({ role: result.role, expiresAt: result.expiresAt.toISOString() }, codes.OK)
+  return c.json({
+    role: result.role,
+    expiresAt: result.expiresAt.toISOString(),
+  }, codes.OK)
 }
 
 export const login: AppRouteHandler<LoginRoute> = async (c) => {

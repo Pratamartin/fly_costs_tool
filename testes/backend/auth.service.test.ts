@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { cpf } from 'cpf-cnpj-validator'
-import { generateAccessToken, isInviteCodeValid, verifyCredentials } from '../../backend/src/services/auth.service'
+import { generateAccessToken, verifyCredentials } from '../../backend/src/services/auth.service'
 import { RegisterSchema } from '@/schemas/auth.schema'
+import { MOCK_INVITE_ADMIN, MOCK_INVITE_ALUNO, MOCK_INVITE_COORD } from '@/constants/seed.constant'
 import * as userService from '../../backend/src/services/user.service'
 
 vi.mock('../../backend/src/services/user.service')
@@ -26,21 +27,6 @@ vi.mock('../../backend/src/generated/prisma/client', () => ({
   PrismaClient: vi.fn(),
 }))
 
-// ─── isInviteCodeValid (deprecated) ──────────────────────────────────────────
-
-describe('isInviteCodeValid', () => {
-  it('retorna true para código hardcoded CONVITE2026', () => {
-    expect(isInviteCodeValid('CONVITE2026')).toBe(true)
-  })
-
-  it('retorna false para código inválido', () => {
-    expect(isInviteCodeValid('INVALIDO')).toBe(false)
-  })
-
-  it('retorna false para código vazio', () => {
-    expect(isInviteCodeValid('')).toBe(false)
-  })
-})
 
 // ─── verifyCredentials ────────────────────────────────────────────────────────
 
@@ -104,7 +90,7 @@ const VALID_ALUNO_PAYLOAD = {
   email: 'joao@test.com',
   password: 'Test@1234',
   role: 'ALUNO' as const,
-  inviteCode: 'CONVITE2026',
+  inviteCode: MOCK_INVITE_ALUNO,
   cpf: VALID_CPF,
   rgPassaporte: 'MG-12.345.678',
   pixKey: VALID_CPF,
@@ -129,7 +115,7 @@ describe('RegisterSchema — T3.1.2 (unit)', () => {
       email: 'admin@test.com',
       password: 'Test@1234',
       role: 'ADMIN',
-      inviteCode: 'CONVITE2026',
+      inviteCode: MOCK_INVITE_ADMIN,
     })
     expect(r.success).toBe(true)
   })
@@ -140,7 +126,7 @@ describe('RegisterSchema — T3.1.2 (unit)', () => {
       email: 'coord@test.com',
       password: 'Test@1234',
       role: 'COORDENADOR',
-      inviteCode: 'CONVITE2026',
+      inviteCode: MOCK_INVITE_COORD,
     })
     expect(r.success).toBe(true)
   })
@@ -182,7 +168,7 @@ describe('RegisterSchema — T3.1.2 (unit)', () => {
       email: 'admin@test.com',
       password: 'Test@1234',
       role: 'ADMIN',
-      inviteCode: 'CONVITE2026',
+      inviteCode: MOCK_INVITE_ADMIN,
       cpf: '000.000.000-00',
     })
     expect(r.success).toBe(false)

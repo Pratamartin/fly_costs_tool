@@ -45,7 +45,10 @@ export const verifyInvite = createRoute({
   request: { params: z.object({ code: InviteCodeStringSchema }) },
   responses: {
     [codes.OK]: jsonContent(
-      z.object({ role: z.string(), expiresAt: z.string().datetime() }).openapi('VerifyInviteSuccess'),
+      z.object({
+        role: z.string(),
+        expiresAt: z.string().datetime(),
+      }).openapi('VerifyInviteSuccess'),
       'Invite is perfectly valid.',
     ),
     ...registryResponses('INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
