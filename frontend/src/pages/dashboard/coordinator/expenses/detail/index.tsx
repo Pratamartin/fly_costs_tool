@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useAuthStore } from "@/store/authStore";
 import { getToken } from "@/lib/getToken";
 import CoordinatorSidebar from "@/components/CoordinatorSidebar";
-import { getExpenseById, getMemorandumDownloadUrl, getCostBreakdownReceiptDownloadUrl, type Expense } from "@/services/expenses";
+import { getExpenseById, getMemorandumDownloadUrl, getCostBreakdownReceiptDownloadUrl, mergeTravelDates, type Expense } from "@/services/expenses";
 import ThemeToggle from "@/components/ThemeToggle";
 
 function fmtDate(iso: string) {
@@ -181,7 +181,7 @@ export default function CoordinatorExpenseDetail() {
     setCarregando(true);
     const result = await getExpenseById(token, expId);
     if (result.ok) {
-      setExpense(result.data);
+      setExpense(mergeTravelDates(result.data));
     } else if (result.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
@@ -312,30 +312,30 @@ export default function CoordinatorExpenseDetail() {
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{expense.event.location}</p>
                     )}
                   </div>
-                  {(expense.city || expense.state) && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Destino</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                        {[expense.city, expense.state, expense.country].filter(Boolean).join(", ")}
-                      </p>
-                    </div>
-                  )}
-                  {expense.departureDate && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de ida</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                        {new Date(expense.departureDate).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                  )}
-                  {expense.returnDate && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de volta</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                        {new Date(expense.returnDate).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Nível do trabalho (QUALIS)</p>
+                    <span className="inline-flex items-center rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                      {expense.article?.classification ?? "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Destino</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {[expense.city, expense.state, expense.country].filter(Boolean).join(", ") || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de ida</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {expense.departureDate ? new Date(expense.departureDate).toLocaleDateString("pt-BR") : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Data de volta</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {expense.returnDate ? new Date(expense.returnDate).toLocaleDateString("pt-BR") : "—"}
+                    </p>
+                  </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Enviado em</p>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{fmtDate(expense.createdAt)}</p>

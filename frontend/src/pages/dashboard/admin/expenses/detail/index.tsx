@@ -1244,6 +1244,66 @@ export default function ExpenseDetalhe() {
                 </div>
               </div>
 
+              {/* Dados Bancários */}
+              {(() => {
+                const profile = expense.student?.profile;
+                const hasBankingInfo = profile?.bankCode || profile?.bankName || profile?.bankAgency || profile?.bankAccount || profile?.pixKey;
+                return hasBankingInfo ? (
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
+                        <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Dados Bancários</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {profile?.bankCode && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Código do banco</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankCode}</p>
+                        </div>
+                      )}
+                      {profile?.bankName && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Nome do banco</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankName}</p>
+                        </div>
+                      )}
+                      {profile?.bankAgency && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Agência</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAgency}</p>
+                        </div>
+                      )}
+                      {profile?.bankAccount && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Conta</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAccount}</p>
+                        </div>
+                      )}
+                      {profile?.pixKey && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Chave PIX</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.pixKey}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-300 dark:text-gray-600">
+                        <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                      <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500">Dados Bancários</h3>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Não disponíveis — o aluno deve preencher os dados bancários no perfil.
+                    </p>
+                  </div>
+                );
+              })()}
+
               {/* Assigned Project */}
               {expense.project && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
