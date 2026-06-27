@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { INVITE_CODE_LENGTH } from '@/constants/invite.constant'
 
 export const IdSchema = z.uuid()
   .openapi({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -149,3 +150,9 @@ export const FileDownloadResponseSchema = z.object({
     .openapi({ description: 'Signed URL for downloading the file' }),
   expiresIn: z.number().openapi({ description: 'Expiration time of the URL in seconds' }),
 }).openapi('FileDownloadResponse')
+
+export const InviteCodeStringSchema = z.string()
+  .toUpperCase()
+  .length(INVITE_CODE_LENGTH, `Invite code must be exactly ${INVITE_CODE_LENGTH} characters long`)
+  .regex(/^[0-9A-F]+$/, 'Invite code must contain only uppercase hex characters')
+  .openapi({ description: 'The hex invite code' })

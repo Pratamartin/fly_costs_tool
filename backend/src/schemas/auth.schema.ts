@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi'
 import { MOCK_USER } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { validBankCode, validBirthDate, validPixKey } from './schema.refine'
+import { InviteCodeStringSchema } from './shared.schema'
 import { ProfileSchema, UserSchema } from './user.schema'
 
 const RegisterBaseSchema = z.object({
@@ -18,7 +19,7 @@ const RegisterBaseSchema = z.object({
       example: MOCK_USER.password,
     }),
   role: z.enum(UserRole).openapi({ examples: Object.values(UserRole) }),
-  inviteCode: z.string().openapi({ example: MOCK_USER.inviteCode }),
+  inviteCode: InviteCodeStringSchema.openapi({ example: MOCK_USER.inviteCode }),
 })
 
 export const AlunoRegisterSchema = RegisterBaseSchema
