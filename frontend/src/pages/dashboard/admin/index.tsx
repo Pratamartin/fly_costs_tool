@@ -51,6 +51,8 @@ function fmt(v: string | number) {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 }
 
+const TOP_LIMIT = 5;
+
 export default function DashboardAdmin() {
   const router = useRouter();
   const [showModalCriar, setShowModalCriar] = useState(false);
@@ -71,7 +73,7 @@ export default function DashboardAdmin() {
     setCarregando(true);
     const [dashResult, topResult, expResult] = await Promise.all([
       getAdminDashboard(token),
-      getTopProjects(token, 5),
+      getTopProjects(token, TOP_LIMIT),
       listExpenses(token),
     ]);
     if (dashResult.ok) setDashboard(dashResult.data);
@@ -256,9 +258,9 @@ export default function DashboardAdmin() {
                   Para exibir breakdown por status ou orçamento utilizado por projeto, o backend precisará expor
                   um endpoint dedicado (ex: GET /v1/analytics/projects-breakdown). */}
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-5 shadow-sm">
-                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Top Projetos por Solicitações</h2>
+                <h2 className="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Top {TOP_LIMIT} Projetos por Despesas</h2>
                 {topProjects.length === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum projeto com solicitações.</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum projeto com despesas discriminadas.</p>
                 ) : (
                   <div className="space-y-3">
                     {topProjects.map((p, i) => (
@@ -268,7 +270,7 @@ export default function DashboardAdmin() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{p.name}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">{p.totalRequests} solicitações · R$ {fmt(p.totalValue)}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{p.allocationsCount} despesas · R$ {fmt(p.totalValue)}</p>
                         </div>
                       </div>
                     ))}
