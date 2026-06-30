@@ -85,6 +85,9 @@ export default function AdminProjects() {
       code: data.code,
       budget: data.budget,
       subcategories: data.topics,
+      resourceSource: data.resourceSource,
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
     setCriando(false);
     if (result.ok) {
@@ -218,7 +221,8 @@ export default function AdminProjects() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                   <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Projeto</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Código</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Sigla</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Fonte de recurso</th>
                   <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Orçamento</th>
                   <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Status</th>
                   <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-6 py-3">Ações</th>
@@ -227,7 +231,7 @@ export default function AdminProjects() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <td colSpan={6} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
                       Nenhum projeto encontrado.
                     </td>
                   </tr>
@@ -248,6 +252,9 @@ export default function AdminProjects() {
                       <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
                         {project.code}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{project.resourceSource ?? <span className="text-gray-300 dark:text-gray-600">—</span>}</p>
                     </td>
                     <td className="px-6 py-4">
                       <BudgetBar spent={project.usedBudget} total={project.budget} />

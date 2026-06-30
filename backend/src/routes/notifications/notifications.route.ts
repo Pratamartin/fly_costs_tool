@@ -11,11 +11,12 @@ const tags = ['Notifications']
 export const getNotifications = createRoute({
   path: '/',
   method: 'get',
+  operationId: 'listNotifications',
   summary: 'Get user notifications',
-  description: 'Returns notifications for the authenticated user with support for pagination and read-status filtering.',
+  description: 'Returns notifications for the authenticated user with support for cursor-based pagination and read-status filtering.',
   tags,
   middleware: [requireAuth],
-  security: [{ Bearer: [] }],
+  security: [{ bearerAuth: [] }],
   request: { query: NotificationQuerySchema },
   responses: {
     [codes.OK]: jsonContent(
@@ -29,11 +30,12 @@ export const getNotifications = createRoute({
 export const markRead = createRoute({
   path: '/{id}/read',
   method: 'patch',
+  operationId: 'markNotificationRead',
   summary: 'Mark notification as read',
-  description: 'Marks a specific notification as read.',
+  description: 'Marks a specific notification as read. Returns `NOTIFICATION_NOT_FOUND` if the notification does not exist or belongs to another user.',
   tags,
   middleware: [requireAuth],
-  security: [{ Bearer: [] }],
+  security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
       id: z.string().uuid()
@@ -43,7 +45,7 @@ export const markRead = createRoute({
   },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Notification marked as read'),
+      createMessageObjectSchema('Notification marked as read').openapi('MarkReadResponse'),
       'Notification updated successfully.',
     ),
     ...registryResponses('UNAUTHORIZED', 'NOTIFICATION_NOT_FOUND', 'VALIDATION_ERROR'),
@@ -53,14 +55,15 @@ export const markRead = createRoute({
 export const markAllRead = createRoute({
   path: '/read-all',
   method: 'patch',
+  operationId: 'markAllNotificationsRead',
   summary: 'Mark all notifications as read',
-  description: 'Marks all notifications for the user as read.',
+  description: 'Batch-marks all unread notifications for the authenticated user as read.',
   tags,
   middleware: [requireAuth],
-  security: [{ Bearer: [] }],
+  security: [{ bearerAuth: [] }],
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('All notifications marked as read'),
+      createMessageObjectSchema('All notifications marked as read').openapi('MarkAllReadResponse'),
       'Notifications updated successfully.',
     ),
     ...registryResponses('UNAUTHORIZED'),

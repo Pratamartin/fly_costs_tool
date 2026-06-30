@@ -5,7 +5,7 @@ import { getToken } from "@/lib/getToken";
 import AdminSidebar from "@/components/AdminSidebar";
 import ModalRejeitar from "@/components/ModalRejeitar";
 import ModalFiltroRelatorio from "@/components/ModalFiltroRelatorio";
-import { listExpenses, updateExpenseStatus, exportExpensesReport, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
+import { listExpenses, updateExpenseStatus, exportExpensesReport, mergeTravelDates, type Expense, type ExpenseStatus, type ReportFilters } from "@/services/expenses";
 import { toast } from "@/lib/toast";
 import { listProjects } from "@/services/projects";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -81,7 +81,7 @@ export default function AdminExpenses() {
     setCarregando(true);
     const result = await listExpenses(token);
     if (result.ok) {
-      setExpenses(result.data);
+      setExpenses(result.data.map(mergeTravelDates));
     } else if (result.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
@@ -210,7 +210,6 @@ export default function AdminExpenses() {
           solicitacao={{
             descricao: rejeitando.title,
             reqId: `REQ-${rejeitando.id.slice(0, 8).toUpperCase()}`,
-            valor: rejeitando.costBreakdowns?.reduce((s, cb) => s + cb.amount, 0) ?? 0,
             aluno: rejeitando.student?.name,
           }}
           onClose={() => setRejeitando(null)}
@@ -427,6 +426,7 @@ export default function AdminExpenses() {
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Aluno</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Destino</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ida / Volta</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Ações</th>
                     </tr>
@@ -434,7 +434,7 @@ export default function AdminExpenses() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {paginated.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
+                        <td colSpan={9} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
                           Nenhuma despesa encontrada com os filtros aplicados.
                         </td>
                       </tr>
@@ -476,6 +476,32 @@ export default function AdminExpenses() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(expense.createdAt)}</p>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {expense.departureDate ? (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="animate-plane-up inline-flex shrink-0">
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-blue-500" style={{ transform: "rotate(-45deg)" }}>
+                                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                  </svg>
+                                </span>
+                                <span>{new Date(expense.departureDate).toLocaleDateString("pt-BR")}</span>
+                              </div>
+                              {expense.returnDate && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="animate-plane-down inline-flex shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-indigo-400" style={{ transform: "rotate(135deg)" }}>
+                                      <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                    </svg>
+                                  </span>
+                                  <span>{new Date(expense.returnDate).toLocaleDateString("pt-BR")}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge status={expense.status} />

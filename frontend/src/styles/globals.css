@@ -10,3 +10,21 @@ html,
 body {
   @apply antialiased;
 }
+
+@keyframes float-up {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes float-down {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(4px); }
+}
+
+.animate-plane-up {
+  animation: float-up 1.8s ease-in-out infinite;
+}
+
+.animate-plane-down {
+  animation: float-down 1.8s ease-in-out infinite 0.4s;
+}

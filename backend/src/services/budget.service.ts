@@ -1,14 +1,18 @@
 import type { z } from '@hono/zod-openapi'
 import type { ServiceResult } from '@/lib/problems'
-import type { CreateCostBreakdownSchema } from '@/schemas/cost-breakdown.schema'
+import type { CreateCostBreakdownSchema, UpdateCostBreakdownSchema } from '@/schemas/cost-breakdown.schema'
+import { ALLOWED_STATUSES_FOR_COST_ALLOCATION } from '@/constants/expense.constant'
 import { COST_BREAKDOWN_RECEIPT_DOWNLOAD_URL_EXPIRY_SECONDS } from '@/constants/file.constant'
 import { Prisma } from '@/generated/prisma/client'
-import { UserRole } from '@/generated/prisma/enums'
+import { ExpenseRequestStatus, UserRole } from '@/generated/prisma/enums'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
 import { deleteFile, getSignedDownloadUrl, isStorageConfigured, uploadFile } from '@/lib/storage'
+import { validateDateWithinProjectPeriod } from './project.service'
 
 type BudgetMetricsResult = { total: Prisma.Decimal, used: Prisma.Decimal, available: Prisma.Decimal, isActive: boolean }
+
+export type CostBreakdownWithCategory = Prisma.CostBreakdownGetPayload<{ include: { expenseCategory: true } }>
 
 export async function getProjectBudgetMetrics(projectId: string): Promise<ServiceResult<BudgetMetricsResult, 'PROJECT_NOT_FOUND'>> {
   const project = await prisma.project.findUnique({
@@ -37,7 +41,13 @@ export function validateCategoryAllowedInProject(
 ): ServiceResult<{ success: true }, 'INVALID_SUBCATEGORIES'> {
   const validCategories = projectCategories.map(c => c.normalizedName)
   if (!validCategories.includes(requestedCategory)) {
-    return { error: 'INVALID_SUBCATEGORIES' }
+    return {
+      error: 'INVALID_SUBCATEGORIES',
+      context: {
+        invalidNames: [requestedCategory],
+        allowedNames: validCategories,
+      },
+    }
   }
   return { success: true }
 }
@@ -52,57 +62,106 @@ export function validateSufficientBudget(
   const requested = new Prisma.Decimal(requestedAmount)
 
   if (requested.greaterThan(available)) {
-    return { error: 'PROJECT_INSUFFICIENT_FUNDS' }
+    return {
+      error: 'PROJECT_INSUFFICIENT_FUNDS',
+      context: { availableBudget: available.toFixed(2) },
+    }
   }
   return { success: true }
 }
 
-async function getExpenseContext(tx: Prisma.TransactionClient, expenseRequestId: string) {
-  return tx.expenseRequest.findUnique({
-    where: { id: expenseRequestId },
-    select: {
-      project: {
+export function extractUniqueProjectDetails(
+  costBreakdowns?: Array<{ project?: { name: string, code: string } | null } | null> | null,
+) {
+  if (!costBreakdowns || costBreakdowns.length === 0) {
+    return {
+      names: 'Não Atribuído',
+      codes: 'N/A',
+    }
+  }
+
+  const validBreakdowns = costBreakdowns.filter((cb): cb is NonNullable<typeof cb> => cb != null)
+
+  const names = [...new Set(validBreakdowns.map(cb => cb.project?.name).filter((n): n is string => !!n))]
+  const codes = [...new Set(validBreakdowns.map(cb => cb.project?.code).filter((c): c is string => !!c))]
+
+  return {
+    names: names.length > 0 ? names.join(', ') : 'Não Atribuído',
+    codes: codes.length > 0 ? codes.join(', ') : 'N/A',
+  }
+}
+
+export async function createCostBreakdown(
+  expenseId: string,
+  data: z.infer<typeof CreateCostBreakdownSchema>,
+): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE' | 'PROJECT_PERIOD_EXPIRED'>> {
+  const result = await prisma.$transaction(async (tx) => {
+    const [expense, project, pendingAmountResult] = await Promise.all([
+      tx.expenseRequest.findUnique({
+        where: { id: expenseId },
+        select: {
+          id: true,
+          status: true,
+        },
+      }),
+      tx.project.findUnique({
+        where: { id: data.projectId },
         select: {
           id: true,
           budget: true,
           usedBudget: true,
           expenseCategories: { select: { normalizedName: true } },
           isActive: true,
+          startDate: true,
+          endDate: true,
         },
-      },
-    },
-  })
-}
-
-export type CostBreakdownWithCategory = Prisma.CostBreakdownGetPayload<{ include: { expenseCategory: true } }>
-
-export async function createCostBreakdown(
-  expenseRequestId: string,
-  data: z.infer<typeof CreateCostBreakdownSchema>,
-): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS'>> {
-  const result = await prisma.$transaction(async (tx) => {
-    const expense = await getExpenseContext(tx, expenseRequestId)
+      }),
+      tx.costBreakdown.aggregate({
+        where: {
+          projectId: data.projectId,
+          expenseRequest: { status: { in: [ExpenseRequestStatus.EM_PROCESSAMENTO] } },
+        },
+        _sum: { amount: true },
+      }),
+    ])
 
     if (!expense) {
       return { error: 'EXPENSE_NOT_FOUND' }
     }
 
-    if (!expense.project) {
-      return { error: 'PROJECT_NOT_FOUND' }
+    if (!ALLOWED_STATUSES_FOR_COST_ALLOCATION.includes(expense.status)) {
+      return {
+        error: 'INVALID_EXPENSE_STATE',
+        context: {
+          resourceState: {
+            current: expense.status,
+            required: ALLOWED_STATUSES_FOR_COST_ALLOCATION,
+          },
+        },
+      }
     }
 
-    const project = expense.project
+    if (!project) {
+      return { error: 'PROJECT_NOT_FOUND' }
+    }
 
     if (!project.isActive) {
       return { error: 'PROJECT_ARCHIVED' }
     }
 
+    const periodResult = validateDateWithinProjectPeriod(new Date(), project)
+    if ('error' in periodResult) {
+      return periodResult
+    }
     const categoryResult = validateCategoryAllowedInProject(project.expenseCategories, data.subcategoryName)
     if ('error' in categoryResult) {
       return categoryResult
     }
 
-    const budgetResult = validateSufficientBudget(project.budget, project.usedBudget, data.amount)
+    // Calcular saldo considerando o que já foi gasto e o que está em processamento
+    const effectiveUsedBudget = project.usedBudget.plus(pendingAmountResult._sum.amount ?? 0)
+
+    const budgetResult = validateSufficientBudget(project.budget, effectiveUsedBudget, data.amount)
     if ('error' in budgetResult) {
       return budgetResult
     }
@@ -110,22 +169,113 @@ export async function createCostBreakdown(
     const costBreakdown = await tx.costBreakdown.create({
       data: {
         amount: data.amount,
-        expenseRequest: { connect: { id: expenseRequestId } },
+        expenseRequest: { connect: { id: expenseId } },
         expenseCategory: { connect: { normalizedName: data.subcategoryName } },
+        project: { connect: { id: data.projectId } },
         attachmentKey: data.attachmentKey,
       },
       include: { expenseCategory: true },
     })
 
-    await tx.project.update({
-      where: { id: project.id },
-      data: { usedBudget: { increment: new Prisma.Decimal(data.amount) } },
-    })
-
     return costBreakdown
   }, { isolationLevel: 'Serializable' })
 
-  return result as ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS'>
+  return result as ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE' | 'PROJECT_PERIOD_EXPIRED'>
+}
+
+export async function updateCostBreakdown(
+  expenseId: string,
+  breakdownId: string,
+  data: z.infer<typeof UpdateCostBreakdownSchema>,
+): Promise<ServiceResult<CostBreakdownWithCategory, 'EXPENSE_NOT_FOUND' | 'COST_BREAKDOWN_NOT_FOUND' | 'PROJECT_NOT_FOUND' | 'PROJECT_ARCHIVED' | 'INVALID_SUBCATEGORIES' | 'PROJECT_INSUFFICIENT_FUNDS' | 'INVALID_EXPENSE_STATE' | 'PROJECT_PERIOD_EXPIRED'>> {
+  return prisma.$transaction(async (tx) => {
+    // 1. Busca Segura com Prevenção de Injeção de Rota (IDOR)
+    const existing = await tx.costBreakdown.findUnique({
+      where: {
+        id: breakdownId,
+        expenseRequestId: expenseId,
+      },
+      include: {
+        expenseRequest: true,
+        expenseCategory: true,
+      },
+    })
+
+    if (!existing)
+      return { error: 'COST_BREAKDOWN_NOT_FOUND' }
+
+    // 2. Lock de Estado Financeiro
+    if (!ALLOWED_STATUSES_FOR_COST_ALLOCATION.includes(existing.expenseRequest.status)) {
+      return {
+        error: 'INVALID_EXPENSE_STATE',
+        context: {
+          resourceState: {
+            current: existing.expenseRequest.status,
+            required: ALLOWED_STATUSES_FOR_COST_ALLOCATION,
+          },
+        },
+      }
+    }
+
+    // 3. Mapeamento de Mudanças
+    const isProjectChanging = data.projectId !== undefined && data.projectId !== existing.projectId
+    const targetProjectId = data.projectId || existing.projectId
+    const targetSubcategory = data.subcategoryName || existing.expenseCategory.normalizedName
+
+    // Preservação Estrita de IEEE 754: Usando Prisma.Decimal em vez de JS Number
+    const targetAmount = data.amount !== undefined ? new Prisma.Decimal(data.amount) : existing.amount
+
+    // 4. Checagem do Projeto Alvo
+    const project = await tx.project.findUnique({
+      where: { id: targetProjectId },
+      include: { expenseCategories: true },
+    })
+
+    if (!project)
+      return { error: 'PROJECT_NOT_FOUND' }
+    if (!project.isActive)
+      return { error: 'PROJECT_ARCHIVED' }
+
+    // 5. Validação Temporal (Usando a data da despesa original, não a data de hoje!)
+    const periodResult = validateDateWithinProjectPeriod(existing.expenseRequest.createdAt, project)
+    if ('error' in periodResult)
+      return periodResult
+
+    // 6. Validação de Categoria no Novo/Atual Projeto
+    const categoryResult = validateCategoryAllowedInProject(project.expenseCategories, targetSubcategory)
+    if ('error' in categoryResult)
+      return categoryResult
+
+    // 7. Cálculo de Limite do Novo Projeto
+    const pendingAmountResult = await tx.costBreakdown.aggregate({
+      where: {
+        projectId: targetProjectId,
+        expenseRequest: { status: { in: [ExpenseRequestStatus.EM_PROCESSAMENTO] } },
+      },
+      _sum: { amount: true },
+    })
+
+    const effectiveUsed = project.usedBudget.plus(pendingAmountResult._sum.amount || 0)
+
+    // O pulo do gato matemático: Descontar o valor antigo do limite apenas se não houver troca de projeto
+    const oldAmount = isProjectChanging ? new Prisma.Decimal(0) : existing.amount
+
+    const budgetResult = validateSufficientBudget(project.budget, effectiveUsed, targetAmount, oldAmount)
+    if ('error' in budgetResult)
+      return budgetResult
+
+    // 8. Efetivar Atualização
+    return tx.costBreakdown.update({
+      where: { id: breakdownId },
+      data: {
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.projectId && { project: { connect: { id: data.projectId } } }),
+        ...(data.subcategoryName && { expenseCategory: { connect: { normalizedName: data.subcategoryName } } }),
+        ...(data.attachmentKey !== undefined && { attachmentKey: data.attachmentKey }),
+      },
+      include: { expenseCategory: true },
+    })
+  }, { isolationLevel: 'Serializable' })
 }
 
 export async function uploadCostBreakdownReceipt(
@@ -137,12 +287,11 @@ export async function uploadCostBreakdownReceipt(
     return { error: 'STORAGE_UNAVAILABLE' }
   }
 
-  const breakdown = await prisma.costBreakdown.findFirst({
+  const breakdown = await prisma.costBreakdown.findUnique({
     where: {
       id: breakdownId,
       expenseRequestId: expenseId,
     },
-    include: { expenseCategory: true },
   })
 
   if (!breakdown) {
@@ -160,21 +309,19 @@ export async function uploadCostBreakdownReceipt(
   }
 
   try {
-    const uploaded = await uploadFile({
+    const uploadResult = await uploadFile({
       file,
       contentType: file.type,
       folder: 'comprovantes',
       subfolder: expenseId,
-      prefix: breakdown.expenseCategory.normalizedName,
+      prefix: breakdownId,
     })
 
-    const updatedBreakdown = await prisma.costBreakdown.update({
+    return await prisma.costBreakdown.update({
       where: { id: breakdownId },
-      data: { attachmentKey: uploaded.fileKey },
+      data: { attachmentKey: uploadResult.fileKey },
       include: { expenseCategory: true },
     })
-
-    return updatedBreakdown
   }
   catch (error) {
     logger.error(error, 'R2 Upload error:')
@@ -185,8 +332,12 @@ export async function uploadCostBreakdownReceipt(
 export async function deleteCostBreakdownReceipt(
   expenseId: string,
   breakdownId: string,
-): Promise<ServiceResult<{ success: true }, 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
-  const breakdown = await prisma.costBreakdown.findFirst({
+): Promise<ServiceResult<{ success: true }, 'STORAGE_UNAVAILABLE' | 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
+  if (!isStorageConfigured()) {
+    return { error: 'STORAGE_UNAVAILABLE' }
+  }
+
+  const breakdown = await prisma.costBreakdown.findUnique({
     where: {
       id: breakdownId,
       expenseRequestId: expenseId,
@@ -217,23 +368,72 @@ export async function deleteCostBreakdownReceipt(
   }
 }
 
+export async function deleteCostBreakdown(
+  expenseId: string,
+  breakdownId: string,
+): Promise<ServiceResult<{ success: true }, 'EXPENSE_NOT_FOUND' | 'COST_BREAKDOWN_NOT_FOUND' | 'INVALID_EXPENSE_STATE' | 'STORAGE_PROVIDER_ERROR'>> {
+  const existing = await prisma.costBreakdown.findUnique({
+    where: {
+      id: breakdownId,
+      expenseRequestId: expenseId,
+    },
+    include: { expenseRequest: { select: { status: true } } },
+  })
+
+  if (!existing)
+    return { error: 'COST_BREAKDOWN_NOT_FOUND' }
+
+  if (!ALLOWED_STATUSES_FOR_COST_ALLOCATION.includes(existing.expenseRequest.status)) {
+    return {
+      error: 'INVALID_EXPENSE_STATE',
+      context: {
+        resourceState: {
+          current: existing.expenseRequest.status,
+          required: ALLOWED_STATUSES_FOR_COST_ALLOCATION,
+        },
+      },
+    }
+  }
+
+  if (existing.attachmentKey) {
+    try {
+      await deleteFile(existing.attachmentKey)
+    }
+    catch (error) {
+      logger.error(error, 'Failed to delete receipt from R2 during breakdown delete:')
+      return { error: 'STORAGE_PROVIDER_ERROR' }
+    }
+  }
+
+  await prisma.costBreakdown.delete({ where: { id: breakdownId } })
+
+  return { success: true }
+}
+
 export async function getCostBreakdownReceiptUrl(
   expenseId: string,
   breakdownId: string,
   userId: string,
   role: UserRole,
-): Promise<ServiceResult<{ url: string, expiresIn: number }, 'STORAGE_UNAVAILABLE' | 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'STORAGE_PROVIDER_ERROR'>> {
-  if (!isStorageConfigured()) {
-    return { error: 'STORAGE_UNAVAILABLE' }
+): Promise<ServiceResult<{ url: string, expiresIn: number }, 'EXPENSE_NOT_FOUND' | 'COST_BREAKDOWN_NOT_FOUND' | 'RECEIPT_NOT_FOUND' | 'FORBIDDEN' | 'STORAGE_UNAVAILABLE' | 'STORAGE_PROVIDER_ERROR'>> {
+  const expense = await prisma.expenseRequest.findUnique({
+    where: { id: expenseId },
+    select: { studentId: true },
+  })
+
+  if (!expense) {
+    return { error: 'EXPENSE_NOT_FOUND' }
   }
 
-  const breakdown = await prisma.costBreakdown.findFirst({
+  if (role !== UserRole.ADMIN && expense.studentId !== userId) {
+    return { error: 'FORBIDDEN' }
+  }
+
+  const breakdown = await prisma.costBreakdown.findUnique({
     where: {
       id: breakdownId,
       expenseRequestId: expenseId,
-      ...(role !== UserRole.ADMIN && { expenseRequest: { studentId: userId } }),
     },
-    select: { attachmentKey: true },
   })
 
   if (!breakdown) {
@@ -242,6 +442,10 @@ export async function getCostBreakdownReceiptUrl(
 
   if (!breakdown.attachmentKey) {
     return { error: 'RECEIPT_NOT_FOUND' }
+  }
+
+  if (!isStorageConfigured()) {
+    return { error: 'STORAGE_UNAVAILABLE' }
   }
 
   try {

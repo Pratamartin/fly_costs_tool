@@ -1,12 +1,25 @@
 import type { InviteStatus } from '@/constants/invite.constant'
 import type { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { z } from '@hono/zod-openapi'
+import { cnpj, cpf } from 'cpf-cnpj-validator'
+import { zodValidator } from 'cpf-cnpj-validator/zod'
+import { getExampleNumber } from 'libphonenumber-js'
+import phoneExamples from 'libphonenumber-js/examples.mobile.json'
+import { parsePhoneNumberWithError } from 'libphonenumber-js/max'
 import { STATUSES_WHERE_REASON_REQUIRED } from '@/constants/expense.constant'
 import { ALLOWED_RECEIPT_MIME_TYPES } from '@/constants/file.constant'
 import { INVITE_STATUS } from '@/constants/invite.constant'
 import { dayjs } from '@/lib/date'
 import { validatePDF } from '@/lib/storage'
 import { getInviteMinExpiry } from '@/services/invite.service'
+
+export const projectPeriodCheck = z.refine<{ startDate: Date, endDate: Date }>(
+  data => data.endDate >= data.startDate,
+  {
+    message: 'The end date must be greater than or equal to the start date.',
+    path: ['endDate'],
+  },
+)
 
 export const reasonFieldRequired = z.refine<{ status: ExpenseRequestStatus, reason?: string | null }>(
   (value) => {
@@ -77,6 +90,10 @@ export const validBirthDate = z.coerce.date().superRefine((date, ctx) => {
     })
   }
 })
+  .openapi({
+    example: '2000-01-15T00:00:00Z',
+    description: 'Must be at least 18 years old.',
+  })
 
 const bankCodeRegex = /^\d{3}$/
 export const validBankCode = z.string().superRefine((val, ctx) => {
@@ -91,6 +108,48 @@ export const validBankCode = z.string().superRefine((val, ctx) => {
     })
   }
 })
+  .openapi({
+    example: '001',
+    description: '3-digit COMPE bank code.',
+  })
+const { cpf: zCpf, cnpj: zCnpj } = zodValidator(z)
+
+export const EXAMPLE_CPF = cpf.format('52998224725')
+export const EXAMPLE_CNPJ = cnpj.format('11222333000181')
+export const EXAMPLE_PHONE = getExampleNumber('BR', phoneExamples)?.format('E.164') ?? '+5511961234567' // Google's canonical BR example
+
+export const validPixKey = z.union([
+  z.email('Invalid PIX key (E-mail).').openapi({
+    description: 'E-mail',
+    example: 'usuario@exemplo.com',
+  }),
+  z.uuid('Invalid PIX key (EVP).').openapi({
+    description: 'EVP (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  }),
+  zCpf('Invalid PIX key (CPF).').openapi({
+    description: 'CPF',
+    example: EXAMPLE_CPF,
+  }),
+  zCnpj('Invalid PIX key (CNPJ).').openapi({
+    description: 'CNPJ',
+    example: EXAMPLE_CNPJ,
+  }),
+  z.string()
+    .regex(/^\+[1-9]\d{6,14}$/, 'Invalid PIX key (Phone).')
+    .refine((val) => {
+      try {
+        return parsePhoneNumberWithError(val).isValid()
+      }
+      catch {
+        return false
+      }
+    }, 'Invalid PIX key (Phone).')
+    .openapi({
+      description: 'Phone (E.164)',
+      example: EXAMPLE_PHONE,
+    }),
+], { error: 'Invalid PIX key format. Use E-mail, Phone (+55...), CPF, CNPJ or EVP (UUID).' })
 
 export const regexBankAgency = /^\d{3,5}(?:-[0-9X])?$/i
 export const validBankAgency = z.string().trim()

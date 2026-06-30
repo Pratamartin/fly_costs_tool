@@ -5,6 +5,14 @@ export type ExpenseStatus = "PENDENTE" | "APROVADO" | "REJEITADO" | "EM_PROCESSA
 export type StudentInfo = {
   id: string
   name: string
+  email?: string | null
+  profile?: {
+    bankCode?: string | null
+    bankName?: string | null
+    bankAgency?: string | null
+    bankAccount?: string | null
+    pixKey?: string | null
+  } | null
 }
 
 export type ProjectInfo = {
@@ -18,6 +26,8 @@ export type CostBreakdown = {
   expenseRequestId: string
   amount: number
   attachmentKey?: string | null
+  projectId?: string | null
+  project?: ProjectInfo | null
   subcategory: {
     id: string
     name: string
@@ -46,7 +56,7 @@ export type Expense = {
   description: string | null
   status: ExpenseStatus
   rejectionReason: string | null
-  correctionNote: string | null
+  correctionReason: string | null
   event: ExpenseEvent
   article: ExpenseArticle
   surveyAnswers?: ExpenseSurveyAnswer[]
@@ -55,6 +65,10 @@ export type Expense = {
   studentId?: string
   projectId?: string | null
   attachmentKey?: string | null
+  departureDate?: string | null
+  returnDate?: string | null
+  departureRoute?: string | null
+  returnRoute?: string | null
   student?: StudentInfo
   project?: ProjectInfo | null
   costBreakdowns?: CostBreakdown[]
@@ -62,15 +76,16 @@ export type Expense = {
 
 export type ListExpensesError = "UNAUTHORIZED" | "UNKNOWN"
 export type UpdateExpenseStatusError = "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
-export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION_ERROR" | "UNKNOWN"
+export type UpdateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VALIDATION_ERROR" | "UNKNOWN"
 export type GetExpenseError = "UNAUTHORIZED" | "NOT_FOUND" | "UNKNOWN"
 export type CreateExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION_ERROR" | "UNKNOWN"
+export type ValidationErrorDetail = { field: string; message: string; code?: string }
 export type AssignProjectError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
-export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "UNKNOWN"
+export type CreateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT" | "PROJECT_PERIOD_EXPIRED" | "UNKNOWN"
 export type UploadReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
 export type DeleteReceiptError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_GATEWAY" | "UNKNOWN"
 export type GetReceiptDownloadError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "STORAGE_UNAVAILABLE" | "BAD_GATEWAY" | "UNKNOWN"
-export type UploadMemorandumError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+export type UploadMemorandumError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "FILE_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" | "UNKNOWN"
 
 export type UploadMemorandumResult =
   | { ok: true; data: Expense }
@@ -89,11 +104,19 @@ export type UpdateExpensePayload = {
   description?: string
   event?: ExpenseEvent
   article?: ExpenseArticle
+  surveyAnswers?: Array<{ expenseCategoryId: string; data: unknown }>
 }
+
+export type UploadInvoiceError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "BAD_REQUEST" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
+
+export type UploadInvoiceResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: UploadInvoiceError }
 
 export type UpdateExpenseResult =
   | { ok: true; data: Expense }
-  | { ok: false; error: UpdateExpenseError }
+  | { ok: false; error: Exclude<UpdateExpenseError, "VALIDATION_ERROR"> }
+  | { ok: false; error: "VALIDATION_ERROR"; details?: ValidationErrorDetail[] }
 
 export type GetExpenseResult =
   | { ok: true; data: Expense }
@@ -118,7 +141,8 @@ export type ExpenseFormsResult =
 
 export type CreateExpenseResult =
   | { ok: true; data: Expense }
-  | { ok: false; error: CreateExpenseError }
+  | { ok: false; error: Exclude<CreateExpenseError, "VALIDATION_ERROR"> }
+  | { ok: false; error: "VALIDATION_ERROR"; details?: ValidationErrorDetail[] }
 
 export type AssignProjectResult =
   | { ok: true; data: Expense }
@@ -127,6 +151,7 @@ export type AssignProjectResult =
 export type CostBreakdownPayload = {
   subcategoryName: string
   amount: number
+  projectId?: string
 }
 
 export type CostBreakdownResponse = {
@@ -134,6 +159,8 @@ export type CostBreakdownResponse = {
   expenseRequestId: string
   amount: number
   attachmentKey?: string | null
+  projectId?: string | null
+  project?: { id: string; code: string; name: string } | null
   subcategory: { id: string; name: string; normalizedName: string }
 }
 
@@ -153,12 +180,30 @@ export type GetReceiptDownloadResult =
   | { ok: true; url: string; expiresIn: number }
   | { ok: false; error: GetReceiptDownloadError }
 
+export function mergeTravelDates(expense: Expense): Expense {
+  for (const sa of expense.surveyAnswers ?? []) {
+    const d = sa.data as Record<string, unknown>
+    if (d && typeof d.departureDate === "string") {
+      return {
+        ...expense,
+        departureDate: d.departureDate,
+        returnDate: typeof d.returnDate === "string" ? d.returnDate : expense.returnDate,
+        departureRoute: typeof d.departureRoute === "string" ? d.departureRoute : expense.departureRoute,
+        returnRoute: typeof d.returnRoute === "string" ? d.returnRoute : expense.returnRoute,
+      }
+    }
+  }
+  return expense
+}
+
 export async function listExpenses(
   token: string,
-  statusFilter?: ExpenseStatus
+  statusFilter?: ExpenseStatus,
+  projectId?: string
 ): Promise<ListExpensesResult> {
   const params = new URLSearchParams()
   if (statusFilter) params.append("status", statusFilter)
+  if (projectId) params.append("projectId", projectId)
 
   const url = `${API_URL}/v1/expenses${params.toString() ? `?${params.toString()}` : ""}`
 
@@ -243,7 +288,10 @@ export async function createExpense(
   if (res.status === 201) return { ok: true, data: await res.json() }
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
-  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  if (res.status === 422) {
+    const body = await res.json().catch(() => null)
+    return { ok: false, error: "VALIDATION_ERROR", details: body?.errors }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -274,13 +322,19 @@ export async function createCostBreakdown(
   expenseId: string,
   payload: CostBreakdownPayload
 ): Promise<CreateCostBreakdownResult> {
+  const body: Record<string, unknown> = {
+    subcategoryName: payload.subcategoryName,
+    amount: payload.amount,
+  }
+  if (payload.projectId) body.projectId = payload.projectId
+
   const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   })
 
   if (res.status === 201) return { ok: true, data: await res.json() }
@@ -288,7 +342,67 @@ export async function createCostBreakdown(
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => null)
+    if (body?.type === "urn:sgda:domain:project:allocation-outside-period") {
+      return { ok: false, error: "PROJECT_PERIOD_EXPIRED" }
+    }
+    return { ok: false, error: "CONFLICT" }
+  }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type DeleteCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+export type DeleteCostBreakdownResult =
+  | { ok: true }
+  | { ok: false; error: DeleteCostBreakdownError }
+
+export async function deleteCostBreakdown(
+  token: string,
+  expenseId: string,
+  breakdownId: string,
+): Promise<DeleteCostBreakdownResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (res.status === 204) return { ok: true }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+export type UpdateCostBreakdownError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "UNKNOWN"
+export type UpdateCostBreakdownResult =
+  | { ok: true; data: CostBreakdownResponse }
+  | { ok: false; error: UpdateCostBreakdownError }
+
+export async function updateCostBreakdown(
+  token: string,
+  expenseId: string,
+  breakdownId: string,
+  payload: { amount?: number; projectId?: string }
+): Promise<UpdateCostBreakdownResult> {
+  const body: Record<string, unknown> = {}
+  if (payload.amount !== undefined) body.amount = payload.amount
+  if (payload.projectId !== undefined) body.projectId = payload.projectId
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/cost-breakdowns/${breakdownId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -382,6 +496,32 @@ export async function uploadMemorandum(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 413) return { ok: false, error: "FILE_TOO_LARGE" }
+  if (res.status === 415) return { ok: false, error: "UNSUPPORTED_MEDIA_TYPE" }
+  if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
+// TODO backend: endpoint POST /v1/expenses/:id/invoice precisa ser criado para suportar upload de invoice na correção
+export async function uploadInvoice(
+  token: string,
+  expenseId: string,
+  file: File
+): Promise<UploadInvoiceResult> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/invoice`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 400) return { ok: false, error: "BAD_REQUEST" }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 503) return { ok: false, error: "STORAGE_UNAVAILABLE" }
   return { ok: false, error: "UNKNOWN" }
 }
@@ -389,12 +529,15 @@ export async function uploadMemorandum(
 export type ReportFilters = {
   from?: string
   to?: string
+  startDate?: string
+  endDate?: string
+  studentName?: string
   status?: ExpenseStatus | "all"
   projectId?: string
   studentId?: string
 }
 
-export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "UNKNOWN"
+export type ExportReportError = "UNAUTHORIZED" | "REPORT_FAILED" | "STORAGE_UNAVAILABLE" | "UNKNOWN"
 
 export type ExportReportResult =
   | { ok: true; downloadUrl: string }
@@ -501,6 +644,33 @@ export async function exportExpensesReport(
   }
 }
 
+export type StartProcessingError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNKNOWN"
+
+export type StartProcessingResult =
+  | { ok: true; data: Expense }
+  | { ok: false; error: StartProcessingError }
+
+export async function startExpenseProcessing(
+  token: string,
+  expenseId: string
+): Promise<StartProcessingResult> {
+  const res = await fetch(`${API_URL}/v1/expenses/${expenseId}/start-processing`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+  })
+
+  if (res.status === 200) return { ok: true, data: await res.json() }
+  if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
+  if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
+  if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  return { ok: false, error: "UNKNOWN" }
+}
+
 export type ConcludeExpenseError = "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "UNPROCESSABLE" | "UNKNOWN"
 
 export type ConcludeExpenseResult =
@@ -524,7 +694,7 @@ export async function concludeExpense(
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
   if (res.status === 409) return { ok: false, error: "CONFLICT" }
-  if (res.status === 422) return { ok: false, error: "UNPROCESSABLE" }
+  if (res.status === 400 || res.status === 422) return { ok: false, error: "UNPROCESSABLE" }
   return { ok: false, error: "UNKNOWN" }
 }
 
@@ -552,7 +722,11 @@ export async function updateExpense(
   if (res.status === 401) return { ok: false, error: "UNAUTHORIZED" }
   if (res.status === 403) return { ok: false, error: "FORBIDDEN" }
   if (res.status === 404) return { ok: false, error: "NOT_FOUND" }
-  if (res.status === 422) return { ok: false, error: "VALIDATION_ERROR" }
+  if (res.status === 409) return { ok: false, error: "CONFLICT" }
+  if (res.status === 422) {
+    const body = await res.json().catch(() => null)
+    return { ok: false, error: "VALIDATION_ERROR", details: body?.errors }
+  }
   return { ok: false, error: "UNKNOWN" }
 }
 

@@ -1,10 +1,10 @@
-import type { AssignProjectRoute, ConcludeRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, RemoveRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
+import type { ConcludeRoute, CreateRoute, GetMemorandumDownloadRoute, IndexRoute, ReadRoute, RemoveRoute, StartProcessingRoute, UpdateRoute, UpdateStatusRoute, UploadMemorandumRoute } from './expenses.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import { problems } from '@/lib/problems'
 import { AssignProjectResponseSchema, CreateExpenseResponseSchema, ExpenseResponseSchema, ListExpenseResponseSchema } from '@/schemas/expense.schema'
 import { DeleteExpenseResponseSchema } from '@/schemas/shared.schema'
-import { assignProjectToExpense, attachMemorandumToExpense, concludeExpenseRequest, createExpenseRequest, deleteExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, updateExpense, updateExpenseStatus } from '@/services/expense.service'
+import { attachMemorandumToExpense, concludeExpenseRequest, createExpenseRequest, deleteExpenseRequest, getAllExpenseRequests, getExpenseById, getMemorandumDownloadUrl, startExpenseProcessing, updateExpense, updateExpenseStatus } from '@/services/expense.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const { sub, role } = c.get('jwtPayload')
@@ -111,11 +111,10 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   return c.json(parsed, codes.OK)
 }
 
-export const assignProject: AppRouteHandler<AssignProjectRoute> = async (c) => {
+export const startProcessing: AppRouteHandler<StartProcessingRoute> = async (c) => {
   const { id } = c.req.valid('param')
-  const { projectId } = c.req.valid('json')
 
-  const result = await assignProjectToExpense(id, projectId)
+  const result = await startExpenseProcessing(id)
 
   if ('error' in result) {
     throw problems.create(result.error, { extensions: result.context })

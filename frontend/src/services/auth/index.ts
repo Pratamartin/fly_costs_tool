@@ -23,6 +23,7 @@ export type AlunoRegisterPayload = {
   bankName: string
   bankAgency: string
   bankAccount: string
+  pixKey?: string
 }
 
 export type RegisterPayload = AlunoRegisterPayload | StaffRegisterPayload

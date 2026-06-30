@@ -1,9 +1,10 @@
-import type { CreateRoute, IndexRoute, ReadRoute, RemoveRoute, UpdateRoute } from './projects.route'
+import type { CreateRoute, IndexRoute, ListCostBreakdownsRoute, ReadRoute, RemoveRoute, UpdatePeriodRoute, UpdateRoute } from './projects.route'
 import type { AppRouteHandler } from '@/lib/type'
 import * as codes from 'stoker/http-status-codes'
 import { problems } from '@/lib/problems'
+import { ListProjectCostBreakdownsResponseSchema } from '@/schemas/cost-breakdown.schema'
 import { ListProjectResponseSchema, ProjectResponseSchema } from '@/schemas/project.schema'
-import { createProject, deleteProject, getAllProjects, getProjectById, updateProject } from '@/services/project.service'
+import { createProject, deleteProject, getAllProjects, getProjectById, getProjectCostBreakdowns, updateProject, updateProjectPeriod } from '@/services/project.service'
 
 export const index: AppRouteHandler<IndexRoute> = async (c) => {
   const query = c.req.valid('query')
@@ -17,7 +18,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const result = await createProject(data)
 
   if (result && 'error' in result) {
-    throw problems.create(result.error)
+    throw problems.create(result.error, { extensions: result.context })
   }
 
   const parsed = ProjectResponseSchema.parse(result)
@@ -43,7 +44,21 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const result = await updateProject(id, data)
 
   if (result && 'error' in result) {
-    throw problems.create(result.error)
+    throw problems.create(result.error, { extensions: result.context })
+  }
+
+  const parsed = ProjectResponseSchema.parse(result)
+  return c.json(parsed, codes.OK)
+}
+
+export const updatePeriod: AppRouteHandler<UpdatePeriodRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+
+  const result = await updateProjectPeriod(id, data)
+
+  if ('error' in result) {
+    throw problems.create(result.error, { extensions: result.context })
   }
 
   const parsed = ProjectResponseSchema.parse(result)
@@ -59,4 +74,23 @@ export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
   }
 
   return c.body(null, codes.NO_CONTENT)
+}
+
+export const listCostBreakdowns: AppRouteHandler<ListCostBreakdownsRoute> = async (c) => {
+  const { id } = c.req.valid('param')
+  const query = c.req.valid('query')
+  const result = await getProjectCostBreakdowns(id, query)
+
+  if (result && 'error' in result) {
+    throw problems.create(result.error, { extensions: result.context })
+  }
+
+  c.set('paginationMeta', {
+    total: result.total,
+    limit: result.limit,
+    offset: result.offset,
+  })
+
+  const parsed = ListProjectCostBreakdownsResponseSchema.parse(result.data)
+  return c.json(parsed, codes.OK)
 }

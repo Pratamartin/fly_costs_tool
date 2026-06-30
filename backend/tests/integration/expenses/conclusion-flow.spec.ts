@@ -2,6 +2,7 @@ import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MEMORANDUM_UPLOAD_MAX_SIZE_MB } from '@/constants/file.constant'
+import { MOCK_PROFILE } from '@/constants/seed.constant'
 import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { jobManager } from '@/jobs'
 import { createTestApp } from '@/lib/config'
@@ -21,6 +22,7 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
   let coordenadorHeaders: { Authorization: string }
   let projectId: string
   let subcategoryName: string
+  let diariasCategoryName: string
   const categoryId = dummyExpenseCategories[0]!.id!
 
   beforeAll(async () => {
@@ -32,7 +34,13 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     const project = await prisma.project.findFirst({ include: { expenseCategories: true } })
     assert(project && project.expenseCategories.length > 0, 'Project or categories not found')
     projectId = project.id
-    subcategoryName = project.expenseCategories[0]!.normalizedName
+    const passagemAereaCategory = project.expenseCategories.find(c => c.normalizedName === 'passagem-aerea')
+    assert(passagemAereaCategory, 'passagem-aerea category not found in project')
+    subcategoryName = passagemAereaCategory.normalizedName
+
+    const diariasCategory = project.expenseCategories.find(c => c.normalizedName === 'diarias')
+    assert(diariasCategory, 'diarias category not found in project')
+    diariasCategoryName = diariasCategory.normalizedName
 
     alunoHeaders = await getAuthHeaders('aluno@test.com', 'ALUNO')
     adminHeaders = await getAuthHeaders('admin@test.com', 'ADMIN')
@@ -73,6 +81,16 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     assert(createRes.status === status.CREATED)
     const { id: expenseId } = await createRes.json()
 
+    // 1.5 Coordenador visualiza despesa e valida dados bancários
+    const detailRes = await client.expenses[':id'].$get({ param: { id: expenseId } }, { headers: coordenadorHeaders })
+    expect(detailRes.status).toBe(status.OK)
+    assert(detailRes.status === status.OK)
+    const detailJson = await detailRes.json()
+    expect(detailJson.student).toBeDefined()
+    expect(detailJson.student?.profile).toBeDefined()
+    expect(detailJson.student?.profile?.pixKey).toBe(MOCK_PROFILE.pixKey)
+    expect(detailJson.student?.profile?.bankCode).toBe(MOCK_PROFILE.bankCode)
+
     // 2. Coordenador aprova
     const approveRes = await client.expenses[':id'].status.$patch({
       param: { id: expenseId },
@@ -82,37 +100,73 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     assert(approveRes.status === status.OK)
 
     // 3. Admin vincula projeto (move para EM_PROCESSAMENTO)
-    const assignRes = await client.expenses[':id']['assign-project'].$patch({
+    const assignRes = await client.expenses[':id']['start-processing'].$patch({
       param: { id: expenseId },
-      json: { projectId },
+      json: {},
     }, { headers: adminHeaders })
     expect(assignRes.status).toBe(status.OK)
     assert(assignRes.status === status.OK)
+
+    // Capturar saldo inicial do projeto antes de adicionar discriminações
+    const projectBefore = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    const initialUsed = Number(projectBefore.usedBudget)
 
     // 4. Tenta concluir sem breakdowns -> Deve falhar (MISSING_BREAKDOWNS)
     const concludeFail1 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
     await expectProblem(concludeFail1, 'MISSING_BREAKDOWNS')
 
-    // 5. Adiciona breakdown sem comprovante
+    // 5. Adiciona PRIMEIRO breakdown sem comprovante
     const breakdownRes = await client.expenses[':id']['cost-breakdowns'].$post({
       param: { id: expenseId },
       json: {
         amount: 100,
+        projectId,
         subcategoryName,
       },
     }, { headers: adminHeaders })
     expect(breakdownRes.status).toBe(status.CREATED)
     assert(breakdownRes.status === status.CREATED)
-    const { id: breakdownId } = await breakdownRes.json()
+    const { id: breakdownId1 } = await breakdownRes.json()
+
+    // 5.1 Adiciona SEGUNDO breakdown no mesmo projeto (Agrupamento)
+    const breakdownRes2 = await client.expenses[':id']['cost-breakdowns'].$post({
+      param: { id: expenseId },
+      json: {
+        amount: 200,
+        projectId,
+        subcategoryName,
+      },
+    }, { headers: adminHeaders })
+    assert(breakdownRes2.status === status.CREATED)
+    const { id: breakdownId2 } = await breakdownRes2.json()
+
+    // 5.2 Adiciona TERCEIRO breakdown de Diárias sem comprovante (NÃO deve barrar conclusão)
+    const breakdownRes3 = await client.expenses[':id']['cost-breakdowns'].$post({
+      param: { id: expenseId },
+      json: {
+        amount: 50,
+        projectId,
+        subcategoryName: diariasCategoryName,
+      },
+    }, { headers: adminHeaders })
+    assert(breakdownRes3.status === status.CREATED)
+
+    // [VALIDAÇÃO TDD Opção A]: O saldo do projeto NÃO deve ter mudado ainda
+    const projectMid = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    expect(Number(projectMid.usedBudget)).toBe(initialUsed)
 
     // 6. Tenta concluir com breakdown sem comprovante -> Deve falhar (MISSING_RECEIPTS)
     const concludeFail2 = await client.expenses[':id'].conclude.$post({ param: { id: expenseId } }, { headers: adminHeaders })
     await expectProblem(concludeFail2, 'MISSING_RECEIPTS')
 
-    // 7. Simula upload de comprovante via DB
+    // 7. Simula upload de comprovante via DB para ambos
     await prisma.costBreakdown.update({
-      where: { id: breakdownId },
-      data: { attachmentKey: 'fake-key' },
+      where: { id: breakdownId1 },
+      data: { attachmentKey: 'fake-key-1' },
+    })
+    await prisma.costBreakdown.update({
+      where: { id: breakdownId2 },
+      data: { attachmentKey: 'fake-key-2' },
     })
 
     // [VALIDAÇÃO]: Testar falha de upload (MIME Type)
@@ -143,6 +197,10 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
 
     const finalExpense = await concludeSuccess.json()
     expect(finalExpense.status).toBe(ExpenseRequestStatus.CONCLUIDO)
+
+    // [VALIDAÇÃO TDD Opção A]: O saldo deve ter subido exatamente a soma das discriminações (350)
+    const projectAfter = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    expect(Number(projectAfter.usedBudget)).toBe(initialUsed + 350)
   })
 
   it('[PROIBIDO]: Apenas ADMIN pode concluir despesa', async () => {
@@ -172,9 +230,9 @@ describe('[Expense Flow] - Ciclo de Conclusão de Despesa', () => {
     }, { headers: coordenadorHeaders })
     assert(approveRes.status === status.OK)
 
-    const assignRes = await client.expenses[':id']['assign-project'].$patch({
+    const assignRes = await client.expenses[':id']['start-processing'].$patch({
       param: { id: expenseId },
-      json: { projectId },
+      json: {},
     }, { headers: adminHeaders })
     assert(assignRes.status === status.OK)
 

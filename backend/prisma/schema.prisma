@@ -52,7 +52,8 @@ model Profile {
   bankName      String?
   bankAgency    String?
   bankAccount   String?
-  
+  pixKey       String?
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -131,9 +132,6 @@ model ExpenseRequest {
   event       Json
   article     Json
 
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-
   rejectionReason String?
   correctionReason String?
 
@@ -155,10 +153,13 @@ model Project {
   id                String            @id @default(uuid())
   name              String
   code              String            @unique
+  resourceSource    String?
+  startDate         DateTime
+  endDate           DateTime
     budget            Decimal          @db.Decimal(10, 2) 
   usedBudget        Decimal          @default(0) @db.Decimal(10, 2)
   expenseCategories ExpenseCategory[]
-  expenseRequests   ExpenseRequest[]
+  costBreakdowns    CostBreakdown[]
   isActive          Boolean           @default(true)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -171,10 +172,18 @@ model CostBreakdown {
   expenseRequest    ExpenseRequest  @relation(fields: [expenseRequestId], references: [id], onDelete: Cascade)
   expenseCategoryId String
   expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  
+  projectId         String
+  project           Project         @relation(fields: [projectId], references: [id])
+
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   attachmentKey String?
+
+  @@index([projectId])
+  @@index([expenseRequestId])
+  @@index([expenseCategoryId])
 }
 
 model InviteCode {

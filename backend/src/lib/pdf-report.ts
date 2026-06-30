@@ -2,6 +2,7 @@ import type { Content, TableCell, TDocumentDefinitions, TFontDictionary } from '
 import type { ReportAnalytics, ReportRow, ReportViewModel } from '@/services/reports'
 import pdfmake from 'pdfmake'
 import { REPORT_PDF_CONFIG, REPORT_TRANSLATIONS } from '@/constants/expense.report.constant'
+import prisma from '@/lib/orm'
 import { formatCurrency } from '@/services/reports'
 import { dayjs } from './date'
 
@@ -24,6 +25,24 @@ export async function generateExpenseReportPDF(
 ) {
   const { rows, analytics } = viewModel
 
+  let projectCode: string | undefined
+  if (filters.projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: filters.projectId as string },
+      select: { code: true },
+    })
+    projectCode = project?.code
+  }
+
+  let studentName: string | undefined
+  if (filters.studentId) {
+    const student = await prisma.user.findUnique({
+      where: { id: filters.studentId as string },
+      select: { name: true },
+    })
+    studentName = student?.name
+  }
+
   const docDefinition: TDocumentDefinitions = {
     content: [
       {
@@ -31,11 +50,14 @@ export async function generateExpenseReportPDF(
         style: 'header',
       },
       {
-        text: `Gerado em: ${dayjs().format(REPORT_PDF_CONFIG.DATE_FORMAT)}`,
+        text: `Gerado em: ${dayjs().format(REPORT_PDF_CONFIG.DATE_FORMAT)} (UTC)`,
         style: 'subheader',
       },
 
-      renderFilters(filters),
+      renderFilters(filters, {
+        projectCode,
+        studentName,
+      }),
       renderAnalyticsCards(analytics),
 
       {
@@ -169,13 +191,23 @@ function renderAnalyticsCards(analytics: ReportAnalytics): Content {
   }
 }
 
-function renderFilters(filters: Record<string, unknown>): Content {
+function renderFilters(
+  filters: Record<string, unknown>,
+  labels?: { projectCode?: string, studentName?: string },
+): Content {
   const filterEntries = Object.entries(filters)
     .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => {
       let displayValue = String(value)
-      if (value instanceof Date)
-        displayValue = dayjs(value).format(REPORT_PDF_CONFIG.FILTER_DATE_FORMAT)
+      if ((key === 'from' || key === 'to') || value instanceof Date) {
+        displayValue = dayjs.utc(value as string | Date).format(REPORT_PDF_CONFIG.FILTER_DATE_FORMAT)
+      }
+      else if (key === 'projectId' && labels?.projectCode) {
+        displayValue = labels.projectCode
+      }
+      else if (key === 'studentId' && labels?.studentName) {
+        displayValue = labels.studentName
+      }
       return {
         text: [{
           text: `${translateFilterKey(key)}: `,
@@ -226,10 +258,6 @@ function renderTable(rows: ReportRow[]): Content {
         style: 'tableHeader',
       },
       {
-        text: 'Projeto',
-        style: 'tableHeader',
-      },
-      {
         text: 'Composição do Gasto',
         style: 'tableHeader',
         alignment: 'right',
@@ -253,15 +281,11 @@ function renderTable(rows: ReportRow[]): Content {
         style: 'tableCell',
       },
       {
-        text: row.projectCode,
-        style: 'tableCell',
-      },
-      {
         stack: [
           ...row.breakdown.map(item => ({
             columns: [
               {
-                text: item.category,
+                text: item.projectCode ? `${item.category} (${item.projectCode})` : item.category,
                 style: 'costCategory',
               },
               {
@@ -298,7 +322,7 @@ function renderTable(rows: ReportRow[]): Content {
   return {
     table: {
       headerRows: 1,
-      widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto'],
+      widths: ['auto', '*', 'auto', 'auto', 'auto'],
       body,
     },
     layout: 'lightHorizontalLines',

@@ -15,7 +15,7 @@ export type AdminDashboard = {
 export type TopProject = {
   id: string
   name: string
-  totalRequests: number
+  allocationsCount: number
   totalValue: string
 }
 

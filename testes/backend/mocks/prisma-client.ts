@@ -23,6 +23,11 @@ export class PrismaDecimal {
     return this.v <= n
   }
 
+  greaterThan(other: number | PrismaDecimal) {
+    const n = typeof other === 'number' ? other : other.v
+    return this.v > n
+  }
+
   /** Retorna -1, 0 ou 1 (mesmo contrato do Decimal.js real). */
   comparedTo(other: PrismaDecimal | number) {
     const n = typeof other === 'number' ? other : other.v
@@ -31,8 +36,16 @@ export class PrismaDecimal {
     return 0
   }
 
+  cmp(other: PrismaDecimal | number) {
+    return this.comparedTo(other)
+  }
+
   toNumber() {
     return this.v
+  }
+
+  toFixed(fractionDigits?: number) {
+    return this.v.toFixed(fractionDigits ?? 2)
   }
 
   toString() {

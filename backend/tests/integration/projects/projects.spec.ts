@@ -3,6 +3,7 @@ import type { CreateProjectSchema } from '@/schemas/project.schema'
 import { testClient } from 'hono/testing'
 import * as status from 'stoker/http-status-codes'
 import { afterAll, assert, beforeAll, describe, expect, it } from 'vitest'
+import { ExpenseRequestStatus } from '@/generated/prisma/enums'
 import { createTestApp } from '@/lib/config'
 import prisma from '@/lib/orm'
 import { projects } from '@/routes'
@@ -18,6 +19,8 @@ describe('[Projects] - Gestão de Projetos', () => {
   const subcategory = dummyExpenseCategories[0]!.normalizedName
 
   beforeAll(async () => {
+    await prisma.costBreakdown.deleteMany()
+    await prisma.expenseRequest.deleteMany()
     await prisma.project.deleteMany()
     await seedUsers()
     await seedExpenseCategories()
@@ -25,6 +28,8 @@ describe('[Projects] - Gestão de Projetos', () => {
   })
 
   afterAll(async () => {
+    await prisma.costBreakdown.deleteMany()
+    await prisma.expenseRequest.deleteMany()
     await prisma.project.deleteMany()
     await prisma.expenseCategory.deleteMany()
     await prisma.user.deleteMany()
@@ -35,6 +40,9 @@ describe('[Projects] - Gestão de Projetos', () => {
     code: 'TEST-001',
     budget: 5000,
     subcategories: [subcategory],
+    resourceSource: 'CNPq',
+    startDate: new Date('2026-01-01T00:00:00.000Z'),
+    endDate: new Date('2026-12-31T23:59:59.000Z'),
   }
 
   it('[SUCESSO]: Deve criar um projeto válido', async () => {
@@ -49,6 +57,9 @@ describe('[Projects] - Gestão de Projetos', () => {
       code: basePayload.code,
       budget: basePayload.budget,
       isActive: true,
+      resourceSource: 'CNPq',
+      startDate: '2026-01-01T00:00:00.000Z',
+      endDate: '2026-12-31T23:59:59.000Z',
     })
     expect(json.subcategories).toContain(subcategory)
   })
@@ -96,6 +107,9 @@ describe('[Projects] - Gestão de Projetos', () => {
 
     const json = await res.json()
     expect(json.id).toBe(project!.id)
+    expect(json.resourceSource).toBe(basePayload.resourceSource)
+    expect(json.startDate).toBe(basePayload.startDate.toISOString())
+    expect(json.endDate).toBe(basePayload.endDate.toISOString())
   })
 
   it('[ERRO]: Deve retornar 404 para projeto inexistente (PROJECT_NOT_FOUND)', async () => {
@@ -142,6 +156,22 @@ describe('[Projects] - Gestão de Projetos', () => {
         minimum: 1,
       })
     })
+
+    it('deve retornar erro de validação ao enviar endDate menor que startDate (custom)', async () => {
+      const res = await client.projects.$post({
+        json: {
+          ...basePayload,
+          startDate: new Date('2026-12-31T00:00:00.000Z'),
+          endDate: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      }, { headers: adminHeaders })
+
+      const json = await expectProblem(res, 'VALIDATION_ERROR')
+      const errorField = json.errors.find(e => e.field === 'endDate')
+      expect(errorField).toBeDefined()
+      assert(errorField)
+      expect(errorField.code).toBe('custom')
+    })
   })
 
   it('[SUCESSO]: Deve atualizar um projeto', async () => {
@@ -179,5 +209,332 @@ describe('[Projects] - Gestão de Projetos', () => {
     }, { headers: adminHeaders })
 
     await expectProblem(res, 'PROJECT_ARCHIVED')
+  })
+
+  describe('regras de Vigência (Project Period & Temporal Shrinkage)', () => {
+    it('deve bloquear a redução de prazo se existirem despesas órfãs (Temporal Shrinkage)', async () => {
+      const project = await prisma.project.create({
+        data: {
+          code: 'VIGENCY-TEST-2',
+          name: 'Vigency Shrinkage Block',
+          budget: 1000,
+          usedBudget: 0,
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-12-31T00:00:00Z'),
+          resourceSource: 'CAPES',
+          expenseCategories: { connect: [{ normalizedName: dummyExpenseCategories[0]!.normalizedName }] },
+        },
+      })
+
+      const user = await prisma.user.findFirst()
+      const expense = await prisma.expenseRequest.create({
+        data: {
+          title: 'Dummy',
+          description: 'Dummy',
+          studentId: user!.id,
+          status: ExpenseRequestStatus.EM_EDICAO,
+          event: {},
+          article: {},
+        },
+      })
+
+      // Força uma despesa alocada em Novembro
+      await prisma.costBreakdown.create({
+        data: {
+          amount: 100,
+          project: { connect: { id: project.id } },
+          createdAt: new Date('2026-11-15T00:00:00Z'),
+          expenseRequest: { connect: { id: expense.id } },
+          expenseCategory: { connect: { normalizedName: dummyExpenseCategories[0]!.normalizedName } },
+        },
+      })
+
+      const res = await client.projects[':id'].period.$patch({
+        param: { id: project.id },
+        json: {
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-06-30T00:00:00Z'),
+        }, // Encurta para Junho
+      }, { headers: adminHeaders })
+
+      const json = await expectProblem(res, 'PROJECT_SHRINKAGE_CONFLICT')
+      expect(json.orphanedCostAllocationsCount).toBe(1)
+    })
+
+    it('deve permitir a redução de prazo se NÃO existirem despesas órfãs (Caminho Feliz)', async () => {
+      const project = await prisma.project.create({
+        data: {
+          code: 'VIGENCY-TEST-3',
+          name: 'Vigency Shrinkage Allow',
+          budget: 1000,
+          usedBudget: 0,
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-12-31T00:00:00Z'),
+          resourceSource: 'CAPES',
+          expenseCategories: { connect: [{ normalizedName: dummyExpenseCategories[0]!.normalizedName }] },
+        },
+      })
+
+      const res = await client.projects[':id'].period.$patch({
+        param: { id: project.id },
+        json: {
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-06-30T00:00:00Z'),
+        },
+      }, { headers: adminHeaders })
+
+      expect(res.status).toBe(status.OK)
+      assert(res.status === status.OK)
+
+      const json = await res.json()
+      expect(new Date(json.endDate).getTime()).toEqual(new Date('2026-06-30T00:00:00Z').getTime())
+    })
+
+    it('deve ignorar verificação de conflitos e retornar 200 ao expandir o período', async () => {
+      const project = await prisma.project.create({
+        data: {
+          code: 'VIGENCY-TEST-4',
+          name: 'Vigency Expand',
+          budget: 1000,
+          usedBudget: 0,
+          startDate: new Date('2026-06-01T00:00:00Z'),
+          endDate: new Date('2026-07-31T00:00:00Z'),
+          resourceSource: 'CAPES',
+          expenseCategories: { connect: [{ normalizedName: dummyExpenseCategories[0]!.normalizedName }] },
+        },
+      })
+
+      const res = await client.projects[':id'].period.$patch({
+        param: { id: project.id },
+        json: {
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-12-31T00:00:00Z'),
+        }, // Expande para Dezembro
+      }, { headers: adminHeaders })
+
+      expect(res.status).toBe(status.OK)
+      assert(res.status === status.OK)
+
+      const json = await res.json()
+      expect(new Date(json.endDate).getTime()).toEqual(new Date('2026-12-31T00:00:00Z').getTime())
+    })
+  })
+
+  describe('gET /projects/:id/cost-breakdowns', () => {
+    let projectId: string
+    let aliceId: string
+    let bobId: string
+
+    beforeAll(async () => {
+      // 1. Massa de Dados Estratégica
+      const p = await prisma.project.create({
+        data: {
+          code: 'CB-TEST-QA-001',
+          name: 'Cost Breakdown QA Project',
+          budget: 10000,
+          usedBudget: 0,
+          startDate: new Date('2026-01-01T00:00:00Z'),
+          endDate: new Date('2026-12-31T23:59:59Z'),
+          resourceSource: 'FAPESP',
+          expenseCategories: {
+            connect: [
+              { normalizedName: dummyExpenseCategories[0]!.normalizedName },
+              { normalizedName: dummyExpenseCategories[1]!.normalizedName },
+            ],
+          },
+        },
+      })
+      projectId = p.id
+
+      // Buscar dois alunos distintos
+      const users = await prisma.user.findMany({ take: 2 })
+      aliceId = users[0]!.id
+      bobId = users[1]!.id
+
+      // Despesa A: Alice, CONCLUIDO, PASSAGENS, 01/06, 100
+      const expA = await prisma.expenseRequest.create({
+        data: {
+          title: 'Viagem Congresso',
+          description: 'A',
+          studentId: aliceId,
+          status: ExpenseRequestStatus.CONCLUIDO,
+          event: {},
+          article: {},
+          createdAt: new Date('2026-06-01T10:00:00Z'),
+        },
+      })
+
+      // Despesa B: Alice, EM_PROCESSAMENTO, HOSPEDAGEM, 10/06, 500
+      const expB = await prisma.expenseRequest.create({
+        data: {
+          title: 'Hospedagem Evento',
+          description: 'B',
+          studentId: aliceId,
+          status: ExpenseRequestStatus.EM_PROCESSAMENTO,
+          event: {},
+          article: {},
+          createdAt: new Date('2026-06-10T10:00:00Z'),
+        },
+      })
+
+      // Despesa C: Bob, CONCLUIDO, PASSAGENS, 15/06, 50
+      const expC = await prisma.expenseRequest.create({
+        data: {
+          title: 'Alimentação Aluno',
+          description: 'C',
+          studentId: bobId,
+          status: ExpenseRequestStatus.CONCLUIDO,
+          event: {},
+          article: {},
+          createdAt: new Date('2026-06-15T10:00:00Z'),
+        },
+      })
+
+      await prisma.costBreakdown.createMany({
+        data: [
+          {
+            amount: 100,
+            projectId,
+            expenseRequestId: expA.id,
+            expenseCategoryId: dummyExpenseCategories[0]!.id!, // PASSAGENS
+            createdAt: new Date('2026-06-01T10:00:00Z'),
+          },
+          {
+            amount: 500,
+            projectId,
+            expenseRequestId: expB.id,
+            expenseCategoryId: dummyExpenseCategories[1]!.id!, // HOSPEDAGEM
+            createdAt: new Date('2026-06-10T10:00:00Z'),
+          },
+          {
+            amount: 50,
+            projectId,
+            expenseRequestId: expC.id,
+            expenseCategoryId: dummyExpenseCategories[0]!.id!, // PASSAGENS
+            createdAt: new Date('2026-06-15T10:00:00Z'),
+          },
+        ],
+      })
+    })
+
+    it('[ERRO]: Deve retornar 422 ao enviar limite maior que 100 (Unprocessable Entity)', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { limit: '500' },
+      }, { headers: adminHeaders })
+      expect(res.status).toBe(status.UNPROCESSABLE_ENTITY)
+    })
+
+    it('[SUCESSO]: Paginação Base (Injeção de Headers e Payload Completo)', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { limit: '5' },
+      }, { headers: adminHeaders })
+
+      expect(res.status).toBe(status.OK)
+      assert(res.status === status.OK)
+
+      expect(res.headers.get('x-total-count')).toBe('3')
+      expect(res.headers.get('x-pagination-limit')).toBe('5')
+
+      const json = await res.json()
+      expect(json.length).toBe(3)
+
+      expect(json[0]!).toHaveProperty('amount')
+      expect(json[0]!.expense).toHaveProperty('title')
+      expect(json[0]!.expense.student).toHaveProperty('name')
+      expect(json[0]!.subcategory).toHaveProperty('name')
+    })
+
+    it('[FILTRO]: Deve filtrar corretamente por status (EM_PROCESSAMENTO)', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { status: 'EM_PROCESSAMENTO' },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      const json = await res.json()
+      expect(json.length).toBe(1)
+      expect(json[0]!.expense.title).toBe('Hospedagem Evento')
+    })
+
+    it('[FILTRO]: Deve filtrar corretamente por subcategoryName', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { subcategoryName: dummyExpenseCategories[1]!.normalizedName },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      const json = await res.json()
+      expect(json.length).toBe(1) // Only Hospedagem Evento (B)
+    })
+
+    it('[FILTRO]: Deve filtrar corretamente pelo Período (startDate e endDate)', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: {
+          startDate: '2026-06-05T00:00:00Z',
+          endDate: '2026-06-12T00:00:00Z',
+        },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      const json = await res.json()
+      expect(json.length).toBe(1)
+      expect(json[0]!.expense.title).toBe('Hospedagem Evento')
+    })
+
+    it('[FILTRO]: Deve filtrar corretamente por studentId', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { studentId: bobId },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      const json = await res.json()
+      expect(json.length).toBe(1)
+      expect(json[0]!.expense.title).toBe('Alimentação Aluno')
+    })
+
+    it('[FILTRO]: Deve realizar Busca Textual (search) via Título ou Estudante', async () => {
+      // 5.1 Busca pelo título
+      let res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { search: 'Hospedagem' },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      let json = await res.json()
+      expect(json.length).toBe(1)
+      expect(json[0]!.expense.title).toBe('Hospedagem Evento')
+
+      // 5.2 Busca pelo nome do Aluno
+      const alice = await prisma.user.findUnique({ where: { id: aliceId } })
+      res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: { search: alice!.name.split(' ')[0]! }, // Busca pelo primeiro nome para garantir o LIKE
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      json = await res.json()
+      expect(json.length).toBe(2) // Alice tem 2 despesas
+    })
+
+    it('[ORDENAÇÃO]: Deve ordenar corretamente por amount desc', async () => {
+      const res = await client.projects[':id']['cost-breakdowns'].$get({
+        param: { id: projectId },
+        query: {
+          orderBy: 'amount',
+          orderDir: 'desc',
+        },
+      }, { headers: adminHeaders })
+
+      assert(res.status === status.OK)
+      const json = await res.json()
+      expect(json.length).toBe(3)
+      expect(json[0]!.amount).toBe(500)
+      expect(json[1]!.amount).toBe(100)
+      expect(json[2]!.amount).toBe(50)
+    })
   })
 })

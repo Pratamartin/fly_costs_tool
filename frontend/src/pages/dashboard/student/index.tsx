@@ -8,11 +8,10 @@ import StudentSidebar from "@/components/StudentSidebar";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { getMe, type UserProfile } from "@/services/user";
 import { listExpenses, createExpense, uploadMemorandum, type Expense } from "@/services/expenses";
-import { listProjects } from "@/services/projects";
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
 
-type Status = "Pendente" | "Aprovado" | "Em Processamento" | "Rejeitado" | "Correção Solicitada" | "Concluído";
+type Status = "Pendente" | "Aprovado pelo Coordenador" | "Em Processamento pelo Coordenador" | "Rejeitado" | "Correção Solicitada" | "Concluído";
 type Filtro = "Todos" | Status;
 
 interface Despesa {
@@ -20,7 +19,6 @@ interface Despesa {
   data: string;
   descricao: string;
   reqId: string;
-  projeto: string;
   status: Status;
   icone: "componentes" | "livros" | "viagem" | "nuvem";
 }
@@ -29,8 +27,8 @@ interface Despesa {
 function statusBackendToFrontend(status: string): Status {
   switch (status) {
     case "PENDENTE": return "Pendente";
-    case "APROVADO": return "Aprovado";
-    case "EM_PROCESSAMENTO": return "Em Processamento";
+    case "APROVADO": return "Aprovado pelo Coordenador";
+    case "EM_PROCESSAMENTO": return "Em Processamento pelo Coordenador";
     case "REJEITADO": return "Rejeitado";
     case "EM_EDICAO": return "Correção Solicitada";
     case "CONCLUIDO": return "Concluído";
@@ -38,17 +36,12 @@ function statusBackendToFrontend(status: string): Status {
   }
 }
 
-function expenseToDespesa(expense: Expense, projectMap: Record<string, string> = {}): Despesa {
-  const isConcluido = expense.status === "CONCLUIDO";
-  const projectName = isConcluido
-    ? (expense.project?.name ?? (expense.projectId ? projectMap[expense.projectId] : undefined))
-    : undefined;
+function expenseToDespesa(expense: Expense): Despesa {
   return {
     id: expense.id,
     data: new Date(expense.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
     descricao: expense.title,
     reqId: `#REQ-${expense.id.slice(0, 8).toUpperCase()}`,
-    projeto: projectName ?? "—",
     status: statusBackendToFrontend(expense.status),
     icone: "viagem",
   };
@@ -99,22 +92,22 @@ function BadgeStatus({ status }: { status: Status }) {
         Pendente
       </span>
     );
-  if (status === "Aprovado")
+  if (status === "Aprovado pelo Coordenador")
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 ring-1 ring-green-200">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
           <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
         </svg>
-        Aprovado
+        Aprovado pelo Coordenador
       </span>
     );
-  if (status === "Em Processamento")
+  if (status === "Em Processamento pelo Coordenador")
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
           <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
         </svg>
-        Em Processamento
+        Em Processamento pelo Coordenador
       </span>
     );
   if (status === "Correção Solicitada")
@@ -159,17 +152,10 @@ export default function DashboardAluno() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   async function carregarDespesas(token: string) {
-    const [expensesResult, projectsResult] = await Promise.all([
-      listExpenses(token),
-      listProjects(token),
-    ]);
+    const expensesResult = await listExpenses(token);
 
     if (expensesResult.ok) {
-      const projectMap: Record<string, string> = {};
-      if (projectsResult.ok) {
-        for (const p of projectsResult.data) projectMap[p.id] = p.name;
-      }
-      setDespesas(expensesResult.data.map((e) => expenseToDespesa(e, projectMap)));
+      setDespesas(expensesResult.data.map((e) => expenseToDespesa(e)));
     } else if (expensesResult.error === "UNAUTHORIZED") {
       useAuthStore.getState().clearToken();
       localStorage.removeItem("accessToken");
@@ -248,10 +234,23 @@ export default function DashboardAluno() {
         surveyAnswers: data.surveyAnswers,
       });
       if (result.ok) {
-        if (data.memorando) {
-          await uploadMemorandum(token, result.data.id, data.memorando);
-        }
         setDespesas((prev) => [expenseToDespesa(result.data), ...prev]);
+        if (data.memorando) {
+          const memoResult = await uploadMemorandum(token, result.data.id, data.memorando);
+          if (!memoResult.ok) {
+            let memoErro = "Erro ao enviar o trabalho publicado. A solicitação foi criada mas o arquivo não foi anexado.";
+            if (memoResult.error === "STORAGE_UNAVAILABLE") {
+              memoErro = "Armazenamento indisponível. A solicitação foi criada, mas o trabalho publicado não foi anexado. Tente novamente mais tarde.";
+            } else if (memoResult.error === "FILE_TOO_LARGE") {
+              memoErro = "Arquivo muito grande (máx. 5 MB). A solicitação foi criada mas o trabalho publicado não foi anexado.";
+            } else if (memoResult.error === "UNSUPPORTED_MEDIA_TYPE") {
+              memoErro = "Tipo de arquivo não suportado (apenas PDF). A solicitação foi criada mas o trabalho publicado não foi anexado.";
+            }
+            setErro(memoErro);
+            setCriandoDespesa(false);
+            return;
+          }
+        }
         setModalAberto(false);
         toast.success("Solicitação de despesa enviada com sucesso!");
       } else if (result.error === "UNAUTHORIZED") {
@@ -259,9 +258,22 @@ export default function DashboardAluno() {
         localStorage.removeItem("accessToken");
         router.push("/login");
       } else if (result.error === "VALIDATION_ERROR") {
-        setErro("Dados inválidos. Verifique os campos.");
+        const camposConhecidos: Record<string, string> = {
+          title: "Título",
+          "event.name": "Nome do Evento",
+          "event.location": "Local do Evento",
+          "article.classification": "Classificação QUALIS",
+          surveyAnswers: "Categoria de Despesa",
+        };
+        const primeiro = result.details?.[0];
+        if (primeiro) {
+          const label = camposConhecidos[primeiro.field] ?? primeiro.field;
+          setErro(`Campo inválido: "${label}". Verifique os dados preenchidos.`);
+        } else {
+          setErro("Dados inválidos. Verifique os campos preenchidos.");
+        }
       } else {
-        setErro("Erro ao criar despesa");
+        setErro("Erro ao criar despesa. Tente novamente.");
       }
     } catch (_err) {
       setErro("Erro de conexão");
@@ -278,7 +290,7 @@ export default function DashboardAluno() {
     return matchFiltro && matchBusca;
   });
 
-  const filtros: Filtro[] = ["Todos", "Pendente", "Em Processamento", "Aprovado", "Correção Solicitada", "Rejeitado", "Concluído"];
+  const filtros: Filtro[] = ["Todos", "Pendente", "Em Processamento pelo Coordenador", "Aprovado pelo Coordenador", "Correção Solicitada", "Rejeitado", "Concluído"];
 
   if (carregando) {
     return (
@@ -383,7 +395,7 @@ export default function DashboardAluno() {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Aprovadas</p>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-50 sm:text-2xl">
-                  {despesas.filter((d) => d.status === "Aprovado" || d.status === "Em Processamento" || d.status === "Concluído").length}
+                  {despesas.filter((d) => d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Concluído").length}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
@@ -446,15 +458,14 @@ export default function DashboardAluno() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Despesa</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Receita</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {despesasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <td colSpan={3} className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">
                       Nenhuma solicitação encontrada.
                     </td>
                   </tr>
@@ -465,11 +476,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" ? "cursor-pointer" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{d.data}</td>
                       <td className="px-6 py-4">
@@ -481,10 +492,6 @@ export default function DashboardAluno() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{d.projeto}</td>
-                      {/* <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-50">
-                        R$ {d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td> */}
                       <td className="px-6 py-4">
                         <BadgeStatus status={d.status} />
                       </td>
@@ -506,11 +513,11 @@ export default function DashboardAluno() {
                       onClick={
                         d.status === "Correção Solicitada"
                           ? () => router.push(`/dashboard/student/expenses/edit/${d.id}`)
-                          : d.status === "Concluído"
+                          : d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente"
                           ? () => router.push(`/dashboard/student/expenses/detail/${d.id}`)
                           : undefined
                       }
-                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" ? "cursor-pointer" : ""}`}
+                      className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 ${d.status === "Correção Solicitada" || d.status === "Concluído" || d.status === "Rejeitado" || d.status === "Aprovado pelo Coordenador" || d.status === "Em Processamento pelo Coordenador" || d.status === "Pendente" ? "cursor-pointer" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-3 min-w-0">
@@ -522,8 +529,7 @@ export default function DashboardAluno() {
                         </div>
                         <BadgeStatus status={d.status} />
                       </div>
-                      <div className="flex items-center justify-between pl-11">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mr-2">{d.projeto}</p>
+                      <div className="flex items-center justify-end pl-11">
                         <p className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{d.data}</p>
                       </div>
                     </div>

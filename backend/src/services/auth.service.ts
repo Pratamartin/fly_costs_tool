@@ -7,17 +7,11 @@ import { z } from '@hono/zod-openapi'
 import bcrypt, { compare } from 'bcryptjs'
 import { sign, verify } from 'hono/jwt'
 import { PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant'
-import { mockInviteCode } from '@/constants/invite.constant'
 import env from '@/env'
 import { UserRole } from '@/generated/prisma/client'
 import { dayjs } from '@/lib/date'
 import prisma from '@/lib/orm'
 import { getUserByEmail } from './user.service'
-
-/** @deprecated Use findActiveInvite from invite.service instead for real database validation */
-export function isInviteCodeValid(inviteCode: string): boolean {
-  return inviteCode === mockInviteCode
-}
 
 export async function verifyCredentials(
   data: z.infer<typeof LoginSchema>,

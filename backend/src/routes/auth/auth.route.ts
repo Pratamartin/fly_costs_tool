@@ -2,12 +2,16 @@ import { createRoute, z } from '@hono/zod-openapi'
 import * as codes from 'stoker/http-status-codes'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import { createMessageObjectSchema } from 'stoker/openapi/schemas'
+import { PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS } from '@/constants/auth.constant'
+import env from '@/env'
 import { registryResponses } from '@/lib/problems'
 import { ForgotPasswordSchema, LoginSchema, LoginSuccessSchema, RegisterSchema, RegisterSuccessSchema, ResetPasswordSchema } from '@/schemas/auth.schema'
+import { InviteCodeStringSchema } from '@/schemas/shared.schema'
 
 const tags = ['Auth']
 
 export type RegisterRoute = typeof register
+export type VerifyInviteRoute = typeof verifyInvite
 export type LoginRoute = typeof login
 export type ForgotPasswordRoute = typeof forgotPassword
 export type ResetPasswordRoute = typeof resetPassword
@@ -17,8 +21,9 @@ export type LogoutRoute = typeof logout
 export const register = createRoute({
   path: '/register',
   method: 'post',
-  summary: 'Register user',
-  description: 'Registers a new user in the system. The required payload varies by role: Students must provide complete profile data. Coordinators and Admins require only basic credentials.',
+  operationId: 'registerUser',
+  summary: 'Register a new user',
+  description: 'Creates a new user account. Role-specific constraints apply: Students (`ALUNO`) must provide full banking and identity profiles, whereas Staff (`ADMIN`, `COORDENADOR`) only require basic credentials. Requires a valid, unexpired invite code.',
   tags,
   request: { body: jsonContentRequired(RegisterSchema, 'User credentials') },
   responses: {
@@ -26,15 +31,36 @@ export const register = createRoute({
       RegisterSuccessSchema,
       'User created successfully',
     ),
-    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
+    ...registryResponses('EMAIL_ALREADY_EXISTS', 'INVITE_NOT_FOUND', 'VALIDATION_ERROR'),
+  },
+})
+
+export const verifyInvite = createRoute({
+  path: '/verify-invite/{code}',
+  method: 'get',
+  operationId: 'verifyInvite',
+  summary: 'Verify an invite code (Pre-flight)',
+  description: 'Checks if an invite code is valid, not used, and not expired. Ideal for frontend pre-flight checks before rendering registration forms. Includes strict Cache-Control headers to prevent stale valid states.',
+  tags,
+  request: { params: z.object({ code: InviteCodeStringSchema }) },
+  responses: {
+    [codes.OK]: jsonContent(
+      z.object({
+        role: z.string(),
+        expiresAt: z.string().datetime(),
+      }).openapi('VerifyInviteSuccess'),
+      'Invite is perfectly valid.',
+    ),
+    ...registryResponses('INVITE_NOT_FOUND', 'INVITE_ALREADY_USED', 'INVITE_ALREADY_EXPIRED', 'VALIDATION_ERROR'),
   },
 })
 
 export const login = createRoute({
   path: '/login',
   method: 'post',
+  operationId: 'loginUser',
   summary: 'Authenticate user',
-  description: 'Login user into the system.',
+  description: `Authenticates a user using email and password. On success, returns a short-lived JWT access token in the response body, and sets a long-lived refresh token in an \`HttpOnly\` cookie (expires in **${env.REFRESH_TOKEN_EXPIRES_DAYS} days**).`,
   tags,
   request: { body: jsonContentRequired(LoginSchema, 'User credentials') },
   responses: {
@@ -55,8 +81,9 @@ export const login = createRoute({
 export const refresh = createRoute({
   path: '/refresh',
   method: 'post',
+  operationId: 'refreshToken',
   summary: 'Refresh access token',
-  description: 'Issues a new access token using a valid refresh token from cookies.',
+  description: 'Issues a new JWT access token using a valid refresh token from cookies.',
   tags,
   request: {},
   responses: {
@@ -71,6 +98,7 @@ export const refresh = createRoute({
 export const logout = createRoute({
   path: '/logout',
   method: 'post',
+  operationId: 'logoutUser',
   summary: 'Logout user',
   description: 'Invalidates the current session and clears the refresh token cookie.',
   tags,
@@ -84,7 +112,7 @@ export const logout = createRoute({
           example: 'refreshToken=; Max-Age=0; Path=/; HttpOnly',
         }),
       }),
-      content: { 'application/json': { schema: createMessageObjectSchema('Logged out successfully.') } },
+      content: { 'application/json': { schema: createMessageObjectSchema('Logged out successfully.').openapi('LogoutResponse') } },
     },
     ...registryResponses('UNAUTHORIZED'),
   },
@@ -93,13 +121,14 @@ export const logout = createRoute({
 export const forgotPassword = createRoute({
   path: '/forgot-password',
   method: 'post',
+  operationId: 'forgotPassword',
   summary: 'Request password reset',
-  description: 'Sends an email with password recovery instructions.',
+  description: `Initiates the password recovery flow. To prevent user enumeration attacks, this endpoint always returns a 200 OK success message regardless of whether the email is registered or active. If valid, an email with a secure reset token (valid for **${PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS} hour(s)**) is dispatched asynchronously via job queue.`,
   tags,
   request: { body: jsonContentRequired(ForgotPasswordSchema, 'User email') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('If the email is registered, you will receive instructions to reset your password.'),
+      createMessageObjectSchema('If the email is registered, you will receive instructions to reset your password.').openapi('ForgotPasswordResponse'),
       'Generic success response to prevent user enumeration.',
     ),
     ...registryResponses('VALIDATION_ERROR'),
@@ -109,13 +138,14 @@ export const forgotPassword = createRoute({
 export const resetPassword = createRoute({
   path: '/reset-password',
   method: 'post',
+  operationId: 'resetPassword',
   summary: 'Reset password',
-  description: 'Resets user password using a valid token.',
+  description: `Resets user password using a valid token. The token must match the SHA-256 hash stored in the database and must not be expired (token lifespan: **${PASSWORD_RESET_TOKEN_EXPIRES_IN_HOURS} hour(s)**).`,
   tags,
   request: { body: jsonContentRequired(ResetPasswordSchema, 'New password and token') },
   responses: {
     [codes.OK]: jsonContent(
-      createMessageObjectSchema('Password reset successfully.'),
+      createMessageObjectSchema('Password reset successfully.').openapi('ResetPasswordResponse'),
       'Password changed successfully.',
     ),
     ...registryResponses('INVALID_TOKEN', 'VALIDATION_ERROR'),

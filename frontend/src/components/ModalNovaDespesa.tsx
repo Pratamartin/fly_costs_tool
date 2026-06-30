@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { listSurveys, uploadSurveyFile, type Survey } from "@/services/surveys";
 import { getToken } from "@/lib/getToken";
 
-const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis"];
+const QUALIS_VALUES = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "C", "Sem Qualis", "Jornal Acadêmico"];
 
 const CIDADES_BRASIL = [
   "Aracaju/SE",
@@ -99,13 +99,15 @@ function SpinnerIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function SectionHeader({ number, label }: { number: number; label: string }) {
+function SectionHeader({ number, label, required }: { number: number; label: string; required?: boolean }) {
   return (
     <div className="mb-3 flex items-center gap-2">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-[10px] font-bold text-white dark:bg-[#818cf8] dark:text-gray-950">
         {number}
       </span>
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        {label}{required && <span className="ml-1 text-red-500 normal-case">*</span>}
+      </p>
     </div>
   );
 }
@@ -168,7 +170,7 @@ function FileDropZone({
               <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
             </svg>
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
-            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF, JPG, PNG · máx. {maxSizeMB ?? 10}MB</p>
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">PDF · máx. {maxSizeMB ?? 10}MB</p>
           </>
         )}
       </div>
@@ -198,12 +200,6 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
   const [passagem, setPassagem] = useState({ departureDate: "", returnDate: "", departureRoute: "", returnRoute: "" });
   const [flightFile, setFlightFile] = useState<File | null>(null);
 
-  // Inscrição
-  const [inscricaoFile, setInscricaoFile] = useState<File | null>(null);
-
-  // Hospedagem
-  const [hospedagem, setHospedagem] = useState(false);
-
   // Memorando
   const [memorando, setMemorandum] = useState<File | null>(null);
 
@@ -221,11 +217,11 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
   const passagemSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "passagem-aerea");
   const inscricaoSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "inscricao");
-  const hospedagemSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "hospedagem");
+  const diariasSurvey = surveys.find((s) => s.expenseCategory.normalizedName === "diarias");
 
   const passagemSelected = passagemSurvey ? selectedCategoryIds.has(passagemSurvey.expenseCategoryId) : false;
   const inscricaoSelected = inscricaoSurvey ? selectedCategoryIds.has(inscricaoSurvey.expenseCategoryId) : false;
-  const hospedagemSelected = hospedagemSurvey ? selectedCategoryIds.has(hospedagemSurvey.expenseCategoryId) : false;
+  const hospedagemSelected = diariasSurvey ? selectedCategoryIds.has(diariasSurvey.expenseCategoryId) : false;
 
   function toggleCategory(categoryId: string) {
     setSelectedCategoryIds((prev) => {
@@ -246,8 +242,8 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
     setErroLocal(null);
 
     if (!title.trim()) return setErroLocal("O título é obrigatório.");
-    if (!eventName.trim()) return setErroLocal("O nome do evento é obrigatório.");
-    if (!eventLocation.trim()) return setErroLocal("A localização do evento é obrigatória.");
+    if (eventName.trim().length < 3) return setErroLocal("O nome do evento deve ter ao menos 3 caracteres.");
+    if (eventLocation.trim().length < 3) return setErroLocal("O local do evento deve ter ao menos 3 caracteres.");
     if (!articleClassification) return setErroLocal("Selecione a classificação QUALIS do artigo.");
     if (selectedCategoryIds.size === 0) return setErroLocal("Selecione ao menos uma categoria de despesa.");
 
@@ -255,17 +251,13 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       if (!passagem.departureDate || !passagem.returnDate || !passagem.departureRoute.trim() || !passagem.returnRoute.trim()) {
         return setErroLocal("Preencha todos os campos obrigatórios de Passagem Aérea.");
       }
-      if (new Date(passagem.returnDate) < new Date(passagem.departureDate)) {
-        return setErroLocal("A data de volta deve ser após a data de ida.");
+      if (new Date(passagem.returnDate) <= new Date(passagem.departureDate)) {
+        return setErroLocal("A data de volta deve ser estritamente após a data de ida.");
       }
     }
 
-    if (inscricaoSelected && !inscricaoFile) {
-      return setErroLocal("Anexe o boleto/invoice para a categoria Inscrição.");
-    }
-
     if (!memorando) {
-      return setErroLocal("O memorando é obrigatório.");
+      return setErroLocal("O trabalho publicado é obrigatório.");
     }
 
     const token = getToken();
@@ -299,24 +291,18 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
       }
 
       // Inscrição
-      if (inscricaoSelected && inscricaoSurvey && inscricaoFile) {
-        const uploadResult = await uploadSurveyFile(token, inscricaoFile);
-        if (!uploadResult.ok) {
-          setErroLocal("Erro ao enviar o boleto/invoice. Tente novamente.");
-          setUploadingFiles(false);
-          return;
-        }
+      if (inscricaoSelected && inscricaoSurvey) {
         surveyAnswers.push({
           expenseCategoryId: inscricaoSurvey.expenseCategoryId,
-          data: { invoiceKey: uploadResult.data.fileKey },
+          data: {},
         });
       }
 
-      // Hospedagem
-      if (hospedagemSelected && hospedagemSurvey) {
+      // Diárias
+      if (hospedagemSelected && diariasSurvey) {
         surveyAnswers.push({
-          expenseCategoryId: hospedagemSurvey.expenseCategoryId,
-          data: hospedagem,
+          expenseCategoryId: diariasSurvey.expenseCategoryId,
+          data: { requested: true },
         });
       }
 
@@ -348,7 +334,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Despesa</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Enviar Solicitação de Receita</h2>
             <p className="mt-0.5 text-sm text-[#4F46E5] dark:text-[#a5b4fc]">Preencha os dados do evento e categorias desejadas.</p>
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50">
@@ -462,7 +448,7 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 4 — Categorias */}
             <div>
-              <SectionHeader number={4} label="Categorias de Despesa" />
+              <SectionHeader number={4} label="Categoria de ajuda de custo" />
               {loadingSurveys ? (
                 <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                   <SpinnerIcon className="h-4 w-4 text-[#4F46E5]" /> Carregando categorias...
@@ -552,23 +538,17 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Inscrição em Evento</span>
                         </div>
                       </label>
-                      {inscricaoSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="mb-1 block text-xs font-medium text-gray-600">Boleto / Invoice <span className="text-red-500">*</span></label>
-                          <FileDropZone file={inscricaoFile} onChange={setInscricaoFile} accept=".pdf,.jpg,.jpeg,.png" label="Clique ou arraste o boleto/invoice" disabled={isSubmitting} maxSizeMB={10} />
-                        </div>
-                      )}
                     </div>
                   )}
 
                   {/* Hospedagem */}
-                  {hospedagemSurvey && (
+                  {diariasSurvey && (
                     <div className={`rounded-xl border transition ${hospedagemSelected ? "border-[#4F46E5] bg-indigo-50/40 dark:bg-indigo-950/20" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-800/60"}`}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                         <input
                           type="checkbox"
                           checked={hospedagemSelected}
-                          onChange={() => toggleCategory(hospedagemSurvey.expenseCategoryId)}
+                          onChange={() => toggleCategory(diariasSurvey.expenseCategoryId)}
                           disabled={isSubmitting}
                           className="h-4 w-4 rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
                         />
@@ -576,28 +556,9 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-500 shrink-0">
                             <path fillRule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Hospedagem</span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Diárias</span>
                         </div>
                       </label>
-                      {hospedagemSelected && (
-                        <div className="border-t border-indigo-100 px-4 pb-4 pt-3">
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={hospedagem}
-                              onClick={() => setHospedagem((v) => !v)}
-                              disabled={isSubmitting}
-                              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2 ${hospedagem ? "bg-[#4F46E5]" : "bg-gray-200"} ${isSubmitting ? "opacity-50" : ""}`}
-                            >
-                              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${hospedagem ? "translate-x-5" : "translate-x-0"}`} />
-                            </button>
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {hospedagem ? "Solicitar auxílio hospedagem" : "Sem auxílio hospedagem"}
-                            </span>
-                          </label>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -606,9 +567,12 @@ export default function ModalNovaDespesa({ onClose, onSubmit, carregando = false
 
             {/* 5 — Memorando */}
             <div>
-              <SectionHeader number={5} label="Memorando" />
-              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf,.svg,.png,.jpg,.jpeg" label="Clique ou arraste o memorando" disabled={isSubmitting} maxSizeMB={5} />
-              {!memorando && <p className="mt-1.5 text-[11px] text-red-400">Obrigatório</p>}
+              <SectionHeader number={5} label="Trabalho publicado" required />
+              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+                <p className="font-semibold mb-1">Atenção: o trabalho deve conter ao final o seguinte texto de agradecimento:</p>
+                <p className="italic">&ldquo;O presente trabalho foi realizado com o apoio da Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (AUXPE-CAPES-PROEX) - Código de Financiamento 001. Adicionalmente, este trabalho foi parcialmente financiado pela Fundação de Amparo à Pesquisa do Estado do Amazonas - FAPEAM - por meio dos projetos PDPG-CAPES e POSGRAD 2025-2026.&rdquo;</p>
+              </div>
+              <FileDropZone file={memorando} onChange={setMemorandum} accept=".pdf" label="Clique ou arraste o trabalho publicado (PDF)" disabled={isSubmitting} maxSizeMB={5} />
             </div>
 
           </div>

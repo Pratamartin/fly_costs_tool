@@ -50,12 +50,14 @@ export async function generateMockReportPdf(
 
   autoTable(doc, {
     startY,
-    head: [["ID", "Título", "Aluno", "Destino", "Projeto", "Status", "Data Criação"]],
+    head: [["ID", "Título", "Evento", "Qualis", "Aluno", "Destino", "Projeto", "Status", "Data Criação"]],
     body: filtered.map((e) => [
       `REQ-${e.id.slice(0, 8).toUpperCase()}`,
       e.title,
+      e.event?.name ?? "—",
+      e.article?.classification ?? "—",
       e.student?.name ?? "—",
-      `${e.city}, ${e.state}`,
+      e.event?.location ?? "—",
       e.project?.name ?? "—",
       STATUS_LABELS[e.status] ?? e.status,
       new Date(e.createdAt).toLocaleDateString("pt-BR"),
@@ -64,13 +66,15 @@ export async function generateMockReportPdf(
     headStyles: { fillColor: [30, 45, 61], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 28 },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 40 },
-      3: { cellWidth: 35 },
-      4: { cellWidth: 40 },
-      5: { cellWidth: 32 },
-      6: { cellWidth: 25 },
+      0: { cellWidth: 20 },
+      1: { cellWidth: 42 },
+      2: { cellWidth: 38 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 35 },
+      5: { cellWidth: 28 },
+      6: { cellWidth: 35 },
+      7: { cellWidth: 27 },
+      8: { cellWidth: 22 },
     },
   })
 

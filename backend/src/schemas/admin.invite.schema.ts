@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi'
-import { INVITE_STATUS, mockInviteCode } from '@/constants/invite.constant'
+import { INVITE_STATUS } from '@/constants/invite.constant'
+import { MOCK_INVITE_ADMIN } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/enums'
 import { minExpiryThresholdCheck, usedInviteFieldsRequired } from '@/schemas/schema.refine'
 import { getInviteDefaultExpiry, getInviteExampleExpiry } from '@/services/invite.service'
@@ -7,7 +8,7 @@ import { IdSchema, TimestampSchema } from './shared.schema'
 
 const BaseSchema = z.object({
   id: IdSchema,
-  code: z.string().openapi({ example: mockInviteCode }),
+  code: z.string().openapi({ example: MOCK_INVITE_ADMIN }),
   role: z.enum(UserRole).openapi({ example: UserRole.ALUNO }),
   usedById: IdSchema.nullish().default(null),
   usedAt: z.coerce.date()
@@ -27,6 +28,7 @@ export const CreateInviteSchema = BaseSchema.pick({
   role: true,
   expiresAt: true,
 }).superRefine(minExpiryThresholdCheck())
+  .openapi('CreateInviteRequest')
 
 export const ListInvitesQuerySchema = BaseSchema.pick({
   role: true,
@@ -35,11 +37,12 @@ export const ListInvitesQuerySchema = BaseSchema.pick({
   search: z.string().optional()
     .openapi({
       description: 'Search by invite code',
-      example: mockInviteCode,
+      example: MOCK_INVITE_ADMIN,
     }),
 })
   .partial()
+  .openapi('ListInvitesQuery')
 
-export const InviteResponseSchema = BaseSchema.check(usedInviteFieldsRequired)
+export const InviteResponseSchema = BaseSchema.check(usedInviteFieldsRequired).openapi('Invite')
 
-export const ListInvitesSchema = z.array(InviteResponseSchema)
+export const ListInvitesSchema = z.array(InviteResponseSchema).openapi('InviteListResponse')

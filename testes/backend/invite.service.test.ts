@@ -294,31 +294,3 @@ describe('revokeInvite — T3.2.1 (unit)', () => {
   })
 })
 
-// ─── T3.2.2 — isInviteCodeValid (deprecated — consulta hardcoded) ─────────────
-
-describe('isInviteCodeValid — T3.2.2 (unit / deprecated)', () => {
-  beforeEach(() => {
-    prismaMock.inviteCode.findUnique.mockReset()
-    prismaMock.inviteCode.update.mockReset()
-  })
-
-  it('usa código hardcoded CONVITE2026, não consulta o banco', async () => {
-    // isInviteCodeValid é @deprecated — não chama prisma.inviteCode.findUnique
-    // A função real está em invite.service.findInviteByCode
-    const { isInviteCodeValid } = await import('@/services/auth.service')
-
-    expect(isInviteCodeValid('CONVITE2026')).toBe(true)
-    expect(isInviteCodeValid('QUALQUER-OUTRO')).toBe(false)
-    expect(prismaMock.inviteCode.findUnique).not.toHaveBeenCalled()
-  })
-
-  it('findInviteByCode consulta o banco (substituto real do deprecated)', async () => {
-    prismaMock.inviteCode.findUnique.mockResolvedValue(null)
-
-    await findInviteByCode('QUALQUER-CODE')
-
-    expect(prismaMock.inviteCode.findUnique).toHaveBeenCalledWith({
-      where: { code: 'QUALQUER-CODE' },
-    })
-  })
-})

@@ -1,6 +1,7 @@
 import type { Job } from 'pg-boss'
 import type { SendEmailInput } from '@/lib/email/type'
 import { EMAIL_ERROR_CODES } from '@/constants/email.constant'
+import env from '@/env'
 import { createEmailProvider } from '@/lib/email/providers'
 import { PasswordRecoveryEmail, StaffNotificationEmail, StatusChangeEmail } from '@/lib/email/templates'
 import { renderEmailHtml } from '@/lib/email/util'
@@ -23,6 +24,8 @@ export class SendEmailJob extends BaseJob<EmailJobData, void> {
   override readonly workOptions = {
     localConcurrency: 2,
     batchSize: 1,
+    // In test mode reduce polling so waitForJob resolves well within the 5s vitest timeout
+    ...(env.NODE_ENV === 'test' && { pollingIntervalSeconds: 0.5 }),
   }
 
   private async renderTemplate(template: NonNullable<SendEmailInput['template']>): Promise<{ success: true, html: string } | { success: false, error: string }> {

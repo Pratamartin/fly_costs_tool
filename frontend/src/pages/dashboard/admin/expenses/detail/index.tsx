@@ -8,16 +8,19 @@ import ModalSolicitarCorrecao from "@/components/ModalSolicitarCorrecao";
 import {
   getExpenseById,
   updateExpenseStatus,
-  assignProject,
+  startExpenseProcessing,
   createCostBreakdown,
+  updateCostBreakdown,
+  deleteCostBreakdown,
   uploadCostBreakdownReceipt,
   getCostBreakdownReceiptDownloadUrl,
   getMemorandumDownloadUrl,
   concludeExpense,
+  mergeTravelDates,
   type Expense,
 } from "@/services/expenses";
-import { listProjects, type Project } from "@/services/projects";
 import { listCategories, type ExpenseCategory } from "@/services/categories";
+import { listProjects, type Project } from "@/services/projects";
 import { toast } from "@/lib/toast";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -66,7 +69,7 @@ function StatusBanner({ expense }: { expense: Expense }) {
             </div>
             <div>
               <p className="font-bold text-green-700">Aprovado pelo Coordenador</p>
-              <p className="text-sm text-green-600">Memorando recebido e aprovado. Analise os dados do aluno e prossiga com a vinculação de projeto.</p>
+              <p className="text-sm text-green-600">Trabalho publicado recebido e aprovado. Analise os dados do aluno e prossiga com a vinculação de projeto.</p>
             </div>
           </div>
           <div className="text-right hidden sm:block shrink-0 ml-4">
@@ -79,7 +82,7 @@ function StatusBanner({ expense }: { expense: Expense }) {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-green-600 shrink-0">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
             </svg>
-            <span className="text-xs font-semibold text-green-700">Memorando PDF anexado</span>
+            <span className="text-xs font-semibold text-green-700">Trabalho publicado PDF anexado</span>
           </div>
         )}
       </div>
@@ -141,9 +144,9 @@ function StatusBanner({ expense }: { expense: Expense }) {
           </div>
           <div>
             <p className="font-bold text-amber-700">Aguardando Correção do Aluno</p>
-            {expense.correctionNote ? (
+            {expense.correctionReason ? (
               <p className="text-sm text-amber-600 mt-0.5 max-w-prose">
-                <span className="font-semibold">Instrução: </span>{expense.correctionNote}
+                <span className="font-semibold">Instrução: </span>{expense.correctionReason}
               </p>
             ) : (
               <p className="text-sm text-amber-600">Correção solicitada. Aguardando o aluno editar a despesa.</p>
@@ -309,17 +312,15 @@ export default function ExpenseDetalhe() {
   const [rejeitando, setRejeitando] = useState(false);
   const [solicitandoCorrecao, setSolicitandoCorrecao] = useState(false);
   const [dadosConfirmados, setDadosConfirmados] = useState(false);
-
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [vinculando, setVinculando] = useState(false);
-  const [erroVincular, setErroVincular] = useState<string | null>(null);
+  const [iniciandoProcessamento, setIniciandoProcessamento] = useState(false);
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [carregandoCategorias, setCarregandoCategorias] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const [cbSubcategoria, setCbSubcategoria] = useState("");
   const [cbValor, setCbValor] = useState("");
+  const [cbProjeto, setCbProjeto] = useState("");
   const [cbAnexo, setCbAnexo] = useState<File | null>(null);
   const [adicionandoCusto, setAdicionandoCusto] = useState(false);
   const [erroCusto, setErroCusto] = useState<string | null>(null);
@@ -329,6 +330,16 @@ export default function ExpenseDetalhe() {
 
   const [showModalConcluir, setShowModalConcluir] = useState(false);
   const [concluindo, setConcluindo] = useState(false);
+
+  const [editingBreakdownId, setEditingBreakdownId] = useState<string | null>(null);
+  const [editingValor, setEditingValor] = useState("");
+  const [salvandoBreakdown, setSalvandoBreakdown] = useState(false);
+
+  const [editingProjectBreakdownId, setEditingProjectBreakdownId] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState("");
+  const [salvandoProjeto, setSalvandoProjeto] = useState(false);
+
+  const [excluindoBreakdownId, setExcluindoBreakdownId] = useState<string | null>(null);
 
   async function handleDownloadMemorandum() {
     const token = getToken();
@@ -360,15 +371,16 @@ export default function ExpenseDetalhe() {
     setCarregando(true);
     const result = await getExpenseById(token, expId);
     if (result.ok) {
-      setExpense(result.data);
-      if (result.data.status === "APROVADO") {
-        const projResult = await listProjects(token, { isActive: true });
-        if (projResult.ok) setProjects(projResult.data);
-      }
-      if (result.data.status === "EM_PROCESSAMENTO") {
+      const expense = mergeTravelDates(result.data);
+      setExpense(expense);
+      if (expense.status === "EM_PROCESSAMENTO") {
         setCarregandoCategorias(true);
-        const catResult = await listCategories(undefined, token);
+        const [catResult, projResult] = await Promise.all([
+          listCategories(undefined, token),
+          listProjects(token),
+        ]);
         if (catResult.ok) setCategories(catResult.data);
+        if (projResult.ok) setProjects(projResult.data);
         setCarregandoCategorias(false);
       }
     } else if (result.error === "UNAUTHORIZED") {
@@ -393,8 +405,6 @@ export default function ExpenseDetalhe() {
     if (result.ok) {
       setExpense(result.data);
       toast.success("Despesa aprovada com sucesso!");
-      const projResult = await listProjects(token, { isActive: true });
-      if (projResult.ok) setProjects(projResult.data);
     } else {
       toast.error("Erro ao aprovar despesa.");
     }
@@ -415,6 +425,27 @@ export default function ExpenseDetalhe() {
     }
   }
 
+  async function handleConfirmarDados() {
+    const token = getToken();
+    if (!token || !expense) return;
+    setIniciandoProcessamento(true);
+    const result = await startExpenseProcessing(token, expense.id);
+    setIniciandoProcessamento(false);
+    if (result.ok) {
+      setExpense(result.data);
+      setDadosConfirmados(true);
+      const [catResult, projResult] = await Promise.all([
+        listCategories(undefined, token),
+        listProjects(token),
+      ]);
+      if (catResult.ok) setCategories(catResult.data);
+      if (projResult.ok) setProjects(projResult.data);
+      toast.success("Dados confirmados. Discriminação de custos liberada.");
+    } else {
+      toast.error("Erro ao iniciar processamento.");
+    }
+  }
+
   async function handleRejeitar(motivo: string) {
     const token = getToken();
     if (!token || !expense) return;
@@ -430,42 +461,37 @@ export default function ExpenseDetalhe() {
     }
   }
 
-  async function handleVincularProjeto() {
-    const token = getToken();
-    if (!token || !expense || !selectedProjectId) return;
-    setVinculando(true);
-    setErroVincular(null);
-    const result = await assignProject(token, expense.id, selectedProjectId);
-    setVinculando(false);
-    if (result.ok) {
-      setExpense(result.data);
-      toast.success("Projeto vinculado com sucesso!");
-      setCarregandoCategorias(true);
-      const catResult = await listCategories(undefined, token);
-      if (catResult.ok) setCategories(catResult.data);
-      setCarregandoCategorias(false);
-    } else if (result.error === "CONFLICT") {
-      setErroVincular("Esta despesa já está vinculada a um projeto.");
-    } else {
-      setErroVincular("Erro ao vincular projeto. Tente novamente.");
-    }
-  }
+  const cbIsDiarias = cbSubcategoria
+    ? categories.find((c) => c.name === cbSubcategoria)?.normalizedName === "diarias" ||
+      cbSubcategoria.toLowerCase().includes("diária")
+    : false;
+
+  const cbIsInscricao = cbSubcategoria
+    ? categories.find((c) => c.name === cbSubcategoria)?.normalizedName?.startsWith("inscri") ||
+      cbSubcategoria.toLowerCase().includes("inscri")
+    : false;
+
+  const cbAnexoOpcional = cbIsDiarias || cbIsInscricao;
 
   async function handleAdicionarCusto(e: React.FormEvent) {
     e.preventDefault();
     const token = getToken();
     if (!token || !expense) return;
     const amount = parseFloat(cbValor);
-    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0 || !cbAnexo) return;
+    if (!cbSubcategoria.trim() || isNaN(amount) || amount <= 0) return;
+    if (!cbProjeto) { setErroCusto("Selecione um projeto para este item."); return; }
+    if (!cbAnexo && !cbAnexoOpcional) return;
     setAdicionandoCusto(true);
     setErroCusto(null);
     const result = await createCostBreakdown(token, expense.id, {
       subcategoryName: cbSubcategoria.trim(),
       amount,
+      projectId: cbProjeto,
     });
     if (!result.ok) {
       setAdicionandoCusto(false);
       if (result.error === "BAD_REQUEST") setErroCusto("Categoria inválida para este projeto.");
+      else if (result.error === "PROJECT_PERIOD_EXPIRED") setErroCusto("Projeto com período expirado.");
       else if (result.error === "CONFLICT") setErroCusto("Este tipo de custo já foi adicionado.");
       else setErroCusto("Erro ao adicionar custo.");
       return;
@@ -480,6 +506,7 @@ export default function ExpenseDetalhe() {
     if (updated.ok) setExpense(updated.data);
     setCbSubcategoria("");
     setCbValor("");
+    setCbProjeto("");
     setCbAnexo(null);
     setAdicionandoCusto(false);
   }
@@ -504,6 +531,98 @@ export default function ExpenseDetalhe() {
     } else {
       setErro("Erro ao concluir despesa.");
       setShowModalConcluir(false);
+    }
+  }
+
+  function startEditProject(breakdownId: string, currentProjectId?: string | null) {
+    setEditingProjectBreakdownId(breakdownId);
+    setEditingProjectId(currentProjectId ?? "");
+  }
+
+  function cancelEditProject() {
+    setEditingProjectBreakdownId(null);
+    setEditingProjectId("");
+  }
+
+  async function handleSalvarProjeto(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    setSalvandoProjeto(true);
+    const result = await updateCostBreakdown(token, expense.id, breakdownId, { projectId: editingProjectId || undefined });
+    setSalvandoProjeto(false);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.map((cb) =>
+            cb.id === breakdownId
+              ? { ...cb, project: result.data.project ?? null, projectId: result.data.projectId ?? null }
+              : cb
+          ),
+        };
+      });
+      setEditingProjectBreakdownId(null);
+      setEditingProjectId("");
+      toast.success("Projeto atualizado.");
+    } else {
+      toast.error("Erro ao atualizar projeto.");
+    }
+  }
+
+  function startEditBreakdown(breakdownId: string, currentAmount: number) {
+    setEditingBreakdownId(breakdownId);
+    setEditingValor(currentAmount.toFixed(2));
+  }
+
+  function cancelEditBreakdown() {
+    setEditingBreakdownId(null);
+    setEditingValor("");
+  }
+
+  async function handleSalvarBreakdown(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    const amount = parseFloat(editingValor);
+    if (isNaN(amount) || amount <= 0) return;
+    setSalvandoBreakdown(true);
+    const result = await updateCostBreakdown(token, expense.id, breakdownId, { amount });
+    setSalvandoBreakdown(false);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.map((cb) =>
+            cb.id === breakdownId ? { ...cb, amount: result.data.amount } : cb
+          ),
+        };
+      });
+      setEditingBreakdownId(null);
+      setEditingValor("");
+      toast.success("Valor atualizado.");
+    } else {
+      toast.error("Erro ao atualizar valor.");
+    }
+  }
+
+  async function handleExcluirBreakdown(breakdownId: string) {
+    const token = getToken();
+    if (!token || !expense) return;
+    setExcluindoBreakdownId(breakdownId);
+    const result = await deleteCostBreakdown(token, expense.id, breakdownId);
+    setExcluindoBreakdownId(null);
+    if (result.ok) {
+      setExpense((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          costBreakdowns: prev.costBreakdowns?.filter((cb) => cb.id !== breakdownId),
+        };
+      });
+      toast.success("Custo removido.");
+    } else {
+      toast.error("Erro ao remover custo.");
     }
   }
 
@@ -664,10 +783,10 @@ export default function ExpenseDetalhe() {
                   </div>
                 )}
 
-                {/* Memorando */}
+                {/* Trabalho publicado */}
                 {expense.attachmentKey && (
                   <div className="mb-5">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Memorando</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Trabalho publicado</p>
                     <div className="flex items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-indigo-600">
@@ -737,7 +856,7 @@ export default function ExpenseDetalhe() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-green-600">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-sm font-semibold text-green-800">Dados confirmados — prossiga para vincular o projeto.</p>
+                    <p className="text-sm font-semibold text-green-800">Dados confirmados — aguarde a discriminação de custos (B4).</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
@@ -750,7 +869,7 @@ export default function ExpenseDetalhe() {
                     </div>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                      Confirme se os dados da solicitação estão corretos antes de vincular o projeto. Caso algum dado esteja incorreto, solicite correção ao aluno.
+                      Confirme se os dados da solicitação estão corretos. Caso algum dado esteja incorreto, solicite correção ao aluno.
                     </p>
 
                     <div className="space-y-3 mb-6">
@@ -798,7 +917,7 @@ export default function ExpenseDetalhe() {
                           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Memorando</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Trabalho publicado</p>
                           {expense.attachmentKey ? (
                             <div className="flex items-center gap-1.5">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-green-600">
@@ -811,7 +930,7 @@ export default function ExpenseDetalhe() {
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-orange-400">
                                 <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                               </svg>
-                              <span className="text-sm font-semibold text-orange-600">Sem memorando</span>
+                              <span className="text-sm font-semibold text-orange-600">Sem trabalho publicado</span>
                             </div>
                           )}
                         </div>
@@ -839,8 +958,9 @@ export default function ExpenseDetalhe() {
                         Solicitar Correção
                       </button>
                       <button
-                        onClick={() => setDadosConfirmados(true)}
-                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition"
+                        onClick={handleConfirmarDados}
+                        disabled={iniciandoProcessamento}
+                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-60 transition"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                           <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
@@ -852,71 +972,7 @@ export default function ExpenseDetalhe() {
                 )
               )}
 
-              {/* Vincular Projeto — only when APROVADO e dados confirmados */}
-              {expense.status === "APROVADO" && dadosConfirmados && (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-5">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
-                      <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-                      <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-                    </svg>
-                    <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Vincular Projeto</h2>
-                  </div>
-
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Selecione o projeto que irá financiar esta despesa. Após vinculação, o status passa para <strong>Em Processamento</strong>.
-                  </p>
-
-                  <div className="mb-4">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto Financiador</label>
-                    <select
-                      value={selectedProjectId}
-                      onChange={(e) => { setSelectedProjectId(e.target.value); setErroVincular(null); }}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 py-2.5 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-                    >
-                      <option value="">Selecionar projeto...</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.code})
-                        </option>
-                      ))}
-                    </select>
-                    {projects.length === 0 && (
-                      <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Nenhum projeto ativo disponível.</p>
-                    )}
-                  </div>
-
-                  {erroVincular && (
-                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                      <p className="text-sm text-red-700">{erroVincular}</p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleVincularProjeto}
-                    disabled={!selectedProjectId || vinculando}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    {vinculando ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        Vinculando...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                          <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.656-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.667l3-3z" />
-                          <path d="M11.603 7.963a.75.75 0 00-.977 1.138 2.5 2.5 0 01.142 3.667l-3 3a2.5 2.5 0 01-3.536-3.536l1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 105.656 5.656l3-3a4 4 0 00-.225-5.865z" />
-                        </svg>
-                        Vincular Projeto
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+              {/* TODO: vinculação de projeto agora ocorre via seletor por linha na discriminação de custos (B4) */}
 
               {/* Discriminação de Custos — only when EM_PROCESSAMENTO */}
               {expense.status === "EM_PROCESSAMENTO" && (
@@ -940,46 +996,168 @@ export default function ExpenseDetalhe() {
                         <thead>
                           <tr className="border-b border-gray-100 dark:border-gray-800">
                             <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Tipo de Custo</th>
+                            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Projeto</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Valor</th>
                             <th className="text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">Comprovante</th>
+                            <th className="pb-2" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                          {expense.costBreakdowns!.map((cb) => (
-                            <tr key={cb.id}>
-                              <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
-                              <td className="py-2.5 text-right font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</td>
-                              <td className="py-2.5 text-right">
-                                {cb.attachmentKey ? (
+                          {expense.costBreakdowns!.map((cb) => {
+                            const isEditing = editingBreakdownId === cb.id;
+                            return (
+                              <tr key={cb.id}>
+                                <td className="py-2.5 font-medium text-gray-700 dark:text-gray-300">{cb.subcategory.name}</td>
+                                <td className="py-2.5 text-left">
+                                  {editingProjectBreakdownId === cb.id ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <select
+                                        value={editingProjectId}
+                                        onChange={(e) => setEditingProjectId(e.target.value)}
+                                        disabled={salvandoProjeto}
+                                        autoFocus
+                                        className="rounded border border-blue-400 bg-white dark:bg-gray-800 py-1 px-2 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                                      >
+                                        <option value="">Sem projeto</option>
+                                        {projects.map((p) => (
+                                          <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        onClick={() => handleSalvarProjeto(cb.id)}
+                                        disabled={salvandoProjeto}
+                                        className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition"
+                                      >
+                                        {salvandoProjeto ? "..." : "OK"}
+                                      </button>
+                                      <button
+                                        onClick={cancelEditProject}
+                                        disabled={salvandoProjeto}
+                                        className="rounded bg-gray-200 dark:bg-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      {cb.project ? (
+                                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+                                          {cb.project.code}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                                      )}
+                                      <button
+                                        onClick={() => startEditProject(cb.id, cb.projectId)}
+                                        className="rounded p-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                                        title="Editar projeto"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {isEditing ? (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <div className="relative w-28">
+                                        <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-gray-400">R$</span>
+                                        <input
+                                          type="number"
+                                          min="0.01"
+                                          step="0.01"
+                                          value={editingValor}
+                                          onChange={(e) => setEditingValor(e.target.value)}
+                                          disabled={salvandoBreakdown}
+                                          autoFocus
+                                          className="w-full rounded border border-blue-400 bg-white dark:bg-gray-800 py-1 pl-7 pr-2 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                                        />
+                                      </div>
+                                      <button
+                                        onClick={() => handleSalvarBreakdown(cb.id)}
+                                        disabled={salvandoBreakdown || !editingValor || parseFloat(editingValor) <= 0}
+                                        className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition"
+                                      >
+                                        {salvandoBreakdown ? "..." : "OK"}
+                                      </button>
+                                      <button
+                                        onClick={cancelEditBreakdown}
+                                        disabled={salvandoBreakdown}
+                                        className="rounded bg-gray-200 dark:bg-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <span className="font-semibold text-gray-900 dark:text-gray-50">{fmtCurrency(cb.amount)}</span>
+                                      <button
+                                        onClick={() => startEditBreakdown(cb.id, cb.amount)}
+                                        className="rounded p-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                                        title="Editar valor"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {cb.attachmentKey ? (
+                                    <button
+                                      onClick={() => handleBaixarComprovante(cb.id)}
+                                      disabled={baixandoComprovante === cb.id}
+                                      className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition"
+                                    >
+                                      {baixandoComprovante === cb.id ? (
+                                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                      ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                                          <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                                          <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                                        </svg>
+                                      )}
+                                      Baixar
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-300">—</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 pl-2">
                                   <button
-                                    onClick={() => handleBaixarComprovante(cb.id)}
-                                    disabled={baixandoComprovante === cb.id}
-                                    className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition"
+                                    onClick={() => handleExcluirBreakdown(cb.id)}
+                                    disabled={excluindoBreakdownId === cb.id}
+                                    className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40 transition"
+                                    title="Excluir custo"
                                   >
-                                    {baixandoComprovante === cb.id ? (
-                                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    {excluindoBreakdownId === cb.id ? (
+                                      <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                       </svg>
                                     ) : (
-                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                                        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
-                                        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
                                       </svg>
                                     )}
-                                    Baixar
                                   </button>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                         <tfoot>
                           <tr className="border-t-2 border-gray-200 dark:border-gray-700">
                             <td className="pt-3 text-sm font-bold text-gray-700 dark:text-gray-300">Total</td>
+                            <td />
                             <td className="pt-3 text-right text-sm font-bold text-gray-900 dark:text-gray-50">{fmtCurrency(totalCusto)}</td>
+                            <td />
                             <td />
                           </tr>
                         </tfoot>
@@ -1011,6 +1189,21 @@ export default function ExpenseDetalhe() {
                             ))}
                           </select>
                         </div>
+                        <div className="flex-1">
+                          <select
+                            value={cbProjeto}
+                            onChange={(e) => { setCbProjeto(e.target.value); setErroCusto(null); }}
+                            disabled={adicionandoCusto}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 transition"
+                          >
+                            <option value="">Projeto (opcional)</option>
+                            {projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.code} — {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                         <div className="w-36">
                           <div className="relative">
                             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400 dark:text-gray-500">R$</span>
@@ -1030,7 +1223,7 @@ export default function ExpenseDetalhe() {
 
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                          Anexo <span className="text-red-500">*</span>
+                          Anexo {cbAnexoOpcional ? <span className="text-gray-400 font-normal">(opcional)</span> : <span className="text-red-500">*</span>}
                         </label>
                         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 hover:border-blue-400 hover:bg-blue-50 transition">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500">
@@ -1075,7 +1268,7 @@ export default function ExpenseDetalhe() {
 
                       <button
                         type="submit"
-                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor || !cbAnexo}
+                        disabled={adicionandoCusto || !cbSubcategoria.trim() || !cbValor || (!cbAnexo && !cbAnexoOpcional)}
                         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                       >
                         {adicionandoCusto ? (
@@ -1115,7 +1308,7 @@ export default function ExpenseDetalhe() {
                   </div>
 
                   <div className="space-y-3">
-                    {/* Memorando */}
+                    {/* Trabalho publicado */}
                     {expense.attachmentKey && (
                       <div className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0">
@@ -1125,7 +1318,7 @@ export default function ExpenseDetalhe() {
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Memorando</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-50">Trabalho publicado</p>
                             <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{expense.attachmentKey.split("/").pop()}</p>
                           </div>
                         </div>
@@ -1251,12 +1444,88 @@ export default function ExpenseDetalhe() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">QUALIS</p>
                     <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{expense.article?.classification ?? "—"}</p>
                   </div>
+                  {expense.departureDate && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de ida</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        {new Date(expense.departureDate).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
+                  {expense.returnDate && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Data de volta</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        {new Date(expense.returnDate).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Criado em</p>
                     <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{fmtDate(expense.createdAt)}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Dados Bancários */}
+              {(() => {
+                const profile = expense.student?.profile;
+                const hasBankingInfo = profile?.bankCode || profile?.bankName || profile?.bankAgency || profile?.bankAccount || profile?.pixKey;
+                return hasBankingInfo ? (
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
+                        <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Dados Bancários</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {profile?.bankCode && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Código do banco</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankCode}</p>
+                        </div>
+                      )}
+                      {profile?.bankName && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Nome do banco</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankName}</p>
+                        </div>
+                      )}
+                      {profile?.bankAgency && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Agência</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAgency}</p>
+                        </div>
+                      )}
+                      {profile?.bankAccount && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Conta</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.bankAccount}</p>
+                        </div>
+                      )}
+                      {profile?.pixKey && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Chave PIX</p>
+                          <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-gray-100">{profile.pixKey}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-300 dark:text-gray-600">
+                        <path fillRule="evenodd" d="M1 4a1 1 0 011-1h16a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4zm12 4a3 3 0 11-6 0 3 3 0 016 0zM4 9a1 1 0 100-2 1 1 0 000 2zm13-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                      <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500">Dados Bancários</h3>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Não disponíveis — o aluno deve preencher os dados bancários no perfil.
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Assigned Project */}
               {expense.project && (
@@ -1298,7 +1567,15 @@ export default function ExpenseDetalhe() {
               {/* Concluir Despesa — only when EM_PROCESSAMENTO */}
               {expense.status === "EM_PROCESSAMENTO" && (() => {
                 const breakdowns = expense.costBreakdowns ?? [];
-                const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey);
+                const isAnexoOpcional = (cb: typeof breakdowns[0]) =>
+                  cb.subcategory.normalizedName === "hospedagem" ||
+                  cb.subcategory.normalizedName === "diarias" ||
+                  cb.subcategory.normalizedName?.startsWith("inscri") ||
+                  cb.subcategory.name.toLowerCase().includes("diária") ||
+                  cb.subcategory.name.toLowerCase().includes("hospedagem") ||
+                  cb.subcategory.name.toLowerCase().includes("inscri");
+                const semComprovante = breakdowns.filter((cb) => !cb.attachmentKey && !isAnexoOpcional(cb));
+                const semComprovanteSemAnexo = breakdowns.filter((cb) => !cb.attachmentKey && isAnexoOpcional(cb));
                 const podeConcluir = breakdowns.length > 0 && semComprovante.length === 0;
                 return (
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
@@ -1334,10 +1611,18 @@ export default function ExpenseDetalhe() {
                       )}
                       {semComprovante.map((cb) => (
                         <li key={cb.id} className="flex items-center gap-2 text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-red-400">
+                            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-red-600">{cb.subcategory.name} — comprovante obrigatório</span>
+                        </li>
+                      ))}
+                      {semComprovanteSemAnexo.map((cb) => (
+                        <li key={cb.id} className="flex items-center gap-2 text-sm">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-400">
                             <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-amber-700">{cb.subcategory.name} — sem comprovante</span>
+                          <span className="text-amber-700">{cb.subcategory.name} — sem comprovante (opcional)</span>
                         </li>
                       ))}
                     </ul>
@@ -1376,7 +1661,6 @@ export default function ExpenseDetalhe() {
           solicitacao={{
             reqId: displayId,
             descricao: expense.title,
-            valor: totalCusto,
             aluno: expense.student?.name,
           }}
           onClose={() => setShowModalRejeitar(false)}

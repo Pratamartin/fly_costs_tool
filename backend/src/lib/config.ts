@@ -2,7 +2,7 @@ import type { Schema } from 'hono/types'
 import type { AppOpenAPI } from './type'
 import { Scalar } from '@scalar/hono-api-reference'
 import { requestId } from 'hono/request-id'
-import { cors, logger, notFound, onError } from '@/middlewares'
+import { cors, logger, notFound, onError, paginationHeaders } from '@/middlewares'
 import packageJSON from '../../package.json' with { type: 'json' }
 import { createRouter } from './util'
 
@@ -12,6 +12,7 @@ export function createApp() {
   app.use(cors)
     .use(requestId())
     .use(logger)
+    .use(paginationHeaders)
 
   app.notFound(notFound)
   app.onError(onError)

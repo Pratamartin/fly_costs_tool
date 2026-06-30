@@ -1,4 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client'
+import { MOCK_INVITE_ADMIN, MOCK_INVITE_ALUNO, MOCK_INVITE_COORD } from '@/constants/seed.constant'
 import { UserRole } from '@/generated/prisma/client'
 import { logger } from '@/lib/logger'
 import prisma from '@/lib/orm'
@@ -6,17 +7,17 @@ import { getInviteDefaultExpiry } from '@/services/invite.service'
 
 export const dummyInviteCodes = [
   {
-    code: 'aluno2026',
+    code: MOCK_INVITE_ALUNO,
     role: UserRole.ALUNO,
     expiresAt: getInviteDefaultExpiry(),
   },
   {
-    code: 'coordenador2026',
+    code: MOCK_INVITE_COORD,
     role: UserRole.COORDENADOR,
     expiresAt: getInviteDefaultExpiry(),
   },
   {
-    code: 'admin2026',
+    code: MOCK_INVITE_ADMIN,
     role: UserRole.ADMIN,
     expiresAt: getInviteDefaultExpiry(),
   },
