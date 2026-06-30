@@ -15,6 +15,7 @@ type FormState = {
   nomeBanco: string;
   agenciaDigito: string;
   contaDigito: string;
+  chavePix: string;
   senha: string;
   confirmarSenha: string;
   codigoConvite: string;
@@ -85,6 +86,20 @@ function validateForm(form: FormState): FormErrors {
 
   if (!form.contaDigito.trim()) errors.contaDigito = "Conta obrigatória";
 
+  if (!form.chavePix.trim()) {
+    errors.chavePix = "Chave PIX obrigatória";
+  } else {
+    const pix = form.chavePix.trim();
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pix);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pix);
+    const isPhone = /^\+[1-9]\d{6,14}$/.test(pix);
+    const isCpf = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(pix) || /^\d{11}$/.test(pix);
+    const isCnpj = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(pix) || /^\d{14}$/.test(pix);
+    if (!isEmail && !isUuid && !isPhone && !isCpf && !isCnpj) {
+      errors.chavePix = "Chave PIX inválida. Use e-mail, telefone (+55...), CPF, CNPJ ou chave aleatória (UUID)";
+    }
+  }
+
   const senhaErro = validateSenha(form.senha);
   if (senhaErro) errors.senha = senhaErro;
 
@@ -117,6 +132,7 @@ export default function CadastroAluno() {
     nomeBanco: "",
     agenciaDigito: "",
     contaDigito: "",
+    chavePix: "",
     senha: "",
     confirmarSenha: "",
     codigoConvite: "",
@@ -167,6 +183,7 @@ export default function CadastroAluno() {
         bankName: form.nomeBanco,
         bankAgency: form.agenciaDigito,
         bankAccount: form.contaDigito,
+        pixKey: form.chavePix,
       });
 
       if (!result.ok) {
@@ -536,6 +553,32 @@ export default function CadastroAluno() {
                     />
                   </div>
                   {errors.contaDigito && <p className="mt-1 text-xs text-red-500">{errors.contaDigito}</p>}
+                </div>
+
+                {/* PIX Key */}
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                    Chave PIX <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      name="chavePix"
+                      value={form.chavePix}
+                      onChange={handleChange}
+                      placeholder="E-mail, CPF, CNPJ, telefone (+55...) ou chave aleatória"
+                      className={inputClass("chavePix")}
+                    />
+                  </div>
+                  {errors.chavePix
+                    ? <p className="mt-1 text-xs text-red-500">{errors.chavePix}</p>
+                    : <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Aceita e-mail, CPF, CNPJ, telefone (+5511...) ou UUID</p>
+                  }
                 </div>
               </div>
             </div>
