@@ -54,6 +54,19 @@
 
    **REFRESH_TOKEN_EXPIRES_DAYS**: Duração da sessão deslizante (dias). Ex: `14`.
 
+   **Cloudflare R2 (Armazenamento de Comprovantes e Anexos)**:
+   - `R2_ACCESS_KEY_ID`: Chave de acesso R2.
+   - `R2_SECRET_ACCESS_KEY`: Chave secreta R2.
+   - `R2_ENDPOINT`: Endpoint S3 API. Ex: `https://<account>.r2.cloudflarestorage.com`
+   - `R2_BUCKET_NAME`: Nome do bucket (ex: `fly-costs`).
+
+   **Google Email (Notificações - Obrigatório em Produção)** (Ref: PR #214):
+   - Requer `GOOGLE_EMAIL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_REDIRECT_URI`.
+
+   **Cleanup / Expurgo de Banco (Background Jobs)**:
+   - `CLEANUP_ENABLED` (Padrão: `true`), `CLEANUP_CRON_SCHEDULE` (Padrão: `0 3 * * *`).
+   - `CLEANUP_SESSION_RETENTION_DAYS`, `CLEANUP_INVITE_PENDING_RETENTION_DAYS`, `CLEANUP_INVITE_USED_RETENTION_DAYS`.
+
 4. **Iniciando a aplicação:**
     ```bash
     npx prisma generate
