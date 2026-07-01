@@ -11,7 +11,7 @@ API REST + Frontend integrados para gerenciamento de solicitações e aprovaçõ
 | Camada | Tecnologias |
 |--------|-------------|
 | **Frontend** | Next.js 14 (Pages Router), TypeScript, Tailwind CSS |
-| **Backend** | Hono, Zod, Prisma, PostgreSQL |
+| **Backend** | Hono, Zod, Prisma, PostgreSQL, Gmail API, Cloudflare R2 |
 | **Testes** | Vitest, TestContainers |
 | **Infra** | Docker, Docker Compose |
 
@@ -74,6 +74,15 @@ cp .env.example .env
 | `DATABASE_URL` | URL de conexão com o PostgreSQL | Docker local: `postgresql://user:password@localhost:5432/flycostsdb` · Nuvem: [console.prisma.io](https://console.prisma.io) |
 | `JWT_SECRET` | Chave para assinar tokens JWT | `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
 | `JWT_EXPIRE_AT` | Tempo de vida do token (segundos) | Ex: `86400` (1 dia), `604800` (1 semana) |
+| `JWT_REFRESH_SECRET` | Chave p/ Refresh Token | Gere uma chave diferente (mesmo comando) |
+| `JWT_EXPIRES_IN` | Duração do Access Token (segundos) | Ex: `1800` (30m) |
+| `REFRESH_TOKEN_EXPIRES_DAYS`| Duração do Refresh Token (dias) | Ex: `14` |
+| `R2_ACCESS_KEY_ID` | Chave de acesso do Cloudflare R2 | Painel do Cloudflare (R2) |
+| `R2_SECRET_ACCESS_KEY`| Chave secreta do Cloudflare R2 | Painel do Cloudflare (R2) |
+| `R2_ENDPOINT` | Endpoint S3-compatible | `https://<account_id>.r2.cloudflarestorage.com` |
+| `R2_BUCKET_NAME` | Nome do bucket R2 | Ex: `fly-costs-bucket` |
+| `CLEANUP_*` | 5 vars p/ limpeza automática de banco em background | Padrões inseridos na base |
+| `GOOGLE_*` | 5 vars de disparo de email (Opcional dev, Obrigatório Prod) | Console do Google Cloud (Ref: PR #214) |
 
 ### Scripts do banco de dados
 
